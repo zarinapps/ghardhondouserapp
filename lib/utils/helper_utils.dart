@@ -124,6 +124,10 @@ class HelperUtils {
   }) {
     Navigator.of(context).pushNamed(routeName, arguments: arguments);
   }
+
+  static void killPreviousPages(BuildContext context, String routeName) {
+    Navigator.of(context).pushNamedAndRemoveUntil(routeName, (route) => false);
+  }
 }
 
 /// ✅ `StringCasingExtension` Fix (Corrected Version)
