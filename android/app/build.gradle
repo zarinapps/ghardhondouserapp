@@ -24,46 +24,30 @@ if (flutterRoot == null) {
     throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '3'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0.2'
-}
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode', '3').toInteger()
+def flutterVersionName = localProperties.getProperty('flutter.versionName', '1.0.2')
 
 android {
     compileSdkVersion 35
     ndkVersion "26.1.10909125"
 
-    compileOptions {
-        coreLibraryDesugaringEnabled true
-        sourceCompatibility java_version
-        targetCompatibility java_version
-    }
-
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-        }
-    }
-    kotlinOptions {
-        jvmTarget = java_version.toString()
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-
     defaultConfig {
         applicationId "ghardhondo.zarin.solutions"
         minSdkVersion 24
         targetSdkVersion 34
-        multiDexEnabled true
-        versionCode flutterVersionCode.toInteger()
+        versionCode flutterVersionCode
         versionName flutterVersionName
+        multiDexEnabled true
+    }
+
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 
     signingConfigs {
@@ -78,13 +62,13 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-//            signingConfig signingConfigs.debug
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    namespace 'com.ebroker.wrteam'
-    lint {
+
+    lintOptions {
+        checkReleaseBuilds false
         disable 'InvalidPackage'
     }
 }
@@ -94,11 +78,11 @@ flutter {
 }
 
 dependencies {
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation platform("com.google.firebase:firebase-bom:32.7.0")
     implementation 'com.google.firebase:firebase-auth-ktx'
     implementation 'com.google.firebase:firebase-analytics'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation("com.android.support:multidex:1.0.3")
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation("androidx.multidex:multidex:2.0.1")
     implementation 'com.google.android.gms:play-services-location:21.0.1'
     implementation 'androidx.browser:browser:1.7.0'
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
