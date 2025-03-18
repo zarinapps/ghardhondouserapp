@@ -511,9 +511,9 @@ extension StringCasingExtension on String {
 
 import 'dart:async';
 
-extension ListExtensions<T> on List<T> {
+extension ParallelMapExtension<T> on List<T> {
   Future<List<R>> parallelMap<R>(
-    FutureOr<R> Function(T) mapper, {
+    FutureOr<R> Function(T element) mapper, {
     int concurrency = 1,
   }) async {
     final results = <R>[]; 
@@ -531,26 +531,25 @@ extension ListExtensions<T> on List<T> {
     await done.future;
     return results;
   }
+}
 
-  void _startWorker<T, R>(
-    Stream<T> input,
-    List<R> results,
-    FutureOr<R> Function(T) mapper,
-    Completer<void> done,
-  ) {
-    int processedItems = 0;
-    int totalItems = results.length; 
+void _startWorker<T, R>(
+  Stream<T> input,
+  List<R> results,
+  FutureOr<R> Function(T) mapper,
+  Completer<void> done,
+) {
+  int processedItems = 0;
 
-    input.listen(
-      (element) async {
-        final result = await mapper(element);
-        results.add(result);
-        processedItems++;
+  input.listen(
+    (element) async {
+      final result = await mapper(element);
+      results.add(result);
+      processedItems++;
 
-        if (processedItems >= totalItems && !done.isCompleted) {
-          done.complete();
-        }
-      },
-    );
-  }
+      if (processedItems >= results.length && !done.isCompleted) {
+        done.complete();
+      }
+    },
+  );
 }
