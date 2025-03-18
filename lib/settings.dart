@@ -9,7 +9,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class AppSettings {
   ///Basic Settings
   static const String applicationName = 'Ghar Dhondo';
-  static const String androidPackageName = '';
+  static const String androidPackageName = 'ghardhondo.zarin.solutions';
 
   ///API Setting
   static const String hostUrl = 'http://ghardhondo.zarin.solutions';

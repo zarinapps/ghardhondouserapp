@@ -48,11 +48,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBSksY05O1OvkcXyFPrXVVauEklm8hKsq8',
-    appId: '1:266538078446:android:8e33cd628408ded8f723ff',
-    messagingSenderId: '266538078446',
-    projectId: 'ghardho-d76aa',
-    storageBucket: 'ghardho-d76aa.firebasestorage.app',
+    apiKey: 'AIzaSyBrRJxhlgvrH-I6RH3WUcgbLbu7su277WY',
+    appId: '1:783912667881:android:15b292b078ab907d907e78',
+    messagingSenderId: '783912667881',
+    projectId: 'ghardhondo-8899f',
+    storageBucket: 'ghardhondo-8899f.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
