@@ -513,17 +513,15 @@ import 'dart:async';
 
 extension ListExtensions<T> on List<T> {
   Future<List<R>> parallelMap<R>(
-    FutureOr<R> Function(T element) mapper, {
+    FutureOr<R> Function(T) mapper, {
     int concurrency = 1,
   }) async {
     final results = <R>[]; 
     final queue = StreamController<T>(); 
     final done = Completer<void>(); 
 
-    int totalElements = this.length;  // ✅ Corrected length access
-
     for (var i = 0; i < concurrency; i++) {
-      _startWorker(queue.stream, results, mapper, done, totalElements);
+      _startWorker<T, R>(queue.stream, results, mapper, done);
     }
 
     for (final element in this) {
@@ -539,15 +537,17 @@ extension ListExtensions<T> on List<T> {
     List<R> results,
     FutureOr<R> Function(T) mapper,
     Completer<void> done,
-    int totalElements,
   ) {
+    int processedItems = 0;
+    int totalItems = results.length; 
+
     input.listen(
       (element) async {
         final result = await mapper(element);
         results.add(result);
-      },
-      onDone: () {
-        if (!done.isCompleted && results.length >= totalElements) { // ✅ Fixed comparison
+        processedItems++;
+
+        if (processedItems >= totalItems && !done.isCompleted) {
           done.complete();
         }
       },
