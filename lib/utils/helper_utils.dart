@@ -8,7 +8,6 @@ import 'package:ebroker/data/helper/custom_exception.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:flutter_sim_country_code/flutter_sim_country_code.dart';
 import 'package:http/http.dart';
 import 'package:open_filex/open_filex.dart';
@@ -455,17 +454,25 @@ class HelperUtils {
     }
   }
 
-  static Future<File?> compressImageFile(File file) async {
-    try {
-      final compressedFile = await FlutterNativeImage.compressImage(
-        file.path,
-        quality: Constant.uploadImageQuality,
-      );
-      return File(compressedFile.path);
-    } catch (e) {
-      return null; //If any error occurs during compression, the process is stopped.
-    }
+  import 'package:flutter_image_compress/flutter_image_compress.dart';
+
+static Future<File?> compressImageFile(File file) async {
+  try {
+    final filePath = file.absolute.path;
+    final lastIndex = filePath.lastIndexOf(RegExp(r'.png|.jpg|.jpeg'));
+
+    final compressedImage = await FlutterImageCompress.compressAndGetFile(
+      filePath,
+      "${filePath.substring(0, lastIndex)}_compressed${filePath.substring(lastIndex)}",
+      quality: Constant.uploadImageQuality,
+    );
+
+    return compressedImage != null ? File(compressedImage.path) : null;
+  } catch (e) {
+    return null; //If any error occurs during compression, the process is stopped.
   }
+}
+
 }
 
 ///Post Frame Callback
