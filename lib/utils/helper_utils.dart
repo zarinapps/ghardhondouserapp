@@ -8,8 +8,6 @@ import 'package:ebroker/data/helper/custom_exception.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'dart:io';
 import 'package:flutter_sim_country_code/flutter_sim_country_code.dart';
 import 'package:http/http.dart';
 import 'package:open_filex/open_filex.dart';
@@ -456,21 +454,23 @@ class HelperUtils {
     }
   }
 
-  static Future<File?> compressImageFile(File file) async {
-  try {
-    final filePath = file.absolute.path;
-    final targetPath = "${filePath.substring(0, filePath.lastIndexOf('.'))}_compressed.jpg";
+  import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
 
-    final XFile? compressedImage = await FlutterImageCompress.compressAndGetFile(
-      filePath,
+static Future<File?> compressImageFile(File file) async {
+  try {
+    final dir = await getTemporaryDirectory();
+    final targetPath = '${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final result = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
       targetPath,
-      quality: 80, // Adjust quality as needed
+      quality: Constant.uploadImageQuality, // Adjust quality as needed
     );
 
-    return compressedImage != null ? File(compressedImage.path) : null;
+    return result;
   } catch (e) {
-    print("Image compression error: $e");
-    return null; // If any error occurs during compression, return null.
+    return null; // If any error occurs, return null
   }
 }
 
