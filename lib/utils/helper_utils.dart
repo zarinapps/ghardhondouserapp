@@ -518,20 +518,16 @@ extension ListExtensions<T> on List<T> {
     final queue = StreamController<T>.broadcast();
     final done = Completer();
 
-    // Start worker functions
     for (var i = 0; i < concurrency; i++) {
-      _startWorker(queue.stream, results, mapper, done);
+      _startWorker(queue.stream, results, mapper, done, length: this.length);
     }
 
-    // Add elements to the queue
     for (final element in this) {
       queue.add(element);
     }
     await queue.close();
 
-    // Wait for all workers to finish
     await done.future;
-
     return results;
   }
 
@@ -539,18 +535,20 @@ extension ListExtensions<T> on List<T> {
     Stream<T> input,
     List<R> results,
     FutureOr<R> Function(T) mapper,
-    Completer done,
-  ) {
+    Completer done, {
+    required int length,  // 👈 FIXED: Length ka parameter add kiya gaya
+  }) {
     input.listen(
       (element) async {
         final result = await mapper(element);
         results.add(result);
       },
       onDone: () {
-        if (!done.isCompleted && results.length == length) {
+        if (!done.isCompleted && results.length == length) {  // ✅ FIXED
           done.complete();
         }
       },
     );
   }
 }
+
