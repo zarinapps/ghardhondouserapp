@@ -509,47 +509,46 @@ extension StringCasingExtension on String {
       .join(' ');
 }
 
-import 'dart:async';
-
-extension ParallelMapExtension<T> on List<T> {
-  Future<List<R>> parallelMap<R>(
-    FutureOr<R> Function(T element) mapper, {
+class HelperUtils {
+  static Future<List<R>> parallelMap<R, T>(
+    List<T> items,
+    FutureOr<R> Function(T) mapper, {
     int concurrency = 1,
   }) async {
-    final results = <R>[]; 
-    final queue = StreamController<T>(); 
-    final done = Completer<void>(); 
+    final results = <R>[];
+    final queue = StreamController<T>();
+    final done = Completer<void>();
 
     for (var i = 0; i < concurrency; i++) {
       _startWorker<T, R>(queue.stream, results, mapper, done);
     }
 
-    for (final element in this) {
+    for (final element in items) {
       queue.add(element);
     }
     await queue.close();
     await done.future;
     return results;
   }
-}
 
-void _startWorker<T, R>(
-  Stream<T> input,
-  List<R> results,
-  FutureOr<R> Function(T) mapper,
-  Completer<void> done,
-) {
-  int processedItems = 0;
+  static void _startWorker<T, R>(
+    Stream<T> input,
+    List<R> results,
+    FutureOr<R> Function(T) mapper,
+    Completer<void> done,
+  ) {
+    int processedItems = 0;
 
-  input.listen(
-    (element) async {
-      final result = await mapper(element);
-      results.add(result);
-      processedItems++;
+    input.listen(
+      (element) async {
+        final result = await mapper(element);
+        results.add(result);
+        processedItems++;
 
-      if (processedItems >= results.length && !done.isCompleted) {
-        done.complete();
-      }
-    },
-  );
+        if (processedItems >= results.length && !done.isCompleted) {
+          done.complete();
+        }
+      },
+    );
+  }
 }
