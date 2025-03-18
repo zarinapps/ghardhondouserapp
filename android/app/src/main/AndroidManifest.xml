@@ -34,7 +34,7 @@
     </intent>
 </queries>
    <application
-        android:label="eBroker"
+        android:label="Ghar Dhondo"
         android:requestLegacyExternalStorage="true"
         android:largeHeap="true"
         android:name="${applicationName}"
@@ -48,7 +48,7 @@
            tools:replace="android:resource" />
        <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCwIJO3sTsgLVEE4bpHJty0osx_PT9cVS8" />
+            android:value="AIzaSyDgBtjlf7N4JTkTID_P5ge0e_dU8IQNeRY" />
 
        <meta-data
            android:name="com.google.android.gms.ads.APPLICATION_ID"

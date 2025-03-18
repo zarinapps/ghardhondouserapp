@@ -58,7 +58,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.ebroker.wrteam"
+        applicationId "ghardhondo.zarin.solutions"
         minSdkVersion 24
         targetSdkVersion 34
         multiDexEnabled true

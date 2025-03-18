@@ -8,11 +8,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AppSettings {
   ///Basic Settings
-  static const String applicationName = 'eBroker';
-  static const String androidPackageName = 'com.ebroker.wrteam';
+  static const String applicationName = 'Ghar Dhondo';
+  static const String androidPackageName = '';
 
   ///API Setting
-  static const String hostUrl = 'https://ebroker.wrteam.me';
+  static const String hostUrl = 'http://ghardhondo.zarin.solutions';
   // ebroker.wrteam.me
   static const int apiDataLoadLimit = 10;
   static const int maxCategoryShowLengthInHomeScreen = 5;
