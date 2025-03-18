@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
-
+import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -457,30 +457,39 @@ class HelperUtils {
 
 static Future<File> compressImageFile(File file) async {
   try {
+    // File ka size check karo
     final int fileSize = await file.length();
 
     if (fileSize <= Constant.maxSizeInBytes) {
-      // Agar file size choti hai to compress ki zaroorat nahi
+      // Agar file choti hai to compress nahi karni
       return file;
     }
 
-    final filePath = file.absolute.path;
-    final lastIndex = filePath.lastIndexOf(RegExp(r'.png|.jp'));
-    final splitted = filePath.substring(0, (lastIndex));
-    final outPath = "${splitted}_out${filePath.substring(lastIndex)}";
+    final String filePath = file.absolute.path;
+    final int lastIndex = filePath.lastIndexOf(RegExp(r'.png|.jp'));
+    
+    if (lastIndex == -1) {
+      throw Exception("Unsupported file format for compression");
+    }
 
-    XFile? result = await FlutterImageCompress.compressAndGetFile(
+    final String outPath = "${filePath.substring(0, lastIndex)}_compressed${filePath.substring(lastIndex)}";
+
+    XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
       filePath,
       outPath,
       quality: Constant.uploadImageQuality,
     );
 
-    return File(result!.path);
+    if (compressedFile == null) {
+      throw Exception("Compression failed, output file is null");
+    }
+
+    return File(compressedFile.path);
   } catch (e) {
-    throw Exception("Error compressing image: $e");
+    print("Image compression error: $e");
+    return file; // Agar error aaye to original file return kar do
   }
 }
-
 
 ///Post Frame Callback
 void postFrame(void Function(Duration t) fn) {
