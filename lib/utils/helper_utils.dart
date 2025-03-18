@@ -509,6 +509,8 @@ extension StringCasingExtension on String {
       .join(' ');
 }
 
+import 'dart:async';
+
 extension ListExtensions<T> on List<T> {
   Future<List<R>> parallelMap<R>(
     FutureOr<R> Function(T) mapper, {
@@ -516,10 +518,12 @@ extension ListExtensions<T> on List<T> {
   }) async {
     final results = <R>[];
     final queue = StreamController<T>.broadcast();
-    final done = Completer();
+    final done = Completer<void>();
+
+    int totalElements = length; // ✅ FIXED: Correctly getting length
 
     for (var i = 0; i < concurrency; i++) {
-      _startWorker(queue.stream, results, mapper, done, length: this.length);
+      _startWorker(queue.stream, results, mapper, done, totalElements);
     }
 
     for (final element in this) {
@@ -535,20 +539,19 @@ extension ListExtensions<T> on List<T> {
     Stream<T> input,
     List<R> results,
     FutureOr<R> Function(T) mapper,
-    Completer done, {
-    required int length,  // 👈 FIXED: Length ka parameter add kiya gaya
-  }) {
+    Completer<void> done,
+    int totalElements, // ✅ FIXED: Now length is passed correctly
+  ) {
     input.listen(
       (element) async {
         final result = await mapper(element);
         results.add(result);
       },
       onDone: () {
-        if (!done.isCompleted && results.length == length) {  // ✅ FIXED
+        if (!done.isCompleted && results.length == totalElements) { // ✅ FIXED
           done.complete();
         }
       },
     );
   }
 }
-
