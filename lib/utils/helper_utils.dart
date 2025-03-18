@@ -9,6 +9,7 @@ import 'package:ebroker/exports/main_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sim_country_code/flutter_sim_country_code.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
@@ -454,25 +455,32 @@ class HelperUtils {
     }
   }
 
-  import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart';
-
-static Future<File?> compressImageFile(File file) async {
+static Future<File> compressImageFile(File file) async {
   try {
-    final dir = await getTemporaryDirectory();
-    final targetPath = '${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final int fileSize = await file.length();
 
-    final result = await FlutterImageCompress.compressAndGetFile(
-      file.absolute.path,
-      targetPath,
-      quality: Constant.uploadImageQuality, // Adjust quality as needed
+    if (fileSize <= Constant.maxSizeInBytes) {
+      // Agar file size choti hai to compress ki zaroorat nahi
+      return file;
+    }
+
+    final filePath = file.absolute.path;
+    final lastIndex = filePath.lastIndexOf(RegExp(r'.png|.jp'));
+    final splitted = filePath.substring(0, (lastIndex));
+    final outPath = "${splitted}_out${filePath.substring(lastIndex)}";
+
+    XFile? result = await FlutterImageCompress.compressAndGetFile(
+      filePath,
+      outPath,
+      quality: Constant.uploadImageQuality,
     );
 
-    return result;
+    return File(result!.path);
   } catch (e) {
-    return null; // If any error occurs, return null
+    throw Exception("Error compressing image: $e");
   }
 }
+
 
 ///Post Frame Callback
 void postFrame(void Function(Duration t) fn) {
