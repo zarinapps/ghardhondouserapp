@@ -8,7 +8,6 @@ import 'package:ebroker/data/helper/custom_exception.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:flutter_sim_country_code/flutter_sim_country_code.dart';
 import 'package:http/http.dart';
 import 'package:open_filex/open_filex.dart';
