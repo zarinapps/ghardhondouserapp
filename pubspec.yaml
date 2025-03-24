@@ -61,7 +61,7 @@ dependencies:
   #  octo_image: ^2.0.0
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.4.1
-  image: ^4.0.17
+  flutter_image_compress: ^2.3.0
   dotted_border: ^2.1.0
   flutter_html: ^3.0.0-beta.1
   share_plus: ^10.0.3
