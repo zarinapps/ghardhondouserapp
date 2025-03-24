@@ -480,7 +480,7 @@ class HelperUtils {
       throw Exception("Error compressing image: $e");
     }
   }
-  
+  }
 ///Post Frame Callback
 void postFrame(void Function(Duration t) fn) {
   WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
