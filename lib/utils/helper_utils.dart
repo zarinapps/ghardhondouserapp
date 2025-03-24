@@ -454,17 +454,22 @@ class HelperUtils {
     }
   }
 
-  static Future<File?> compressImageFile(File file) async {
-    try {
-      final compressedFile = await FlutterNativeImage.compressImage(
-        file.path,
-        quality: Constant.uploadImageQuality,
-      );
-      return File(compressedFile.path);
-    } catch (e) {
-      return null; //If any error occurs during compression, the process is stopped.
-    }
+  import 'dart:io';
+import 'package:image/image.dart' as img;
+
+static Future<File?> compressImageFile(File file) async {
+  try {
+    final image = img.decodeImage(await file.readAsBytes());
+    if (image == null) return null;
+
+    final compressedImage = img.encodeJpg(image, quality: 70);
+    final newFile = File(file.path)..writeAsBytesSync(compressedImage);
+    return newFile;
+  } catch (e) {
+    return null;
   }
+}
+
 }
 
 ///Post Frame Callback
