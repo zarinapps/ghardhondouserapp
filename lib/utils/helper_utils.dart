@@ -8,8 +8,8 @@ import 'package:ebroker/data/helper/custom_exception.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:flutter_sim_country_code/flutter_sim_country_code.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
@@ -455,32 +455,19 @@ class HelperUtils {
     }
   }
 
-  static Future<File> compressImageFile(File file) async {
+  static Future<File?> compressImageFile(File file) async {
     try {
-      final int fileSize = await file.length();
-
-      if (fileSize <= Constant.maxSizeInBytes) {
-        // No need to compress if already within size limit
-        return file;
-      }
-
-      final filePath = file.absolute.path;
-      final lastIndex = filePath.lastIndexOf(RegExp(r'.png|.jp'));
-      final splitted = filePath.substring(0, (lastIndex));
-      final outPath = "${splitted}_out${filePath.substring(lastIndex)}";
-
-      XFile? result = await FlutterImageCompress.compressAndGetFile(
-        filePath,
-        outPath,
+      final compressedFile = await FlutterNativeImage.compressImage(
+        file.path,
         quality: Constant.uploadImageQuality,
       );
-
-      return File(result!.path);
+      return File(compressedFile.path);
     } catch (e) {
-      throw Exception("Error compressing image: $e");
+      return null; //If any error occurs during compression, the process is stopped.
     }
   }
-  }
+}
+
 ///Post Frame Callback
 void postFrame(void Function(Duration t) fn) {
   WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
