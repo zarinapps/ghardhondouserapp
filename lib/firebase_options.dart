@@ -65,6 +65,6 @@ class DefaultFirebaseOptions {
         '63168540332-bf5kqt19bbbq0ub3quibe67tfi7hjc1v.apps.googleusercontent.com',
     iosClientId:
         '63168540332-b8snl3ggfeaosrq8acqc11npalhouus5.apps.googleusercontent.com',
-    iosBundleId: 'com.ebroker.wrteam',
+    iosBundleId: 'ghardhondo.zarin.solutions',
   );
 }
