@@ -76,7 +76,6 @@ dependencies:
     motion_sensors:
     git:
       url: https://github.com/zarinapps/motion_sensors.git
-      ref: master
   #payment gateways
   razorpay_flutter: 1.4.0
   in_app_purchase: ^3.2.0
