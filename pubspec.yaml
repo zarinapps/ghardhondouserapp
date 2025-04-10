@@ -108,7 +108,7 @@ dependencies:
   timeago: ^3.7.0
   app_links: ^6.3.2
   flutter_sound: ^9.17.0
-  motion_sensors: 1.0.1
+  motion_sensors: 0.1.0
   http_parser: any
   flutterwave: ^1.0.3
   file_picker: 8.1.2
