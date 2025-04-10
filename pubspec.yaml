@@ -73,9 +73,6 @@ dependencies:
   launch_review:
     git:
       url: https://github.com/zarinapps/launch_review.git
-    motion_sensors:
-    git:
-      url: https://github.com/zarinapps/motion_sensors.git
   #payment gateways
   razorpay_flutter: 1.4.0
   in_app_purchase: ^3.2.0
@@ -111,6 +108,9 @@ dependencies:
   timeago: ^3.7.0
   app_links: ^6.3.2
   flutter_sound: ^9.17.0
+  motion_sensors:
+    git:
+      url: https://github.com/zarinapps/motion_sensors.git
   http_parser: any
   flutterwave: ^1.0.3
   file_picker: 8.1.2
