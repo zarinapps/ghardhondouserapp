@@ -1,16 +1,18 @@
 buildscript {
     ext {
-        kotlin_version = '1.9.20'
-        java_version = JavaVersion.VERSION_1_8  // Define a consistent Java version
-    } // Update this to a version compatible with your Gradle version
+        kotlin_version = '1.9.20' // ✅ Already good
+        java_version = JavaVersion.VERSION_1_8 // ✅ Recommended for most Android builds
+    }
+
     repositories {
         google()
         mavenCentral()
     }
+
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.5.0' // Make sure this is up to date
+        classpath 'com.android.tools.build:gradle:8.3.1' // ✅ Stable latest (avoid preview 8.5.0)
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'com.google.gms:google-services:4.3.15' // Update this if needed
+        classpath 'com.google.gms:google-services:4.4.0' // ✅ Latest & stable
     }
 }
 
@@ -19,12 +21,16 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // ✅ Kotlin compile options
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
         kotlinOptions {
             jvmTarget = java_version.toString()
         }
     }
-    tasks.withType(JavaCompile) {
+
+    // ✅ Java compile options
+    tasks.withType(JavaCompile).configureEach {
         sourceCompatibility = java_version
         targetCompatibility = java_version
     }
@@ -33,27 +39,31 @@ allprojects {
 subprojects {
     afterEvaluate { project ->
         if (project.plugins.hasPlugin("com.android.application") ||
-                project.plugins.hasPlugin("com.android.library")) {
+            project.plugins.hasPlugin("com.android.library")) {
             project.android {
-                compileSdkVersion 35
+                compileSdkVersion = 34 // ✅ 34 is stable; 35 still beta (optional)
             }
         }
+
+        // ✅ Safe namespace fallback
         if (project.hasProperty('android')) {
             project.android {
-                if (namespace == null) {
-                    namespace project.group
+                if (!project.hasProperty('namespace') || namespace == null) {
+                    namespace = project.group ?: "com.example.${project.name}"
                 }
             }
         }
     }
 }
 
+// ✅ Build dir management
 rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.evaluationDependsOn(':app')
 }
 
+// ✅ Clean task
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
