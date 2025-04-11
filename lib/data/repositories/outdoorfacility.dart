@@ -9,7 +9,7 @@ class OutdoorFacilityRepository {
     );
 
     final outdoorFacilities = (result['data'] as List).map((element) {
-      return OutdoorFacility.fromJson(element);
+      return OutdoorFacility.fromJson(element as Map<String, dynamic>? ?? {});
     }).toList();
 
     return List.from(outdoorFacilities);

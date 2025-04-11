@@ -74,8 +74,7 @@ class _MostViewedPropertiesScreenState
               children: [
                 Expanded(
                   child: ListView.builder(
-                    physics: const BouncingScrollPhysics(
-                        parent: AlwaysScrollableScrollPhysics()),
+                    physics: Constant.scrollPhysics,
                     controller: _pageScollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: state.properties.length,

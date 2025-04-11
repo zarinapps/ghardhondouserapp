@@ -40,42 +40,13 @@ class Paypal extends Payment {
         Future.delayed(
           const Duration(milliseconds: 1000),
           () {
-            UiUtils.showBlurredDialoge(
-              context,
-              dialoge: BlurredDialogBox(
-                title: UiUtils.translate(
-                  context,
-                  value['type'] == 'success' ? 'success' : 'Failed',
-                ),
-                onAccept: () async {
-                  if (value['type'] == 'success') {
-                    emit(Success(message: 'Success'));
-                    // _purchase(context);
-                  }
-                  if (value['type'] == 'Failed') {
-                    emit(
-                      Failure(
-                        message: 'Something went wrong while making payment',
-                      ),
-                    );
-                  }
-                },
-                onCancel: () {
-                  if (value['type'] == 'success') {
-                    emit(Success(message: 'Success'));
-                  }
-                  if (value['type'] == 'Failed') {
-                    emit(
-                      Failure(
-                        message: 'Something went wrong while making payment',
-                      ),
-                    );
-                  }
-                },
-                isAcceptContainesPush: true,
-                content: CustomText(value['msg']),
-              ),
-            );
+            if (value['type'] == 'success') {
+              emit(Success(message: 'Success'));
+              Navigator.pop(context);
+            } else if (value['type'] == 'Failed') {
+              emit(Failure(message: 'Failed'));
+              Navigator.pop(context);
+            }
           },
         );
       }

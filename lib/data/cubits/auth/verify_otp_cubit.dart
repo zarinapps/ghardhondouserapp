@@ -52,14 +52,14 @@ class VerifyOtpCubit extends Cubit<VerifyOtpState> {
         final credential = await _authRepository.verifyTwilioOTP(
           number: number!,
           otp: otp,
-        );
-        final authId = credential['auth_id'];
+        ) as Map<dynamic, dynamic>;
+        final authId = credential['auth_id']?.toString() ?? '';
         emit(
           VerifyOtpSuccess(authId: authId, number: number),
         );
       }
     } on FirebaseAuthException catch (e) {
-      emit(VerifyOtpFailure(ErrorFilter.check(e.code).error));
+      emit(VerifyOtpFailure(ErrorFilter.check(e.code).error?.toString() ?? ''));
     } catch (e) {
       emit(VerifyOtpFailure(e.toString()));
     }
@@ -74,14 +74,14 @@ class VerifyOtpCubit extends Cubit<VerifyOtpState> {
       final credential = await _authRepository.verifyEmailOTP(
         otp: otp,
         email: email,
-      );
+      ) as Map<dynamic, dynamic>;
       if (credential['error'] == true) {
-        emit(VerifyOtpFailure(credential['message']));
+        emit(VerifyOtpFailure(credential['message']?.toString() ?? ''));
         return;
       }
       emit(VerifyOtpSuccess(credential: credential['data']));
     } on FirebaseAuthException catch (e) {
-      emit(VerifyOtpFailure(ErrorFilter.check(e.code).error));
+      emit(VerifyOtpFailure(ErrorFilter.check(e.code).error?.toString() ?? ''));
     } catch (e) {
       emit(VerifyOtpFailure(e.toString()));
     }

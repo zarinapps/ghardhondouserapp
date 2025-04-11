@@ -88,9 +88,9 @@ class UiUtils {
     bool? showFullScreenImage,
   }) {
     // return SizedBox.shrink();
-    final defaultMemCacheSize = 500;
-    final placeholderOpacity = 0.1;
-    final placeholderSize = 70.0;
+    const defaultMemCacheSize = 500;
+    const placeholderOpacity = 0.1;
+    const placeholderSize = 70.0;
     final placeholderImage = appSettings.placeholderLogo ?? '';
     return CachedNetworkImage(
       cacheKey: url,
@@ -183,7 +183,7 @@ class UiUtils {
                   ),
                 ],
               )
-            : LottieDelegates(),
+            : const LottieDelegates(),
       );
     } else {
       return CircularProgressIndicator(
@@ -226,7 +226,7 @@ class UiUtils {
           : Brightness.light,
       systemStatusBarContrastEnforced: false,
       systemNavigationBarContrastEnforced: false,
-      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarColor: context.color.secondaryColor,
       systemNavigationBarIconBrightness:
           context.color.brightness == Brightness.light
               ? Brightness.dark
@@ -527,7 +527,7 @@ class UiUtils {
     });
   }
 
-  static Future showBlurredDialoge(
+  static Future<dynamic> showBlurredDialoge(
     BuildContext context, {
     required BlurDialoge dialoge,
     double? sigmaX,
@@ -543,6 +543,8 @@ class UiUtils {
           } else if (dialoge is BlurredDialogBuilderBox) {
             return dialoge;
           } else if (dialoge is EmptyDialogBox) {
+            return dialoge;
+          } else if (dialoge is BlurredSubscriptionDialogBox) {
             return dialoge;
           }
 
@@ -578,11 +580,11 @@ class UiUtils {
 
 ///Format string
 extension FormatAmount on String {
-  String formatAmount({bool prefix = false}) {
-    return prefix
-        ? '${Constant.currencySymbol}${toString()}'
-        : '${toString()}${Constant.currencySymbol}'; // \u{20B9}"; //currencySymbol
-  }
+  // String formatAmount({bool prefix = false}) {
+  //   return prefix
+  //       ? '${Constant.currencySymbol}${toString()}'
+  //       : '${toString()}${Constant.currencySymbol}'; // \u{20B9}"; //currencySymbol
+  // }
 
   String formatDate({
     String? format,

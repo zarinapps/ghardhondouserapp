@@ -5,10 +5,11 @@ class GooglePlaceResponseModel {
     if (json['predictions'] != null) {
       predictions = <Predictions>[];
       json['predictions'].forEach((v) {
-        predictions!.add(Predictions.fromJson(v));
+        predictions!
+            .add(Predictions.fromJson(v as Map<String, dynamic>? ?? {}));
       });
     }
-    status = json['status'];
+    status = json['status']?.toString() ?? '';
   }
   List<Predictions>? predictions;
   String? status;
@@ -31,10 +32,10 @@ class Predictions {
   });
 
   Predictions.fromJson(Map<String, dynamic> json) {
-    description = json['description'];
+    description = json['description']?.toString() ?? '';
 
-    placeId = json['place_id'];
-    reference = json['reference'];
+    placeId = json['place_id']?.toString() ?? '';
+    reference = json['reference']?.toString() ?? '';
   }
   String? description;
   String? placeId;

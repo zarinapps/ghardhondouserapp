@@ -68,9 +68,7 @@ class _CityPropertiesScreenState extends State<CityPropertiesScreen> {
             },
             child: CustomScrollView(
               controller: cityPropertiesScreenController,
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
+              physics: Constant.scrollPhysics,
               slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.all(16),
@@ -84,13 +82,14 @@ class _CityPropertiesScreenState extends State<CityPropertiesScreen> {
                                     MediaQuery.of(context).size.height * 0.15,
                                 width: MediaQuery.of(context).size.width,
                                 borderRadius: 15,
-                                margin: EdgeInsetsDirectional.only(bottom: 10),
+                                margin: const EdgeInsetsDirectional.only(
+                                    bottom: 10),
                               ),
                             ),
                           ),
                         )
                       : state is FetchCityPropertyFail
-                          ? SliverToBoxAdapter(
+                          ? const SliverToBoxAdapter(
                               child: SomethingWentWrong(),
                             )
                           : state is FetchCityPropertySuccess &&

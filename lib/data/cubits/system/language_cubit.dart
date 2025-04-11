@@ -31,7 +31,8 @@ class LanguageCubit extends Cubit<LanguageState> {
     final language =
         Hive.box(HiveKeys.languageBox).get(HiveKeys.currentLanguageKey);
     if (language != null) {
-      emit(LanguageLoader(language['code'], isRTL: language['isRTL'] ?? false));
+      emit(LanguageLoader(language['code'],
+          isRTL: language['isRTL'] as bool? ?? false));
     } else {
       emit(LanguageLoader('en', isRTL: false));
     }

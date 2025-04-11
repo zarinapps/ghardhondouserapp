@@ -89,8 +89,8 @@ class _CustomHeroDestinationScreenState
     vsync: this,
     duration: const Duration(milliseconds: 400),
   );
-  late Animation<Offset> _sizeTween;
-  late Animation<Offset> _positionTween;
+  Animation<Offset>? _sizeTween;
+  Animation<Offset>? _positionTween;
   var mediaQuery = Size.zero;
   @override
   void didChangeDependencies() {
@@ -108,8 +108,10 @@ class _CustomHeroDestinationScreenState
       },
     );
 
-    final width = widget.renderWidgetData['width'];
-    final height = widget.renderWidgetData['height'];
+    final width = widget.renderWidgetData['width'] as double? ?? 0;
+    final height = widget.renderWidgetData['height'] as double? ?? 0;
+    final x = widget.renderWidgetData['x'] as double? ?? 0;
+    final y = widget.renderWidgetData['y'] as double? ?? 0;
 
     _sizeTween =
         Tween(begin: Offset(width, height), end: const Offset(200, 200))
@@ -119,8 +121,8 @@ class _CustomHeroDestinationScreenState
       () {
         _positionTween = Tween(
           begin: Offset(
-            widget.renderWidgetData['x'],
-            widget.renderWidgetData['y'],
+            x,
+            y,
           ),
           end: Offset(
             (MediaQuery.of(context).size.width / 2) - (200 / 2),
@@ -143,16 +145,16 @@ class _CustomHeroDestinationScreenState
   ImageProvider imageTypeAdapeter(CImageType type, dynamic image) {
     switch (type) {
       case CImageType.Asset:
-        return AssetImage(image);
+        return AssetImage(image?.toString() ?? '');
 
       case CImageType.Network:
-        return NetworkImage(image);
+        return NetworkImage(image?.toString() ?? '');
 
       case CImageType.File:
-        return FileImage(image);
+        return FileImage(image as File? ?? File(''));
 
       case CImageType.Memory:
-        return MemoryImage(image);
+        return MemoryImage(image as Uint8List? ?? Uint8List(0));
     }
   }
 
@@ -171,12 +173,12 @@ class _CustomHeroDestinationScreenState
               child: Stack(
                 children: [
                   Positioned(
-                    left: _positionTween.value.dx,
-                    top: _positionTween.value.dy,
+                    left: _positionTween?.value.dx,
+                    top: _positionTween?.value.dy,
                     child: Container(
                       clipBehavior: Clip.antiAlias,
-                      width: _sizeTween.value.dx,
-                      height: _sizeTween.value.dy,
+                      width: _sizeTween?.value.dx,
+                      height: _sizeTween?.value.dy,
                       decoration: const BoxDecoration(shape: BoxShape.circle),
                       child: Image(
                         fit: BoxFit.cover,

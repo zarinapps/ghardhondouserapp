@@ -12,7 +12,7 @@ class CategoryList extends StatefulWidget {
   static Route route(RouteSettings routeSettings) {
     final args = routeSettings.arguments as Map?;
     return BlurredRouter(
-      builder: (_) => CategoryList(from: args?['from']),
+      builder: (_) => CategoryList(from: args?['from']?.toString() ?? ''),
     );
   }
 }

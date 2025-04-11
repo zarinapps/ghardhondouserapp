@@ -19,7 +19,7 @@ class LoadAppSettings {
   Future<void> load(initBox) async {
     try {
       try {
-        if (initBox) {
+        if (initBox == true) {
           await HiveUtils.initBoxes();
         }
         final response = await Api.get(
@@ -28,8 +28,9 @@ class LoadAppSettings {
             if (HiveUtils.getUserId() != null) 'user_id': HiveUtils.getUserId(),
           },
         );
-        appSettings = AppSettingsDataModel.fromJson(response['data']);
-        HiveUtils.setAppThemeSetting(response['data']);
+        final data = response['data'] as Map<String, dynamic>;
+        appSettings = AppSettingsDataModel.fromJson(data);
+        HiveUtils.setAppThemeSetting(data);
       } catch (e) {
         appSettings =
             AppSettingsDataModel.fromJson(HiveUtils.getAppThemeSettings());

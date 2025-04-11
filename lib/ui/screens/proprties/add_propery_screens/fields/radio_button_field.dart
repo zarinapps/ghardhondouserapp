@@ -22,7 +22,8 @@ class CustomRadioField extends CustomField {
     if (data['value'] != null) {
       value = data['value'].toString();
     }
-    selectedRadioValue = value ?? (data['type_values'] as List).first;
+    selectedRadioValue =
+        value ?? (data['type_values'] as List).first?.toString() ?? '';
     super.init();
   }
 
@@ -45,7 +46,7 @@ class CustomRadioField extends CustomField {
                 width: 24,
                 child: FittedBox(
                   child: UiUtils.imageType(
-                    data['image'],
+                    data['image']?.toString() ?? '',
                     color: Constant.adaptThemeColorSvg
                         ? context.color.tertiaryColor
                         : null,
@@ -60,7 +61,7 @@ class CustomRadioField extends CustomField {
               width: 10.rw(context),
             ),
             CustomText(
-              data['name'],
+              data['name']?.toString() ?? '',
               fontWeight: FontWeight.w500,
               fontSize: context.font.large,
               color: context.color.textColorDark,
@@ -75,7 +76,8 @@ class CustomRadioField extends CustomField {
           height: 14.rh(context),
         ),
         Wrap(
-          children: List.generate(data['type_values']?.length ?? 0, (index) {
+          children:
+              List.generate(data['type_values']?.length as int? ?? 0, (index) {
             return Padding(
               padding: EdgeInsetsDirectional.only(
                 start: index == 0 ? 0 : 4,
@@ -86,7 +88,8 @@ class CustomRadioField extends CustomField {
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: () {
-                  selectedRadioValue = data['type_values'][index];
+                  selectedRadioValue =
+                      data['type_values'][index]?.toString() ?? '';
                   update(() {});
                   // selectedRadio.value = widget.radioValues?[index];
                   // AbstractField.fieldsData.addAll(
@@ -109,7 +112,7 @@ class CustomRadioField extends CustomField {
                       horizontal: 15,
                     ),
                     child: CustomText(
-                      data['type_values'][index],
+                      data['type_values'][index]?.toString() ?? '',
                       color: selectedRadioValue == data['type_values'][index]
                           ? context.color.tertiaryColor
                           : context.color.textLightColor,

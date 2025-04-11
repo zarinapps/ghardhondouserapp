@@ -86,7 +86,7 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                     child: ListView.builder(
                       controller: _pageScrollController,
                       shrinkWrap: true,
-                      physics: const BouncingScrollPhysics(),
+                      physics: Constant.scrollPhysics,
                       padding: const EdgeInsets.all(16),
                       itemCount: state.articlemodel.length,
                       itemBuilder: (context, index) {
@@ -170,12 +170,13 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                 ),
               ),
               Padding(
-                  padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 12, 6),
-                  child: CustomText(
-                    article.date == null ? '' : article.date.toString(),
-                    color: context.color.textLightColor,
-                    fontSize: context.font.smaller,
-                  )),
+                padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 12, 6),
+                child: CustomText(
+                  article.date == null ? '' : article.date.toString(),
+                  color: context.color.textLightColor,
+                  fontSize: context.font.smaller,
+                ),
+              ),
               const SizedBox(
                 height: 5,
               ),

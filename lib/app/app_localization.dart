@@ -28,11 +28,13 @@ class AppLocalization {
     // value from root-bundle will be encoded string
     var mappedJson = <String, dynamic>{};
 
-    if (HiveUtils.getLanguage() == null ||
-        HiveUtils.getLanguage()['data'] == null) {
-      mappedJson = json.decode(jsonStringValues);
+    final languageIsNull = HiveUtils.getLanguage() == null ||
+        HiveUtils.getLanguage()['data'] == null;
+    if (languageIsNull) {
+      mappedJson = json.decode(jsonStringValues) as Map<String, dynamic>;
     } else {
-      mappedJson = Map<String, dynamic>.from(HiveUtils.getLanguage()['data']);
+      mappedJson = Map<String, dynamic>.from(
+          HiveUtils.getLanguage()['data'] as Map<dynamic, dynamic>);
     }
     _localizedValues =
         mappedJson.map((key, value) => MapEntry(key, value.toString()));

@@ -96,8 +96,10 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
                         height: 20,
                       ),
                     ],
-                    CustomText(title.firstUpperCase(),
-                        textAlign: TextAlign.center),
+                    CustomText(
+                      title.firstUpperCase(),
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 ),
                 content: content,
@@ -294,7 +296,7 @@ class BlurredDialogBuilderBox extends StatelessWidget implements BlurDialoge {
           child: LayoutBuilder(
             builder: (context, constraints) {
               return AlertDialog(
-                backgroundColor: makeColorDark(context.color.primaryColor),
+                backgroundColor: context.color.secondaryColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -318,8 +320,10 @@ class BlurredDialogBuilderBox extends StatelessWidget implements BlurDialoge {
                         height: 20,
                       ),
                     ],
-                    CustomText(title.firstUpperCase(),
-                        textAlign: TextAlign.center),
+                    CustomText(
+                      title.firstUpperCase(),
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 ),
                 content: contentBuilder.call(context, constraints),
@@ -408,6 +412,219 @@ class BlurredDialogBuilderBox extends StatelessWidget implements BlurDialoge {
     );
   }
 
+  Widget button(
+    BuildContext context, {
+    required BoxConstraints constraints,
+    required Color buttonColor,
+    required String buttonName,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: constraints.maxWidth / 3,
+      child: MaterialButton(
+        elevation: 0,
+        height: 39.rh(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        color: buttonColor,
+        // minWidth: (constraints.maxWidth / 2) - 10,
+
+        onPressed: onTap,
+        child: CustomText(
+          buttonName,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+}
+
+class BlurredSubscriptionDialogBox extends StatelessWidget
+    implements BlurDialoge {
+  const BlurredSubscriptionDialogBox({
+    required this.packageType,
+    super.key,
+    this.onCancel,
+    this.backAllowedButton,
+    this.barrierDismissable,
+    this.isAcceptContainesPush,
+  });
+  final SubscriptionPackageType packageType;
+  final VoidCallback? onCancel;
+  final bool? backAllowedButton;
+  final bool? barrierDismissable;
+  final bool? isAcceptContainesPush;
+
+  @override
+  Widget build(BuildContext context) {
+    ///This backAllowedButton will help us to prevent back presses from sensitive dialoges
+    return Stack(
+      children: [
+        //Make dialoge box's background lighter black
+        GestureDetector(
+          onTap: () {
+            if (barrierDismissable ?? false) {
+              Navigator.pop(context);
+            }
+          },
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.5),
+          ),
+        ),
+        PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) return;
+            if (backAllowedButton == false) {
+              return Future.value(false);
+            }
+            Future.delayed(Duration.zero, () {
+              Navigator.of(context).pop();
+            });
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return AlertDialog(
+                elevation: 0,
+                titlePadding:
+                    const EdgeInsets.only(top: 18, left: 24, right: 24),
+                contentPadding: EdgeInsets.zero,
+                backgroundColor: context.color.brightness == Brightness.light
+                    ? Color.lerp(
+                        context.color.tertiaryColor,
+                        Colors.white,
+                        0.85,
+                      )
+                    : Color.lerp(
+                        context.color.tertiaryColor,
+                        Colors.black,
+                        0.85,
+                      ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CustomText(
+                      'subscribeNow'.translate(context),
+                      fontSize: context.font.larger,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        height: 24,
+                        width: 24,
+                        padding: EdgeInsets.zero,
+                        decoration: BoxDecoration(
+                          color: context.color.secondaryColor,
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: context.color.borderColor),
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          color: context.color.inverseSurface,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: context.color.secondaryColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Flexible(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: UiUtils.getSvg(
+                                AppIcons.premium,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 14,
+                          ),
+                          Flexible(
+                            flex: 3,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CustomText(
+                                  packageType.title.translate(context),
+                                  fontSize: context.font.large,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                const SizedBox(
+                                  height: 2,
+                                ),
+                                CustomText(
+                                  packageType.description.translate(context),
+                                  fontSize: context.font.small,
+                                  color: context.color.textColorDark
+                                      .withValues(alpha: 0.5),
+                                  maxLines: 3,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                actionsOverflowAlignment: OverflowBarAlignment.center,
+                actionsAlignment: MainAxisAlignment.center,
+                actions: [
+                  Builder(
+                    builder: (context) {
+                      return Center(
+                        child: SizedBox(
+                          child: button(
+                            context,
+                            constraints: constraints,
+                            buttonColor: context.color.tertiaryColor,
+                            buttonName: UiUtils.translate(context, 'viewPlans'),
+                            onTap: () async {
+                              await Navigator.popAndPushNamed(
+                                context,
+                                Routes.subscriptionPackageListRoute,
+                                arguments: {'from': 'home'},
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Color makeColorDark(Color color) {
     final color0 = color;
 
@@ -428,22 +645,27 @@ class BlurredDialogBuilderBox extends StatelessWidget implements BlurDialoge {
     required BoxConstraints constraints,
     required Color buttonColor,
     required String buttonName,
-    required Color textColor,
     required VoidCallback onTap,
   }) {
-    return SizedBox(
-      width: constraints.maxWidth / 3,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: MaterialButton(
         elevation: 0,
-        height: 39.rh(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        height: 45.rh(context),
+        minWidth: constraints.maxWidth * 0.7,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: context.color.borderColor),
+        ),
         color: buttonColor,
         // minWidth: (constraints.maxWidth / 2) - 10,
 
         onPressed: onTap,
         child: CustomText(
           buttonName,
-          color: textColor,
+          fontSize: context.font.larger,
+          color: context.color.buttonColor,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -477,4 +699,53 @@ class EmptyDialogBox extends StatelessWidget with BlurDialoge {
       ),
     );
   }
+}
+
+enum SubscriptionPackageType {
+  propertyList(
+    'property_list',
+    title: 'propertyListTitle',
+    description: 'propertyListDescription',
+  ),
+  propertyFeature(
+    'property_feature',
+    title: 'propertyFeatureTitle',
+    description: 'propertyFeatureDescription',
+  ),
+  projectList(
+    'project_list',
+    title: 'projectListTitle',
+    description: 'projectListDescription',
+  ),
+  projectFeature(
+    'project_feature',
+    title: 'projectFeatureTitle',
+    description: 'projectFeatureDescription',
+  ),
+  mortgageCalculatorDetail(
+    'mortgage_calculator_detail',
+    title: 'mortgageCalculatorDetailTitle',
+    description: 'mortgageCalculatorDetailDescription',
+  ),
+  premiumProperties(
+    'premium_properties',
+    title: 'premiumPropertiesTitle',
+    description: 'premiumPropertiesDescription',
+  ),
+  projectAccess(
+    'project_access',
+    title: 'projectAccessTitle',
+    description: 'projectAccessDescription',
+  ),
+  ;
+
+  const SubscriptionPackageType(
+    this.value, {
+    required this.title,
+    required this.description,
+  });
+
+  final String value;
+  final String title;
+  final String description;
 }

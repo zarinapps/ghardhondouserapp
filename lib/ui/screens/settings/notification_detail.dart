@@ -27,11 +27,11 @@ class _NotificationDetailState extends State<NotificationDetail> {
       body: ListView(
         children: <Widget>[
           if (selectedNotification.image!.isNotEmpty)
-            setNetworkImg(
-              selectedNotification.image,
+            UiUtils.getImage(
+              selectedNotification.image ?? '',
               width: double.maxFinite,
               height: 200.rh(context),
-              boxFit: BoxFit.cover,
+              fit: BoxFit.cover,
             ),
           const SizedBox(height: 10),
           Padding(

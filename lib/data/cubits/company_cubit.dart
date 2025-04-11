@@ -16,8 +16,8 @@ class CompanyFetchSuccess extends CompanyState {
 }
 
 class CompanyFetchFailure extends CompanyState {
-  CompanyFetchFailure(this.errmsg);
-  final dynamic errmsg;
+  CompanyFetchFailure(this.error);
+  final dynamic error;
 }
 
 class CompanyCubit extends Cubit<CompanyState> {
@@ -27,13 +27,11 @@ class CompanyCubit extends Cubit<CompanyState> {
     emit(CompanyFetchProgress());
     fetchCompanyFromDb(context)
         .then((value) => emit(CompanyFetchSuccess(value)))
-        .catchError((e) => emit(CompanyFetchFailure(e)));
+        .catchError((Object e) => emit(CompanyFetchFailure(e)));
   }
 
   Future<Company> fetchCompanyFromDb(BuildContext context) async {
     try {
-      var companyData = Company();
-
       final body = <String, String>{
         Api.type: Api.company,
       };
@@ -43,22 +41,11 @@ class CompanyCubit extends Cubit<CompanyState> {
         queryParameters: body,
       );
 
-      // var getdata = json.decode(response);
-
-      if (!response[Api.error]) {
-        final Map list = response['data'];
-        // companyData = list.map((model) => Company.fromJson(model)).toList();
-
-        companyData = Company.fromJson(Map.from(list));
-
-        //set company mobile/contact number for Call @ Property details
-        // Constant.session
-        //     .setData(Session.keyCompMobNo, contactNumber.data.toString());
-      } else {
+      if (response[Api.error] as bool) {
         throw CustomException(response[Api.message]);
       }
 
-      return companyData;
+      return Company.fromJson(response['data'] as Map<String, dynamic>);
     } catch (e) {
       rethrow;
     }

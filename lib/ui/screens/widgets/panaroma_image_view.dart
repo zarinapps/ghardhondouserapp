@@ -23,7 +23,7 @@ class PanaromaImageScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: Container(
-          margin: EdgeInsetsDirectional.only(start: 8),
+          margin: const EdgeInsetsDirectional.only(start: 8),
           decoration: BoxDecoration(
             color: context.color.secondaryColor,
             shape: BoxShape.circle,

@@ -8,9 +8,9 @@ import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 
-class CheckboxField extends CustomField {
-  List checkedValues = [];
-  List checkBoxValues = [];
+class CheckboxField extends CustomField<dynamic> {
+  List<dynamic> checkedValues = [];
+  List<dynamic> checkBoxValues = [];
   @override
   String type = 'checkbox';
   String backValues = '';
@@ -23,13 +23,13 @@ class CheckboxField extends CustomField {
   @override
   void init() {
     id = data['id'];
-    checkBoxValues = data['type_values'];
+    checkBoxValues = (data['type_values'] as List<dynamic>?) ?? [];
     if (data['value'] != null) {
       final selectedValue = data['value'].toString().split(',');
       checkedValues = selectedValue;
     }
     final dataMap = checkedValues.fold(
-      {},
+      <String, dynamic>{},
       (previousValue, element) =>
           previousValue..addAll({'${previousValue.length}': element}),
     );
@@ -57,7 +57,7 @@ class CheckboxField extends CustomField {
                 width: 24,
                 child: FittedBox(
                   child: UiUtils.imageType(
-                    data['image'],
+                    data['image']?.toString() ?? '',
                     color: Constant.adaptThemeColorSvg
                         ? context.color.tertiaryColor
                         : null,
@@ -73,7 +73,7 @@ class CheckboxField extends CustomField {
             ),
             Expanded(
               child: CustomText(
-                data['name'],
+                data['name']?.toString() ?? '',
                 fontWeight: FontWeight.w500,
                 fontSize: context.font.large,
                 color: context.color.textColorDark,
@@ -112,7 +112,7 @@ class CheckboxField extends CustomField {
                     }
 
                     final dataMap = checkedValues.fold(
-                      {},
+                      <String, dynamic>{},
                       (previousValue, element) => previousValue
                         ..addAll({'${previousValue.length}': element}),
                     );
@@ -155,7 +155,7 @@ class CheckboxField extends CustomField {
                           ),
                           Expanded(
                             child: CustomText(
-                              checkBoxValues[index],
+                              checkBoxValues[index]?.toString() ?? '',
                               color:
                                   checkedValues.contains(checkBoxValues[index])
                                       ? context.color.tertiaryColor

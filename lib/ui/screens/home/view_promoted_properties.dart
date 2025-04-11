@@ -68,32 +68,29 @@ class _PromotedPropertiesScreenState extends State<PromotedPropertiesScreen> {
             return Column(
               children: [
                 Expanded(
-                  child: ScrollConfiguration(
-                    behavior: RemoveGlow(),
-                    child: ListView.builder(
-                      controller: _pageScrollController,
-                      padding: const EdgeInsets.all(20),
-                      itemCount: state.properties.length,
-                      itemBuilder: (context, index) {
-                        final property = state.properties[index];
-                        return GestureDetector(
-                          onTap: () {
-                            HelperUtils.goToNextPage(
-                              Routes.propertyDetails,
-                              context,
-                              false,
-                              args: {
-                                'propertyData': property,
-                                'fromMyProperty': false,
-                              },
-                            );
-                          },
-                          child: PropertyHorizontalCard(
-                            property: property,
-                          ),
-                        );
-                      },
-                    ),
+                  child: ListView.builder(
+                    controller: _pageScrollController,
+                    padding: const EdgeInsets.all(20),
+                    itemCount: state.properties.length,
+                    itemBuilder: (context, index) {
+                      final property = state.properties[index];
+                      return GestureDetector(
+                        onTap: () {
+                          HelperUtils.goToNextPage(
+                            Routes.propertyDetails,
+                            context,
+                            false,
+                            args: {
+                              'propertyData': property,
+                              'fromMyProperty': false,
+                            },
+                          );
+                        },
+                        child: PropertyHorizontalCard(
+                          property: property,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 if (state.isLoadingMore) UiUtils.progress(),

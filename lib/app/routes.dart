@@ -21,7 +21,7 @@ class Routes {
   static const agentVerificationForm = '/agentVerificationForm';
   static const agentDetailsScreen = '/agentDetailsScreen';
   static const agentListScreen = '/agentListScreen';
-  static const splash = 'splash';
+  static const splash = '/';
   static const onboarding = 'onboarding';
   static const login = 'login';
   static const otpScreen = 'otpScreen';
@@ -87,16 +87,38 @@ class Routes {
   //Sandbox[test]
   static const playground = 'playground';
 
-  static String currentRoute = splash;
-  static String previousCustomerRoute = splash;
+  static String currentRoute = '';
+  static String previousCustomerRoute = '';
+  static String globalProviderSlugForDeeplink = '';
 
-  static Route? onGenerateRouted(RouteSettings routeSettings) {
+  static Route<dynamic>? onGenerateRouted(RouteSettings routeSettings) {
+    if (routeSettings.name!.contains('/properties-details/')) {
+      final providerSlug = routeSettings.name!.split('/').last;
+      if (previousCustomerRoute.isEmpty) {
+        globalProviderSlugForDeeplink = providerSlug;
+        return BlurredRouter(builder: (context) => const SplashScreen());
+      } else {
+        print(
+            'previousCustomerRoute: $previousCustomerRoute \n currentRoute: $currentRoute');
+        if (previousCustomerRoute == propertyDetails) {
+          Constant.navigatorKey.currentState?.pop();
+        }
+      }
+    }
+
+    if (currentRoute.startsWith('https')) {
+      if (currentRoute == splash) {
+        return BlurredRouter(builder: (context) => const SplashScreen());
+      }
+      return null;
+    }
     previousCustomerRoute = currentRoute;
     currentRoute = routeSettings.name ?? '';
     log('CURRENT ROUTE $currentRoute');
+    print('current route is $currentRoute');
 
     ///This is to prevent infinity loading while login browser
-    if (routeSettings.name!.contains('/link?')) {
+    if (currentRoute.contains('/link?')) {
       return null;
     }
 
@@ -227,18 +249,7 @@ class Routes {
       //   return PlayGround.route(routeSettings);
 
       default:
-        // if (routeSettings.name!.contains(AppSettings.shareNavigationWebUrl)) {
-        //   return NativeLinkWidget.render(routeSettings);
-        // }
-        return BlurredRouter(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: CustomText(
-                UiUtils.translate(context, 'pageNotFoundErrorMsg'),
-              ),
-            ),
-          ),
-        );
+        return null;
     }
     return null;
   }

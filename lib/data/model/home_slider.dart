@@ -18,16 +18,17 @@ class HomeSlider {
   HomeSlider.fromJson(Map<String, dynamic> json) {
     id = json[Api.id].toString();
     categoryId = json[Api.categoryId].toString();
-    image = json[Api.image];
+    image = json[Api.image]?.toString() ?? '';
     propertysId = json[Api.propertysId].toString();
-    promoted = json[Api.promoted];
-    sliderType = json['slider_type'];
-    link = json['link'];
+    promoted = json[Api.promoted] as bool? ?? false;
+    sliderType = json['slider_type']?.toString() ?? '';
+    link = json['link']?.toString() ?? '';
     property = json['property'] != null
-        ? PropertyModel.fromMap(json['property'])
+        ? PropertyModel.fromMap(json['property'] as Map<String, dynamic>? ?? {})
         : null;
-    category =
-        json['category'] != null ? Categorys.fromMap(json['category']) : null;
+    category = json['category'] != null
+        ? Categorys.fromMap(json['category'] as Map<String, dynamic>? ?? {})
+        : null;
   }
 
   factory HomeSlider.fromMap(Map<String, dynamic> map) {
@@ -43,10 +44,12 @@ class HomeSlider {
           map['sliderType'] != null ? map['sliderType'] as String : null,
       link: map['link'] != null ? map['link'] as String : null,
       property: map['property'] != null
-          ? PropertyModel.fromMap(map['property'])
+          ? PropertyModel.fromMap(
+              map['property'] as Map<String, dynamic>? ?? {})
           : null,
-      category:
-          map['category'] != null ? Categorys.fromMap(map['category']) : null,
+      category: map['category'] != null
+          ? Categorys.fromMap(map['category'] as Map<String, dynamic>? ?? {})
+          : null,
     );
   }
   String? id;

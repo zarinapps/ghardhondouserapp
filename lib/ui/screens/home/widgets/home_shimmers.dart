@@ -38,7 +38,7 @@ class _HomeShimmerState extends State<HomeShimmer> {
               shrinkWrap: true,
               controller: _scrollController,
               padding: const EdgeInsets.all(18),
-              physics: const BouncingScrollPhysics(),
+              physics: Constant.scrollPhysics,
               children: [
                 Row(
                   children: [
@@ -144,7 +144,7 @@ class PromotedPropertiesShimmer extends StatelessWidget {
           horizontal: sidePadding,
         ),
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+        physics: Constant.scrollPhysics,
         itemBuilder: (context, index) {
           return Padding(
             padding: EdgeInsets.symmetric(horizontal: index == 0 ? 0 : 8),
@@ -173,7 +173,7 @@ class NearbyPropertiesShimmer extends StatelessWidget {
           horizontal: sidePadding,
         ),
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+        physics: Constant.scrollPhysics,
         itemBuilder: (context, index) {
           return Padding(
             padding: EdgeInsets.symmetric(horizontal: index == 0 ? 0 : 8),

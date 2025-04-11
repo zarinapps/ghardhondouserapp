@@ -2,7 +2,7 @@
 
 import 'dart:developer';
 
-import 'package:app_links/app_links.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ebroker/data/cubits/home_page_data_cubit.dart';
 import 'package:ebroker/data/cubits/property/fetch_city_property_list.dart';
 import 'package:ebroker/data/cubits/property/home_infinityscroll_cubit.dart';
@@ -12,25 +12,26 @@ import 'package:ebroker/data/model/category.dart';
 import 'package:ebroker/data/model/home_slider.dart';
 import 'package:ebroker/data/model/project_model.dart';
 import 'package:ebroker/data/model/system_settings_model.dart';
+import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/data/repositories/project_repository.dart';
-import 'package:ebroker/data/repositories/system_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/agents/agents_card.dart';
 import 'package:ebroker/ui/screens/home/Widgets/property_card_big.dart';
 import 'package:ebroker/ui/screens/home/Widgets/property_gradient_card.dart';
 import 'package:ebroker/ui/screens/home/city_properties_screen.dart';
 import 'package:ebroker/ui/screens/home/widgets/category_card.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_grid.dart';
 import 'package:ebroker/ui/screens/home/widgets/header_card.dart';
 import 'package:ebroker/ui/screens/home/widgets/homeListener.dart';
 import 'package:ebroker/ui/screens/home/widgets/home_search.dart';
 import 'package:ebroker/ui/screens/home/widgets/home_shimmers.dart';
 import 'package:ebroker/ui/screens/home/widgets/location_widget.dart';
+import 'package:ebroker/ui/screens/project/view/project_card_big.dart';
 import 'package:ebroker/ui/screens/proprties/viewAll.dart';
 import 'package:ebroker/utils/admob/bannerAdLoadWidget.dart';
 import 'package:ebroker/utils/network/networkAvailability.dart';
 import 'package:ebroker/utils/sliver_grid_delegate_with_fixed_cross_axis_count_and_fixed_height.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 // JWT Token
 
@@ -44,7 +45,7 @@ class HomeScreen extends StatefulWidget {
   @override
   HomeScreenState createState() => HomeScreenState();
 
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments! as Map;
     return BlurredRouter(
       builder: (_) => HomeScreen(from: arguments['from'] as String),
@@ -60,20 +61,12 @@ class HomeScreenState extends State<HomeScreen>
 
   @override
   void initState() {
-    DeepLinkManager.initDeepLinks(context);
     context.read<HomePageInfinityScrollCubit>().fetch();
     context.read<FetchHomePageDataCubit>().fetch(
           forceRefresh: false,
         );
-    AppLinks().getInitialLink().then((value) {
-      if (value == null) return;
-    });
-    AppLinks().uriLinkStream.listen((event) {});
-
     initializeSettings();
     addPageScrollListener();
-    notificationPermissionChecker(context);
-    fetchApiKeys();
     initializeHomeStateListener();
     super.initState();
   }
@@ -84,7 +77,7 @@ class HomeScreenState extends State<HomeScreen>
       'force-disable-demo-mode',
     )) {
       Constant.isDemoModeOn =
-          settingsCubit.getSetting(SystemSetting.demoMode) ?? false;
+          settingsCubit.getSetting(SystemSetting.demoMode) as bool? ?? false;
     }
   }
 
@@ -94,22 +87,16 @@ class HomeScreenState extends State<HomeScreen>
 
   void initializeHomeStateListener() {
     homeStateListener.init(
-      setState,
       onNetAvailable: () {
         if (mounted) {
           loadInitialData(
             loadWithoutDelay: true,
             context,
           );
+          setState(() {});
         }
       },
     );
-  }
-
-  void fetchApiKeys() {
-    if (context.read<AuthenticationCubit>().isAuthenticated()) {
-      context.read<GetApiKeysCubit>().fetch();
-    }
   }
 
   void pageScrollListener() {
@@ -128,7 +115,7 @@ class HomeScreenState extends State<HomeScreen>
   }
 
   void _onTapNearByPropertiesAll() {
-    final StateMap stateMap = StateMap<
+    final stateMap = StateMap<
         FetchNearbyPropertiesInitial,
         FetchNearbyPropertiesInProgress,
         FetchNearbyPropertiesSuccess,
@@ -174,7 +161,7 @@ class HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final homeScreenState = homeStateListener.listen(context);
+    // final homeScreenState = homeStateListener.listen(context);
     HiveUtils.getJWT()?.log('JWT');
 
     ///
@@ -192,8 +179,10 @@ class HomeScreenState extends State<HomeScreen>
           ),
           child: (HiveUtils.getCityName() != null &&
                   HiveUtils.getCityName().toString().isNotEmpty)
-              ? const LocationWidget()
-              : LoadAppSettings().loadHomeLogo(appSettings.appHomeScreen!),
+              ? const LocationWidget() as Widget? ?? const SizedBox.shrink()
+              : LoadAppSettings().loadHomeLogo(appSettings.appHomeScreen!)
+                      as Widget? ??
+                  const SizedBox.shrink(),
         ),
         backgroundColor: const Color.fromARGB(0, 0, 0, 0),
       ),
@@ -215,48 +204,37 @@ class HomeScreenState extends State<HomeScreen>
         },
         child: Builder(
           builder: (context) {
-            if (homeScreenState.state == HomeScreenDataState.fail) {
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Container(
-                  alignment: Alignment.topCenter,
-                  height: context.screenHeight - 235,
-                  child: const SomethingWentWrong(),
-                ),
-              );
-            }
-            return BlocConsumer<FetchSystemSettingsCubit,
+            // if (homeScreenState.state == HomeScreenDataState.fail) {
+            //   return SingleChildScrollView(
+            //     physics: Constant.scrollPhysics,
+            //     child: Container(
+            //       alignment: Alignment.topCenter,
+            //       height: context.screenHeight - 235,
+            //       child: const SomethingWentWrong(),
+            //     ),
+            //   );
+            // }
+            return BlocBuilder<FetchSystemSettingsCubit,
                 FetchSystemSettingsState>(
-              listener: (context, state) {
-                if (state is FetchHomePageDataLoading) {
-                  const HomeShimmer();
-                  homeStateListener.setNetworkState(setState, true);
-                  setState(() {});
-                }
-                if (state is FetchSystemSettingsSuccess) {
-                  homeStateListener.setNetworkState(setState, true);
-                  setState(() {});
-                }
-              },
               builder: (context, state) {
-                if (homeScreenState.state == HomeScreenDataState.nointernet) {
-                  return NoInternet(
-                    onRetry: () {
-                      CheckInternet.check(
-                        onInternet: () {
-                          _onRefresh();
-                          Navigator.popUntil(context, (route) => route.isFirst);
-                        },
-                        onNoInternet: () {
-                          HelperUtils.showSnackBarMessage(
-                            context,
-                            'noInternet'.translate(context),
-                          );
-                        },
-                      );
-                    },
-                  );
-                }
+                // if (homeScreenState.state == HomeScreenDataState.nointernet) {
+                //   return NoInternet(
+                //     onRetry: () {
+                //       CheckInternet.check(
+                //         onInternet: () {
+                //           _onRefresh();
+                //           Navigator.popUntil(context, (route) => route.isFirst);
+                //         },
+                //         onNoInternet: () {
+                //           HelperUtils.showSnackBarMessage(
+                //             context,
+                //             'noInternet'.translate(context),
+                //           );
+                //         },
+                //       );
+                //     },
+                //   );
+                // }
                 return BlocBuilder<FetchHomePageDataCubit,
                     FetchHomePageDataState>(
                   builder: (homeContext, homeState) {
@@ -267,7 +245,7 @@ class HomeScreenState extends State<HomeScreen>
                       final home = homeState.homePageDataModel;
                       return SingleChildScrollView(
                         controller: homeScreenController,
-                        physics: const BouncingScrollPhysics(),
+                        physics: Constant.scrollPhysics,
                         padding: EdgeInsets.symmetric(
                           vertical: MediaQuery.of(context).padding.top,
                         ),
@@ -276,56 +254,40 @@ class HomeScreenState extends State<HomeScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              ///Looping through sections so arrange it
-                              ...List.generate(
-                                growable: false,
-                                AppSettings.sections.length,
-                                (index) {
-                                  final section = AppSettings.sections[index];
-                                  if (section == HomeScreenSections.Search) {
+                              ...AppSettings.sections.map((section) {
+                                switch (section) {
+                                  case HomeScreenSections.search:
                                     return const HomeSearchField();
-                                  } else if (section ==
-                                      HomeScreenSections.PersonalizedFeed) {
+                                  case HomeScreenSections.personalizedFeed:
                                     return const PersonalizedPropertyWidget();
-                                  } else if (section ==
-                                      HomeScreenSections.Slider) {
+                                  case HomeScreenSections.slider:
                                     return sliderWidget(home.sliderSection);
-                                  } else if (section ==
-                                      HomeScreenSections.Category) {
+                                  case HomeScreenSections.category:
                                     return categoryWidget(
                                       home.categoriesSection,
                                     );
-                                  } else if (section ==
-                                      HomeScreenSections.NearbyProperties) {
+                                  case HomeScreenSections.nearbyProperties:
                                     return buildNearByProperties(
-                                        nearByProperties:
-                                            home.nearByProperties);
-                                  } else if (section ==
-                                      HomeScreenSections.FeaturedProperties) {
+                                      nearByProperties: home.nearByProperties,
+                                    );
+                                  case HomeScreenSections.featuredProperties:
                                     return featuredProperties(
                                       home.featuredSection,
                                       context,
                                     );
-                                  } else if (section ==
-                                      HomeScreenSections.Agents) {
+                                  case HomeScreenSections.agents:
                                     return buildAgents(home.agentsList);
-                                  } else if (section ==
-                                      HomeScreenSections.RecentlyAdded) {
-                                    return const RecentPropertiesSectionWidget();
-                                  } else if (section ==
-                                      HomeScreenSections.MostLikedProperties) {
+                                  case HomeScreenSections.mostLikedProperties:
                                     return mostLikedProperties(
                                       home.mostLikedProperties,
                                       context,
                                     );
-                                  } else if (section ==
-                                      HomeScreenSections.MostViewed) {
+                                  case HomeScreenSections.mostViewed:
                                     return mostViewedProperties(
                                       home.mostViewedProperties,
                                       context,
                                     );
-                                  } else if (section ==
-                                      HomeScreenSections.PopularCities) {
+                                  case HomeScreenSections.popularCities:
                                     return Padding(
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 10,
@@ -337,20 +299,16 @@ class HomeScreenState extends State<HomeScreen>
                                         ],
                                       ),
                                     );
-                                  } else if (section ==
-                                      HomeScreenSections.project) {
-                                    return buildProjects(
-                                      home.projectSection,
+                                  case HomeScreenSections.project:
+                                    return buildProjects(home.projectSection);
+                                  case HomeScreenSections.featuredProjects:
+                                    return buildFeaturedProjects(
+                                      home.featuredProjectSection,
                                     );
-                                  } else {
-                                    return const SizedBox.shrink();
-                                  }
-                                },
-                              ),
+                                }
+                              }),
                               allProperties(context: context),
-                              const SizedBox(
-                                height: 30,
-                              ),
+                              const SizedBox(height: 30),
                             ],
                           ),
                         ),
@@ -387,7 +345,6 @@ class HomeScreenState extends State<HomeScreen>
                     child: Row(
                       children: [
                         const ClipRRect(
-                          clipBehavior: Clip.antiAliasWithSaveLayer,
                           borderRadius: BorderRadius.all(
                             Radius.circular(15),
                           ),
@@ -464,11 +421,12 @@ class HomeScreenState extends State<HomeScreen>
                       horizontal: 16,
                     ),
                     itemCount: state.properties.length,
-                    physics: NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     shrinkWrap: true,
                     itemBuilder: (context, index) {
                       return PropertyHorizontalCard(
-                          property: state.properties[index]);
+                        property: state.properties[index],
+                      );
                     },
                   ),
                   if (context
@@ -509,37 +467,75 @@ class HomeScreenState extends State<HomeScreen>
           ),
           Container(
             height: 250,
+            alignment: AlignmentDirectional.centerStart,
             margin: const EdgeInsets.only(bottom: 8, right: 7),
-            child: ListView.separated(
+            child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               itemCount: projectSection.length,
-              physics: const BouncingScrollPhysics(),
+              physics: Constant.scrollPhysics,
               scrollDirection: Axis.horizontal,
               shrinkWrap: true,
-              separatorBuilder: (context, index) {
-                return const SizedBox(
-                  width: 8,
+              itemBuilder: (context, index) {
+                final project = projectSection[index];
+                return Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    end: 10,
+                  ),
+                  child: ProjectCardBig(
+                    project: project,
+                  ),
                 );
               },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget buildFeaturedProjects(List<ProjectModel> projectSection) {
+    return Column(
+      children: [
+        if (projectSection.isNotEmpty) ...[
+          TitleHeader(
+            title: 'featuredProjects'.translate(context),
+            onSeeAll: () {
+              Navigator.pushNamed(context, Routes.allProjectsScreen);
+            },
+          ),
+          Container(
+            alignment: AlignmentDirectional.centerStart,
+            height: 250,
+            margin: const EdgeInsets.only(bottom: 8, right: 7),
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              itemCount: projectSection.length,
+              physics: Constant.scrollPhysics,
+              scrollDirection: Axis.horizontal,
+              shrinkWrap: true,
               itemBuilder: (context, index) {
                 final project = projectSection[index];
                 return GestureDetector(
                   onTap: () async {
                     GuestChecker.check(
                       onNotGuest: () async {
-                        final systemRepository = SystemRepository();
-                        final settings =
-                            await systemRepository.fetchSystemSettings(
-                          isAnonymouse: false,
+                        final checkPackage = CheckPackage();
+
+                        final packageAvailable =
+                            await checkPackage.checkPackageAvailable(
+                          packageType: PackageType.projectAccess,
                         );
-                        if (settings['data']['is_premium'] == true &&
+                        if (packageAvailable &&
                             project.addedBy.toString() !=
                                 HiveUtils.getUserId()) {
                           try {
                             unawaited(Widgets.showLoader(context));
                             final projectRepository = ProjectRepository();
-                            final projectDetails = await projectRepository
-                                .getProjectDetails(id: project.id!);
+                            final projectDetails =
+                                await projectRepository.getProjectDetails(
+                              id: project.id!,
+                              isMyProject: false,
+                            );
                             Future.delayed(
                               Duration.zero,
                               () {
@@ -563,8 +559,11 @@ class HomeScreenState extends State<HomeScreen>
                           try {
                             unawaited(Widgets.showLoader(context));
                             final projectRepository = ProjectRepository();
-                            final projectDetails = await projectRepository
-                                .getProjectDetails(id: project.id!);
+                            final projectDetails =
+                                await projectRepository.getProjectDetails(
+                              id: project.id!,
+                              isMyProject: true,
+                            );
                             Future.delayed(
                               Duration.zero,
                               () {
@@ -606,13 +605,13 @@ class HomeScreenState extends State<HomeScreen>
                       },
                     );
                   },
-                  child: ProjectCard(
-                    title: project.title ?? '',
-                    categoryIcon: project.category?.image ?? '',
-                    url: project.image ?? '',
-                    categoryName: project.category?.category ?? '',
-                    description: project.description ?? '',
-                    status: project.type ?? '',
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      end: 10,
+                    ),
+                    child: ProjectCardBig(
+                      project: project,
+                    ),
                   ),
                 );
               },
@@ -624,7 +623,7 @@ class HomeScreenState extends State<HomeScreen>
   }
 
   Widget buildAgents(List<AgentModel> agents) {
-    if (agents.isNotEmpty)
+    if (agents.isNotEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -636,24 +635,24 @@ class HomeScreenState extends State<HomeScreen>
           ),
           SizedBox(
             height: 220,
-            child: ListView.separated(
+            child: ListView.builder(
               itemCount: agents.length < 5 ? agents.length : 5,
-              physics: const BouncingScrollPhysics(),
+              physics: Constant.scrollPhysics,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               scrollDirection: Axis.horizontal,
               shrinkWrap: true,
-              separatorBuilder: (context, index) {
-                return const SizedBox(
-                  width: 8,
-                );
-              },
               itemBuilder: (context, index) {
                 final agent = agents[index];
                 return GestureDetector(
-                  child: AgentCard(
-                    agent: agent,
-                    propertyCount: agent.propertyCount,
-                    name: agent.name,
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      end: 8,
+                    ),
+                    child: AgentCard(
+                      agent: agent,
+                      propertyCount: agent.propertyCount,
+                      name: agent.name,
+                    ),
                   ),
                 );
               },
@@ -661,6 +660,7 @@ class HomeScreenState extends State<HomeScreen>
           ),
         ],
       );
+    }
     return const SizedBox.shrink();
   }
 
@@ -675,39 +675,16 @@ class HomeScreenState extends State<HomeScreen>
               Navigator.pushNamed(context, Routes.cityListScreen);
             },
           ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: BlocBuilder<FetchCityCategoryCubit, FetchCityCategoryState>(
-            builder: (context, FetchCityCategoryState state) {
-              if (state is FetchCityCategorySuccess) {
-                final cityLength =
-                    state.cities.length > 10 ? 10 : state.cities.length;
-                return StaggeredGrid.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  children: [
-                    ...List.generate(cityLength, (index) {
-                      if (index % 4 == 0 || index % 5 == 0) {
-                        return StaggeredGridTile.count(
-                          crossAxisCellCount: 1,
-                          mainAxisCellCount: 2,
-                          child: buildCityCard(state, index),
-                        );
-                      } else {
-                        return StaggeredGridTile.count(
-                          crossAxisCellCount: 1,
-                          mainAxisCellCount: 1,
-                          child: buildCityCard(state, index),
-                        );
-                      }
-                    }),
-                  ],
-                );
-              }
-              return Container();
-            },
-          ),
+        BlocBuilder<FetchCityCategoryCubit, FetchCityCategoryState>(
+          builder: (context, FetchCityCategoryState state) {
+            if (state is FetchCityCategorySuccess) {
+              final cities = state.cities.take(10).toList();
+              return CustomImageGrid(
+                images: cities.map((e) => e.image).toList(),
+              );
+            }
+            return Container();
+          },
         ),
       ],
     );
@@ -788,85 +765,67 @@ class HomeScreenState extends State<HomeScreen>
       return const SizedBox.shrink();
     }
     final city = state.cities[index];
-    return GestureDetector(
-      onTap: () {
-        context.read<FetchCityPropertyList>().fetch(
-              cityName: city.name,
-              forceRefresh: true,
-            );
-        Navigator.push(
-          context,
-          BlurredRouter(
-            builder: (context) {
-              return CityPropertiesScreen(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: GestureDetector(
+        onTap: () {
+          context.read<FetchCityPropertyList>().fetch(
                 cityName: city.name,
+                forceRefresh: true,
               );
-            },
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              UiUtils.getImage(
-                city.image,
-                fit: BoxFit.cover,
-              ),
-              Container(
-                width: double.infinity,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.68),
-                      Colors.black.withValues(alpha: 0),
-                    ],
-                  ),
+          Navigator.push(
+            context,
+            BlurredRouter(
+              builder: (context) {
+                return CityPropertiesScreen(
+                  cityName: city.name,
+                );
+              },
+            ),
+          );
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            UiUtils.getImage(
+              city.image,
+              fit: BoxFit.cover,
+            ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.68),
+                    Colors.black.withValues(alpha: 0),
+                  ],
                 ),
               ),
-              PositionedDirectional(
-                bottom: 8,
-                start: 12,
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: city.name.firstUpperCase(),
-                        style: TextStyle(
-                          color: context.color.buttonColor,
-                          fontSize: context.font.normal,
-                        ),
-                      ),
-                      TextSpan(
-                        text: '\n${city.count} ',
-                        style: TextStyle(
-                          color: context.color.buttonColor,
-                          fontSize: context.font.small,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'properties'.translate(context),
-                        style: TextStyle(
-                          color: context.color.buttonColor,
-                          fontSize: context.font.small,
-                        ),
-                      ),
-                    ],
-                    style: TextStyle(
-                      color: context.color.buttonColor,
-                      fontSize: context.font.small,
-                    ),
+            ),
+            PositionedDirectional(
+              bottom: 8,
+              start: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomText(
+                    city.name.firstUpperCase(),
+                    color: context.color.buttonColor,
+                    fontSize: context.font.normal,
                   ),
-                ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  CustomText(
+                    '${city.count} ${'properties'.translate(context)}',
+                    color: context.color.buttonColor,
+                    fontSize: context.font.small,
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -874,67 +833,35 @@ class HomeScreenState extends State<HomeScreen>
 
   Widget buildPromotedProperties(List<PropertyModel> promotedProperties) {
     return SizedBox(
-      height: 261,
+      height: 280,
       child: ListView.builder(
         itemCount: promotedProperties.length.clamp(0, 6),
         shrinkWrap: true,
         padding: const EdgeInsets.symmetric(
           horizontal: sidePadding,
         ),
-        physics: const BouncingScrollPhysics(),
+        physics: Constant.scrollPhysics,
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
-          final thisItemKey = GlobalKey();
-          return GestureDetector(
-            onTap: () async {
-              try {
-                unawaited(Widgets.showLoader(context));
-                final fetch = PropertyRepository();
-                final dataOutput = await fetch.fetchPropertyFromPropertyId(
-                  id: promotedProperties[index].id!,
-                  isMyProperty: promotedProperties[index].addedBy.toString() ==
-                      HiveUtils.getUserId(),
-                );
-                Future.delayed(
-                  Duration.zero,
-                  () {
-                    Widgets.hideLoder(context);
-                    HelperUtils.goToNextPage(
-                      Routes.propertyDetails,
-                      context,
-                      false,
-                      args: {
-                        'propertyData': dataOutput,
-                        'fromMyProperty': false,
-                      },
-                    );
-                  },
-                );
-              } catch (e) {
-                log('Error is $e');
-                Widgets.hideLoder(context);
-              }
+          return BlocProvider(
+            create: (context) {
+              return AddToFavoriteCubitCubit();
             },
-            child: BlocProvider(
-              create: (context) {
-                return AddToFavoriteCubitCubit();
+            child: PropertyCardBig(
+              key: UniqueKey(),
+              isFirst: index == 0,
+              property: promotedProperties[index],
+              onLikeChange: (type) {
+                if (type == FavoriteType.add) {
+                  context
+                      .read<FetchFavoritesCubit>()
+                      .add(promotedProperties[index]);
+                } else {
+                  context
+                      .read<FetchFavoritesCubit>()
+                      .remove(promotedProperties[index].id);
+                }
               },
-              child: PropertyCardBig(
-                key: thisItemKey,
-                isFirst: index == 0,
-                property: promotedProperties[index],
-                onLikeChange: (type) {
-                  if (type == FavoriteType.add) {
-                    context
-                        .read<FetchFavoritesCubit>()
-                        .add(promotedProperties[index]);
-                  } else {
-                    context
-                        .read<FetchFavoritesCubit>()
-                        .remove(promotedProperties[index].id);
-                  }
-                },
-              ),
             ),
           );
         },
@@ -951,65 +878,36 @@ class HomeScreenState extends State<HomeScreen>
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCountAndFixedHeight(
-        mainAxisSpacing: 15,
+        mainAxisSpacing: 8,
         crossAxisCount: 2,
-        height: 260,
+        height: 275,
+        crossAxisSpacing: 6,
       ),
       itemCount: mostLiked.length.clamp(0, 4),
       itemBuilder: (context, index) {
         final properties = mostLiked[index];
         return BlocProvider(
           create: (context) => AddToFavoriteCubitCubit(),
-          child: GestureDetector(
-            onTap: () async {
-              try {
-                unawaited(Widgets.showLoader(context));
-                final fetch = PropertyRepository();
-                final dataOutput = await fetch.fetchPropertyFromPropertyId(
-                  id: properties.id!,
-                  isMyProperty:
-                      properties.addedBy.toString() == HiveUtils.getUserId(),
-                );
-                Future.delayed(
-                  Duration.zero,
-                  () {
-                    Widgets.hideLoder(context);
-                    HelperUtils.goToNextPage(
-                      Routes.propertyDetails,
-                      context,
-                      false,
-                      args: {
-                        'propertyData': dataOutput,
-                        'fromMyProperty': false,
-                      },
-                    );
-                  },
-                );
-              } catch (e) {
-                log('Error is $e');
-                Widgets.hideLoder(context);
+          child: PropertyCardBig(
+            showEndPadding: false,
+            isFirst: index == 0,
+            onLikeChange: (type) {
+              if (type == FavoriteType.add) {
+                context.read<FetchFavoritesCubit>().add(properties);
+              } else {
+                context.read<FetchFavoritesCubit>().remove(properties.id);
               }
             },
-            child: PropertyCardBig(
-              showEndPadding: false,
-              isFirst: index == 0,
-              onLikeChange: (type) {
-                if (type == FavoriteType.add) {
-                  context.read<FetchFavoritesCubit>().add(properties);
-                } else {
-                  context.read<FetchFavoritesCubit>().remove(properties.id);
-                }
-              },
-              property: properties,
-            ),
+            property: properties,
           ),
         );
       },
     );
   }
 
-  Widget buildNearByProperties(
-      {required List<PropertyModel> nearByProperties}) {
+  Widget buildNearByProperties({
+    required List<PropertyModel> nearByProperties,
+  }) {
     if (nearByProperties.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1028,7 +926,7 @@ class HomeScreenState extends State<HomeScreen>
             padding: const EdgeInsets.symmetric(
               horizontal: sidePadding,
             ),
-            physics: const BouncingScrollPhysics(),
+            physics: Constant.scrollPhysics,
             itemCount: nearByProperties.length.clamp(0, 6),
             scrollDirection: Axis.horizontal,
             itemBuilder: (context, index) {
@@ -1055,57 +953,27 @@ class HomeScreenState extends State<HomeScreen>
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCountAndFixedHeight(
-        mainAxisSpacing: 15,
+        mainAxisSpacing: 8,
         crossAxisCount: 2,
-        height: 260,
+        height: 275,
+        crossAxisSpacing: 6,
       ),
       itemCount: mostViewed.length.clamp(0, 4),
       itemBuilder: (context, index) {
         final property = mostViewed[index];
-        return GestureDetector(
-          onTap: () async {
-            try {
-              unawaited(Widgets.showLoader(context));
-              final fetch = PropertyRepository();
-              final dataOutput = await fetch.fetchPropertyFromPropertyId(
-                id: property.id!,
-                isMyProperty:
-                    property.addedBy.toString() == HiveUtils.getUserId(),
-              );
-              Future.delayed(
-                Duration.zero,
-                () {
-                  Widgets.hideLoder(context);
-                  HelperUtils.goToNextPage(
-                    Routes.propertyDetails,
-                    context,
-                    false,
-                    args: {
-                      'propertyData': dataOutput,
-                      'fromMyProperty': false,
-                    },
-                  );
-                },
-              );
-            } catch (e) {
-              log('Error is $e');
-              Widgets.hideLoder(context);
-            }
-          },
-          child: BlocProvider(
-            create: (context) => AddToFavoriteCubitCubit(),
-            child: PropertyCardBig(
-              showEndPadding: false,
-              isFirst: index == 0,
-              onLikeChange: (type) {
-                if (type == FavoriteType.add) {
-                  context.read<FetchFavoritesCubit>().add(property);
-                } else {
-                  context.read<FetchFavoritesCubit>().remove(property.id);
-                }
-              },
-              property: property,
-            ),
+        return BlocProvider(
+          create: (context) => AddToFavoriteCubitCubit(),
+          child: PropertyCardBig(
+            showEndPadding: false,
+            isFirst: index == 0,
+            onLikeChange: (type) {
+              if (type == FavoriteType.add) {
+                context.read<FetchFavoritesCubit>().add(property);
+              } else {
+                context.read<FetchFavoritesCubit>().remove(property.id);
+              }
+            },
+            property: property,
           ),
         );
       },
@@ -1122,7 +990,7 @@ class HomeScreenState extends State<HomeScreen>
             padding: const EdgeInsets.symmetric(
               horizontal: sidePadding,
             ),
-            physics: const BouncingScrollPhysics(),
+            physics: Constant.scrollPhysics,
             scrollDirection: Axis.horizontal,
             itemCount: categories.length.clamp(0, Constant.maxCategoryLength),
             itemBuilder: (context, index) {
@@ -1155,7 +1023,11 @@ class HomeScreenState extends State<HomeScreen>
                   ),
                 );
               }
-              return buildCategoryCard(context, category, index != 0);
+              return buildCategoryCard(
+                context: context,
+                category: category,
+                frontSpacing: index != 0,
+              );
             },
           ),
         ),
@@ -1163,13 +1035,13 @@ class HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget buildCategoryCard(
-    BuildContext context,
-    Category category,
-    frontSpacing,
-  ) {
+  Widget buildCategoryCard({
+    required BuildContext context,
+    required Category category,
+    bool? frontSpacing,
+  }) {
     return CategoryCard(
-      frontSpacing: frontSpacing,
+      frontSpacing: frontSpacing ?? false,
       onTapCategory: (category) {
         currentVisitingCategoryId = category.id;
         currentVisitingCategory = category;
@@ -1179,147 +1051,6 @@ class HomeScreenState extends State<HomeScreen>
         );
       },
       category: category,
-    );
-  }
-}
-
-class RecentPropertiesSectionWidget extends StatefulWidget {
-  const RecentPropertiesSectionWidget({super.key});
-
-  @override
-  State<RecentPropertiesSectionWidget> createState() =>
-      _RecentPropertiesSectionWidgetState();
-}
-
-class _RecentPropertiesSectionWidgetState
-    extends State<RecentPropertiesSectionWidget> {
-  void _onRecentlyAddedSeeAll() {
-    final dynamic statemap = StateMap<
-        FetchRecentProepertiesInitial,
-        FetchRecentPropertiesInProgress,
-        FetchRecentPropertiesSuccess,
-        FetchRecentPropertiesFailur>();
-    ViewAllScreen<FetchRecentPropertiesCubit, FetchRecentPropertiesState>(
-      title: 'recentlyAdded'.translate(context),
-      map: statemap,
-    ).open(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    bool isRecentEmpty() {
-      if (context.watch<FetchRecentPropertiesCubit>().state
-          is FetchRecentPropertiesSuccess) {
-        return (context.watch<FetchRecentPropertiesCubit>().state
-                as FetchRecentPropertiesSuccess)
-            .properties
-            .isEmpty;
-      }
-      return true;
-    }
-
-    return Column(
-      children: [
-        if (!isRecentEmpty())
-          TitleHeader(
-            enableShowAll: false,
-            title: 'recentlyAdded'.translate(context),
-            onSeeAll: _onRecentlyAddedSeeAll,
-          ),
-        LayoutBuilder(
-          builder: (context, c) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: sidePadding),
-              child: BlocBuilder<FetchRecentPropertiesCubit,
-                  FetchRecentPropertiesState>(
-                builder: (context, state) {
-                  if (state is FetchRecentPropertiesInProgress) {
-                    return ListView.builder(
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: [
-                              const ClipRRect(
-                                clipBehavior: Clip.antiAliasWithSaveLayer,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(15)),
-                                child: CustomShimmer(height: 90, width: 90),
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    const SizedBox(
-                                      height: 10,
-                                    ),
-                                    CustomShimmer(
-                                      height: 10,
-                                      width: c.maxWidth - 100,
-                                    ),
-                                    const SizedBox(
-                                      height: 10,
-                                    ),
-                                    const CustomShimmer(
-                                      height: 10,
-                                    ),
-                                    const SizedBox(
-                                      height: 10,
-                                    ),
-                                    CustomShimmer(
-                                      height: 10,
-                                      width: c.maxWidth / 1.2,
-                                    ),
-                                    const SizedBox(
-                                      height: 10,
-                                    ),
-                                    CustomShimmer(
-                                      height: 10,
-                                      width: c.maxWidth / 4,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      shrinkWrap: true,
-                      itemCount: 5,
-                    );
-                  }
-
-                  if (state is FetchRecentPropertiesSuccess) {
-                    return ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        var modal = state.properties[index];
-                        modal = context.watch<PropertyEditCubit>().get(modal);
-                        return PropertyHorizontalCard(
-                          property: modal,
-                          additionalImageWidth: 10,
-                        );
-                      },
-                      itemCount: state.properties.length.clamp(0, 4),
-                      shrinkWrap: true,
-                    );
-                  }
-                  if (state is FetchRecentPropertiesFailur) {
-                    return Container();
-                  }
-
-                  return Container();
-                },
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 }
@@ -1352,7 +1083,7 @@ class PersonalizedPropertyWidget extends StatelessWidget {
             children: [
               TitleHeader(
                 onSeeAll: () {
-                  final StateMap stateMap = StateMap<
+                  final stateMap = StateMap<
                       FetchPersonalizedPropertyInitial,
                       FetchPersonalizedPropertyInProgress,
                       FetchPersonalizedPropertySuccess,
@@ -1374,46 +1105,31 @@ class PersonalizedPropertyWidget extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                     horizontal: sidePadding,
                   ),
-                  physics: const BouncingScrollPhysics(),
+                  physics: Constant.scrollPhysics,
                   scrollDirection: Axis.horizontal,
                   itemBuilder: (context, index) {
-                    final thisITemkye = GlobalKey();
-
                     var propertymodel = state.properties[index];
                     propertymodel =
                         context.watch<PropertyEditCubit>().get(propertymodel);
-                    return GestureDetector(
-                      onTap: () {
-                        HelperUtils.goToNextPage(
-                          Routes.propertyDetails,
-                          context,
-                          false,
-                          args: {
-                            'propertyData': propertymodel,
-                            'fromMyProperty': false,
-                          },
-                        );
+                    return BlocProvider(
+                      create: (context) {
+                        return AddToFavoriteCubitCubit();
                       },
-                      child: BlocProvider(
-                        create: (context) {
-                          return AddToFavoriteCubitCubit();
+                      child: PropertyCardBig(
+                        key: UniqueKey(),
+                        isFirst: index == 0,
+                        property: propertymodel,
+                        onLikeChange: (type) {
+                          if (type == FavoriteType.add) {
+                            context
+                                .read<FetchFavoritesCubit>()
+                                .add(propertymodel);
+                          } else {
+                            context
+                                .read<FetchFavoritesCubit>()
+                                .remove(state.properties[index].id);
+                          }
                         },
-                        child: PropertyCardBig(
-                          key: thisITemkye,
-                          isFirst: index == 0,
-                          property: propertymodel,
-                          onLikeChange: (type) {
-                            if (type == FavoriteType.add) {
-                              context
-                                  .read<FetchFavoritesCubit>()
-                                  .add(propertymodel);
-                            } else {
-                              context
-                                  .read<FetchFavoritesCubit>()
-                                  .remove(state.properties[index].id);
-                            }
-                          },
-                        ),
                       ),
                     );
                   },
@@ -1426,25 +1142,6 @@ class PersonalizedPropertyWidget extends StatelessWidget {
         return Container();
       },
     );
-  }
-}
-
-Future<void> notificationPermissionChecker(BuildContext context) async {
-  if (!(await Permission.notification.isGranted)) {
-    await Permission.notification.onPermanentlyDeniedCallback(
-      () {
-        return;
-      },
-    );
-    await Permission.notification.request().then((value) {
-      if (value == true) {
-        HelperUtils.showSnackBarMessage(
-            context, 'Notification Permission Granted');
-      } else {
-        HelperUtils.showSnackBarMessage(
-            context, 'Notification Permission Denied');
-      }
-    });
   }
 }
 
@@ -1518,9 +1215,7 @@ class _SliderWidgetState extends State<SliderWidget>
                   controller: _pageController,
                   clipBehavior: Clip.antiAlias,
                   scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(
-                    decelerationRate: ScrollDecelerationRate.fast,
-                  ),
+                  physics: Constant.scrollPhysics,
                   itemCount: 1,
                   itemBuilder: (context, index) => CustomShimmer(
                     height: 130.rh(context),
@@ -1536,29 +1231,48 @@ class _SliderWidgetState extends State<SliderWidget>
         }
         if (state is FetchHomePageDataSuccess &&
             state.homePageDataModel.sliderSection.isNotEmpty) {
+          final banners = state.homePageDataModel.sliderSection;
           bannersLength = state.homePageDataModel.sliderSection.length;
           return Column(
             children: <Widget>[
               SizedBox(
                 height: 15.rh(context),
               ),
-              SizedBox(
-                height: 170.rh(context),
-                child: PageView.builder(
-                  controller: _pageController,
-                  clipBehavior: Clip.antiAlias,
-                  physics: const BouncingScrollPhysics(
-                    decelerationRate: ScrollDecelerationRate.fast,
-                  ),
-                  itemCount: state.homePageDataModel.sliderSection.length,
-                  onPageChanged: (index) {
-                    _bannerIndex.value = index;
+              CarouselSlider(
+                items: banners.map((e) {
+                  return Builder(
+                    builder: (context) {
+                      return _buildBanner(e);
+                    },
+                  );
+                }).toList(),
+                options: CarouselOptions(
+                  height: 170.rh(context),
+                  viewportFraction: 1,
+                  autoPlay: true,
+                  autoPlayInterval: const Duration(seconds: 3),
+                  enlargeCenterPage: true,
+                  onPageChanged: (index, reason) {
+                    setState(() {
+                      _bannerIndex.value = index;
+                    });
                   },
-                  itemBuilder: (context, index) => _buildBanner(
-                    state.homePageDataModel.sliderSection[index],
-                  ),
                 ),
               ),
+              // SizedBox(
+              //   height: 170.rh(context),
+              //   child: PageView.builder(
+              //     controller: _pageController,
+              //     clipBehavior: Clip.antiAlias,
+              //     itemCount: state.homePageDataModel.sliderSection.length,
+              //     onPageChanged: (index) {
+              //       _bannerIndex.value = index;
+              //     },
+              //     itemBuilder: (context, index) => _buildBanner(
+              //       state.homePageDataModel.sliderSection[index],
+              //     ),
+              //   ),
+              // ),
               const SizedBox(
                 height: 10,
               ),
@@ -1571,80 +1285,72 @@ class _SliderWidgetState extends State<SliderWidget>
   }
 
   Widget _buildBanner(HomeSlider banner) {
-    return GestureDetector(
-      onTap: () async {
-        if (banner.sliderType == '1') {
-          UiUtils.showFullScreenImage(
-            context,
-            provider: NetworkImage(banner.image.toString()),
-          );
-        } else if (banner.sliderType == '2') {
-          await Navigator.pushNamed(
-            context,
-            Routes.propertiesList,
-            arguments: {
-              'catID': banner.categoryId,
-              'catName': banner.category!.category,
-            },
-          );
-        } else if (banner.sliderType == '3') {
-          try {
-            unawaited(Widgets.showLoader(context));
-            final fetch = PropertyRepository();
-            final dataOutput = await fetch.fetchPropertyFromPropertyId(
-              id: int.parse(banner.propertysId!),
-              isMyProperty:
-                  banner.property!.addedBy.toString() == HiveUtils.getUserId(),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: sidePadding),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(
+          color: Colors.transparent,
+        ),
+      ),
+      child: GestureDetector(
+        onTap: () async {
+          if (banner.sliderType == '1') {
+            UiUtils.showFullScreenImage(
+              context,
+              provider: NetworkImage(banner.image.toString()),
             );
-            Future.delayed(
-              Duration.zero,
-              () {
-                Widgets.hideLoder(context);
-                HelperUtils.goToNextPage(
-                  Routes.propertyDetails,
-                  context,
-                  false,
-                  args: {
-                    'propertyData': dataOutput,
-                    'propertiesList': dataOutput,
-                    'fromMyProperty': false,
-                  },
-                );
+          } else if (banner.sliderType == '2') {
+            await Navigator.pushNamed(
+              context,
+              Routes.propertiesList,
+              arguments: {
+                'catID': banner.categoryId,
+                'catName': banner.category!.category,
               },
             );
-          } catch (e) {
-            log('Error is $e');
-            Widgets.hideLoder(context);
+          } else if (banner.sliderType == '3') {
+            try {
+              unawaited(Widgets.showLoader(context));
+              final fetch = PropertyRepository();
+              final dataOutput = await fetch.fetchPropertyFromPropertyId(
+                id: int.parse(banner.propertysId!),
+                isMyProperty: banner.property!.addedBy.toString() ==
+                    HiveUtils.getUserId(),
+              );
+              Future.delayed(
+                Duration.zero,
+                () {
+                  Widgets.hideLoder(context);
+                  HelperUtils.goToNextPage(
+                    Routes.propertyDetails,
+                    context,
+                    false,
+                    args: {
+                      'propertyData': dataOutput,
+                      'propertiesList': dataOutput,
+                      'fromMyProperty': false,
+                    },
+                  );
+                },
+              );
+            } catch (e) {
+              log('Error is $e');
+              Widgets.hideLoder(context);
+            }
+          } else if (banner.sliderType == '4') {
+            await url_launcher.launchUrl(Uri.parse(banner.link!));
           }
-        } else if (banner.sliderType == '4') {
-          await url_launcher.launchUrl(Uri.parse(banner.link!));
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: sidePadding),
-        child: Stack(
-          clipBehavior: Clip.antiAlias,
-          children: [
-            Container(
-              clipBehavior: Clip.antiAlias,
-              width: context.screenWidth,
-              height: context.screenHeight * 0.3,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(11),
-                border: Border.all(
-                  color: Colors.transparent,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(11),
-                child: UiUtils.getImage(
-                  banner.image.toString(),
-                  width: context.screenWidth,
-                  fit: BoxFit.fill,
-                ),
-              ),
-            ),
-          ],
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(11),
+          child: UiUtils.getImage(
+            banner.image.toString(),
+            height: context.screenHeight * 0.3,
+            width: context.screenWidth,
+            fit: BoxFit.fill,
+          ),
         ),
       ),
     );

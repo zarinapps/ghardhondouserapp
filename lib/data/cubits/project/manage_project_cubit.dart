@@ -30,8 +30,9 @@ class ManageProjectCubit extends Cubit<ManageProjectState> {
   }) async {
     try {
       emit(ManageProjectInProgress());
-      final reposnse = await _projectRepository.createProject(data);
-      emit(ManageProjectInSuccess(ProjectModel.fromMap(reposnse?['data'][0])));
+      final response = await _projectRepository.createProject(data);
+      final mapData = response?['data'][0] as Map<String, dynamic>;
+      emit(ManageProjectInSuccess(ProjectModel.fromMap(mapData)));
     } catch (e, st) {
       emit(
         ManageProjectInFail(

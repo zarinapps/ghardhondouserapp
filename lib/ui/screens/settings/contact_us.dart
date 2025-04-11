@@ -131,9 +131,9 @@ class ContactUsState extends State<ContactUs> {
               ),
             );
           } else if (state is CompanyFetchFailure) {
-            log('error iii ${state.errmsg}');
+            log('error iii ${state.error}');
             return Center(
-              child: CustomText(state.errmsg),
+              child: CustomText(state.error?.toString() ?? ''),
             );
           } else {
             return const SizedBox.shrink();
@@ -147,7 +147,7 @@ class ContactUsState extends State<ContactUs> {
     Navigator.push(
       context,
       BlurredRouter(
-        builder: (context) => EmailSendWidget(email: email),
+        builder: (context) => EmailSendWidget(email: email?.toString() ?? ''),
       ),
     );
   }
@@ -216,7 +216,7 @@ class ContactUsState extends State<ContactUs> {
             ),
           if (isSwitchBox ?? false)
             Switch(
-              value: switchValue ?? false,
+              value: switchValue as bool? ?? false,
               onChanged: (value) {
                 onTapSwitch?.call(value);
               },
@@ -228,7 +228,7 @@ class ContactUsState extends State<ContactUs> {
 
   Future<void> launchPathURL(isTel, String value) async {
     late Uri redirectUri;
-    if (isTel) {
+    if (isTel as bool? ?? false) {
       redirectUri = Uri.parse('tel: $value');
     } else {
       redirectUri = Uri(
@@ -288,7 +288,7 @@ class _EmailSendWidgetState extends State<EmailSendWidget> {
               20,
             ),
             child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: Constant.scrollPhysics,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -44,16 +44,16 @@ class GetApiKeysCubit extends Cubit<GetApiKeysState> {
 
       emit(
         GetApiKeysSuccess(
-          razorPayKey: razorpayKey ?? '',
+          razorPayKey: razorpayKey?.toString() ?? '',
           enabledPaymentGatway: enabledGatway,
-          razorPaySecret: razorPaySecret ?? '',
-          paystackPublicKey: paystackPublicKey ?? '',
-          paystackCurrency: paystackCurrency ?? '',
-          paystackSecret: paystackSecretKey ?? '',
-          stripeCurrency: stripeCurrency ?? '',
-          stripePublishableKey: stripePublishableKey ?? '',
-          stripeSecretKey: stripeSecretKey ?? '',
-          flutterwaveStatus: flutterwaveStatus ?? '',
+          razorPaySecret: razorPaySecret?.toString() ?? '',
+          paystackPublicKey: paystackPublicKey?.toString() ?? '',
+          paystackCurrency: paystackCurrency?.toString() ?? '',
+          paystackSecret: paystackSecretKey?.toString() ?? '',
+          stripeCurrency: stripeCurrency?.toString() ?? '',
+          stripePublishableKey: stripePublishableKey?.toString() ?? '',
+          stripeSecretKey: stripeSecretKey?.toString() ?? '',
+          flutterwaveStatus: flutterwaveStatus?.toString() ?? '',
         ),
       );
     } catch (e) {
@@ -76,14 +76,13 @@ class GetApiKeysCubit extends Cubit<GetApiKeysState> {
         privateKey: Constant.keysDecryptionPasswordRSA,
         encryptedData: st.stripeSecretKey,
       );
-      paystack.init(AppSettings.paystackKey);
     }
     if (state is GetApiKeysFail) {
       log((state as GetApiKeysFail).error.toString(), name: 'API KEY FAIL');
     }
   }
 
-  dynamic _getDataFromKey(List data, String key) {
+  dynamic _getDataFromKey(List<dynamic> data, String key) {
     try {
       return data.where((element) => element['type'] == key).first['data'];
     } catch (e) {

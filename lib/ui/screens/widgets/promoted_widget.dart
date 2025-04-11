@@ -14,8 +14,7 @@ class PromotedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (type == PromoteCardType.icon) {
       return Container(
-        // width: 64,
-        // height: 24,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: color ?? context.color.tertiaryColor,
           borderRadius: BorderRadius.circular(4),
@@ -26,7 +25,7 @@ class PromotedCard extends StatelessWidget {
             child: CustomText(
               UiUtils.translate(context, 'featured'),
               fontWeight: FontWeight.bold,
-              color: context.color.primaryColor,
+              color: context.color.buttonColor,
               fontSize: context.font.smaller,
             ),
           ),

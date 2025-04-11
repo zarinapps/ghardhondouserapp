@@ -40,12 +40,12 @@ class GuestChecker {
   }
 
   static Widget updateUI({
-    required Function(bool? isGuest) onChangeStatus,
+    required dynamic Function(bool? isGuest) onChangeStatus,
   }) {
     return ValueListenableBuilder<bool?>(
       valueListenable: _isGuest,
       builder: (context, value, c) {
-        return onChangeStatus.call(value);
+        return onChangeStatus.call(value) as Widget? ?? const SizedBox.shrink();
       },
     );
   }

@@ -8,11 +8,14 @@ class AgentVerificationFormFieldsModel {
 
   factory AgentVerificationFormFieldsModel.fromJson(Map<String, dynamic> json) {
     return AgentVerificationFormFieldsModel(
-      id: json['id'],
-      name: json['name'],
-      fieldType: json['field_type'],
+      id: json['id'] as int,
+      name: json['name']?.toString() ?? '',
+      fieldType: json['field_type']?.toString() ?? '',
       formFieldsValues: List<FormFieldValue>.from(
-          json['form_fields_values'].map((x) => FormFieldValue.fromJson(x))),
+        (json['form_fields_values'] as List).map(
+          (x) => FormFieldValue.fromJson(x as Map<String, dynamic>),
+        ),
+      ),
     );
   }
   final int id;
@@ -30,9 +33,9 @@ class FormFieldValue {
 
   factory FormFieldValue.fromJson(Map<String, dynamic> json) {
     return FormFieldValue(
-      id: json['id'],
-      verifyCustomerFormId: json['verify_customer_form_id'],
-      value: json['value'],
+      id: json['id'] as int,
+      verifyCustomerFormId: json['verify_customer_form_id'] as int,
+      value: json['value']?.toString() ?? '',
     );
   }
   final int id;

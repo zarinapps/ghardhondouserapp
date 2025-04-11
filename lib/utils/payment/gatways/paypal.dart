@@ -65,6 +65,7 @@ class _PaypalWidgetState extends State<PaypalWidget> {
         NavigationDelegate(
           onUrlChange: (change) {
             final uri = Uri.parse(change.url ?? '');
+
             final payerID = uri.queryParameters['PayerID'];
             if (uri.host == Uri.parse(AppSettings.baseUrl).host &&
                 uri.pathSegments.contains('app_payment_status')) {

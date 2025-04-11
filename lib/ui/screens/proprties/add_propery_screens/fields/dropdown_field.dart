@@ -49,7 +49,7 @@ class CustomDropdownField extends CustomField {
                 width: 24,
                 child: FittedBox(
                   child: UiUtils.imageType(
-                    data['image'],
+                    data['image']?.toString() ?? '',
                     color: Constant.adaptThemeColorSvg
                         ? context.color.tertiaryColor
                         : null,
@@ -66,7 +66,7 @@ class CustomDropdownField extends CustomField {
               ),
             ),
             CustomText(
-              data['name'],
+              data['name']?.toString() ?? '',
               fontWeight: FontWeight.w500,
               fontSize: context.font.large,
               color: context.color.textColorDark,
@@ -118,7 +118,7 @@ class CustomDropdownField extends CustomField {
                       .map(
                         (e) => DropdownMenuItem(
                           value: e,
-                          child: CustomText(e),
+                          child: CustomText(e?.toString() ?? ''),
                         ),
                       )
                       .toList(),

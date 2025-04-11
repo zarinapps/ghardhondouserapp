@@ -11,7 +11,8 @@ import 'package:ebroker/data/cubits/agents/fetch_property_by_agent_cubit.dart';
 import 'package:ebroker/data/cubits/agents/fetch_property_cubit.dart';
 import 'package:ebroker/data/cubits/fetch_faqs_cubit.dart';
 import 'package:ebroker/data/cubits/home_page_data_cubit.dart';
-import 'package:ebroker/data/cubits/project/fetchProjectDetailsCubit.dart';
+import 'package:ebroker/data/cubits/project/change_project_status_cubit.dart';
+import 'package:ebroker/data/cubits/project/fetch_my_promoted_projects.dart';
 import 'package:ebroker/data/cubits/property/change_property_status_cubit.dart';
 import 'package:ebroker/data/cubits/property/fetch_city_property_list.dart';
 import 'package:ebroker/data/cubits/property/fetch_my_promoted_propertys_cubit.dart';
@@ -23,12 +24,11 @@ import 'package:nested/nested.dart';
 class RegisterCubits {
   List<SingleChildWidget> register() {
     return [
+      BlocProvider(create: (context) => FetchMyPromotedProjectsCubit()),
+      BlocProvider(create: (context) => ChangeProjectStatusCubit()),
       BlocProvider(create: (context) => ChangePropertyStatusCubit()),
       BlocProvider(create: (context) => FetchFacilitiesCubit()),
       BlocProvider(create: (context) => FlutterwaveCubit()),
-      BlocProvider(
-        create: (context) => FetchProjectDetailsCubit(),
-      ),
       BlocProvider(
         create: (context) => MortgageCalculatorCubit(),
       ),
@@ -55,7 +55,6 @@ class RegisterCubits {
       BlocProvider(create: (context) => LoginCubit()),
       BlocProvider(create: (context) => CompanyCubit()),
       BlocProvider(create: (context) => FetchCategoryCubit()),
-      BlocProvider(create: (context) => HouseTypeCubit()),
       BlocProvider(create: (context) => SearchPropertyCubit()),
       BlocProvider(create: (context) => DeleteAccountCubit()),
       BlocProvider(create: (context) => ProfileSettingCubit()),
@@ -90,7 +89,6 @@ class RegisterCubits {
       BlocProvider(create: (context) => FetchMostLikedPropertiesCubit()),
       BlocProvider(create: (context) => FetchNearbyPropertiesCubit()),
       BlocProvider(create: (context) => FetchOutdoorFacilityListCubit()),
-      BlocProvider(create: (context) => FetchRecentPropertiesCubit()),
       BlocProvider(create: (context) => PropertyEditCubit()),
       BlocProvider(create: (context) => FetchCityPropertyList()),
       BlocProvider(create: (context) => FetchPersonalizedPropertyList()),

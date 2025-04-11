@@ -1,211 +1,259 @@
-// ignore_for_file: file_names
+import 'dart:math';
 
-import 'dart:developer';
-
-import 'package:ebroker/data/model/chat/chated_user_model.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/chat/chat_screen.dart';
-import 'package:ebroker/ui/screens/chat_new/message_types/registerar.dart';
-import 'package:ebroker/ui/screens/chat_new/model.dart';
 import 'package:flutter/material.dart';
-
-String currentlyChatingWith = '';
-String currentlyChatPropertyId = '';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
-  static FirebaseMessaging messagingInstance = FirebaseMessaging.instance;
+  static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static final AwesomeNotifications _awesomeNotifications =
+      AwesomeNotifications();
 
-  static LocalAwsomeNotification localNotification = LocalAwsomeNotification();
-
-  static late StreamSubscription<RemoteMessage> foregroundStream;
-  static late StreamSubscription<RemoteMessage> onMessageOpen;
-  static requestPermission() async {}
-
-  Future<void> updateFCM() async {
-    await FirebaseMessaging.instance.getToken();
-    // await Api.post(
-    //     // url: Api.updateFCMId,
-    //     parameter: {Api.fcmId: token},
-    //     useAuthToken: true);
+  // Initialize notification services
+  static Future<void> init(BuildContext context) async {
+    await _requestPermissions();
+    await _initializeAwesomeNotifications();
+    _registerFirebaseListeners(context);
   }
 
-  @pragma('vm:entry-point')
-  static handleNotification(RemoteMessage? message, [BuildContext? context]) {
-    final notificationType = message?.data['type'] ?? '';
+  // Request notification permissions
+  static Future<void> _requestPermissions() async {
+    // Request Firebase messaging permissions
+    await _messaging.requestPermission();
 
-    log('@notification data is ${message?.data}');
-
-    if (notificationType == 'chat') {
-      final senderId = message?.data['sender_id'] ?? '';
-      final username = message!.data['username'];
-      final propertyTitleImage = message.data['property_title_image'];
-      final propertyTitle = message.data['title'];
-      final userProfile = message.data['user_profile'];
-      final propertyId = message.data['property_id'];
-
-      (context!).read<GetChatListCubit>().addNewChat(
-            ChatedUser(
-              fcmId: '',
-              firebaseId: '',
-              name: username,
-              profile: userProfile,
-              propertyId:
-                  (propertyId is int) ? propertyId : int.parse(propertyId),
-              title: propertyTitle,
-              userId: (senderId is int) ? senderId : int.parse(senderId),
-              titleImage: propertyTitleImage,
-            ),
-          );
-
-      ///Checking if this is user we are chatiing with
-      if (senderId == currentlyChatingWith &&
-          propertyId == currentlyChatPropertyId) {
-        final chatMessageModel = ChatMessageModel.fromJson(message.data)
-          ..setIsSentByMe(false)
-          ..setIsSentNow(false);
-        ChatMessageHandler.add(chatMessageModel);
-        totalMessageCount++;
-      } else {
-        localNotification.createNotification(
-          isLocked: false,
-          notificationData: message,
-        );
-      }
-    } else if (notificationType == 'delete_message') {
-      ChatMessageHandlerOLD.removeMessage(
-        id: int.parse(
-          message!.data['message_id'],
-        ),
-      );
-    } else {
-      localNotification.createNotification(
-        isLocked: false,
-        notificationData: message!,
+    // Request Awesome Notifications permissions
+    final isAllowed = await _awesomeNotifications.isNotificationAllowed();
+    if (!isAllowed) {
+      await _awesomeNotifications.requestPermissionToSendNotifications(
+        channelKey: Constant.notificationChannel,
+        permissions: [
+          NotificationPermission.Alert,
+          NotificationPermission.Sound,
+          NotificationPermission.Badge,
+          NotificationPermission.Vibration,
+        ],
       );
     }
   }
 
-  @pragma('vm:entry-point')
-  static void init(context) {
-    requestPermission();
-    registerListeners(context);
-  }
-
+  // Static method for background message handling
   @pragma('vm:entry-point')
   static Future<void> onBackgroundMessageHandler(RemoteMessage message) async {
-    if (message.notification == null) {
-      handleNotification(
-        message,
-      );
+    // Initialize Firebase if needed
+    await Firebase.initializeApp();
+
+    // Prevent duplicate notifications in background state
+    if (message.data['type'] == 'chat') {
+      // Generate a unique ID based on message content
+      final uniqueId = _generateUniqueNotificationId(message);
+
+      // Check if this notification has already been shown
+      final isDuplicate = await _checkDuplicateNotification(uniqueId);
+
+      if (!isDuplicate) {}
     }
   }
 
-  @pragma('vm:entry-point')
-  static forgroundNotificationHandler(BuildContext context) async {
-    foregroundStream =
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      handleNotification(message, context);
+  // Generate a unique ID for the notification
+  static int _generateUniqueNotificationId(RemoteMessage message) {
+    // Create a hash based on key message details to identify duplicates
+    return message.data['sender_id'].hashCode ^
+        message.data['property_id'].hashCode ^
+        message.data['message_id'].hashCode;
+  }
+
+  // Check if notification is a duplicate
+  static Future<bool> _checkDuplicateNotification(int uniqueId) async {
+    // Implement a simple duplicate check
+    // You might want to use a more robust solution like SharedPreferences or a local database
+    final prefs = await SharedPreferences.getInstance();
+    final lastNotificationTime = prefs.getInt('last_notification_$uniqueId');
+
+    if (lastNotificationTime == null) {
+      // First time seeing this notification
+      await prefs.setInt(
+          'last_notification_$uniqueId', DateTime.now().millisecondsSinceEpoch);
+      return false;
+    }
+
+    // Prevent duplicate within 5 seconds
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    return currentTime - lastNotificationTime < 5000;
+  }
+
+  // Initialize Awesome Notifications
+  static Future<void> _initializeAwesomeNotifications() async {
+    await _awesomeNotifications.initialize(
+      null,
+      [
+        NotificationChannel(
+          channelKey: Constant.notificationChannel,
+          channelName: 'General Notifications',
+          channelDescription: 'Notification channel for app',
+          importance: NotificationImportance.High,
+        ),
+        NotificationChannel(
+          channelKey: 'Chat Notification',
+          channelName: 'Chat Notifications',
+          channelDescription: 'Notifications for chat messages',
+          importance: NotificationImportance.High,
+        ),
+      ],
+    );
+
+    // Set notification listeners
+    await _awesomeNotifications.setListeners(
+      onActionReceivedMethod: _handleNotificationTap,
+    );
+  }
+
+  // Register Firebase message listeners
+  static void _registerFirebaseListeners(BuildContext context) {
+    // Foreground messages
+    FirebaseMessaging.onMessage.listen(_handleIncomingMessage);
+
+    // Background/Terminated state messages
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationNavigation);
+
+    // Initial message when app is launched from terminated state
+    FirebaseMessaging.instance
+        .getInitialMessage()
+        .then((RemoteMessage? message) {
+      if (message != null) {
+        _handleNotificationNavigation(message);
+      }
     });
   }
 
+  // Handle notification navigation for background/terminated states
+  static void _handleNotificationNavigation(RemoteMessage message) {
+    final payload = message.data;
+
+    if (payload['type'] == 'chat') {
+      _navigateToChatScreen(payload);
+    } else {
+      _navigateToPropertyDetails(payload);
+    }
+  }
+
+  // Handle incoming messages
+  static void _handleIncomingMessage(
+    RemoteMessage message,
+  ) {
+    final isChat = message.data['type'] == 'chat';
+
+    if (isChat) {
+      _createChatNotification(message);
+    } else {
+      _createGeneralNotification(message);
+    }
+  }
+
+  // Create chat notification
+  static Future<void> _createChatNotification(RemoteMessage message) async {
+    final chatId = int.parse(message.data['sender_id']?.toString() ?? '0') +
+        int.parse(message.data['property_id']?.toString() ?? '0');
+
+    await _awesomeNotifications.createNotification(
+      content: NotificationContent(
+        id: chatId,
+        channelKey: 'Chat Notification',
+        title: message.data['title']?.toString() ?? '',
+        body: message.data['body']?.toString() ?? '',
+        payload: message.data.cast<String, String>(),
+        notificationLayout: NotificationLayout.MessagingGroup,
+      ),
+    );
+  }
+
+  // Create general notification
+  static Future<void> _createGeneralNotification(RemoteMessage message) async {
+    await _awesomeNotifications.createNotification(
+      content: NotificationContent(
+        id: Random().nextInt(5000),
+        channelKey: Constant.notificationChannel,
+        title: message.data['title']?.toString() ?? '',
+        body: message.data['body']?.toString() ?? '',
+        payload: message.data.cast<String, String>(),
+      ),
+    );
+  }
+
+  // Static method to handle notification tap
   @pragma('vm:entry-point')
-  static terminatedStateNotificationHandler(BuildContext context) {
-    FirebaseMessaging.instance.getInitialMessage().then(
-      (RemoteMessage? message) {
-        if (message == null) {
-          return;
-        }
-        if (message.notification == null) {
-          handleNotification(message, context);
-        }
+  static Future<void> _handleNotificationTap(
+    ReceivedAction receivedAction,
+  ) async {
+    final payload = receivedAction.payload;
+
+    if (payload?['type'] == 'chat') {
+      _navigateToChatScreen(payload);
+    } else {
+      await _navigateToPropertyDetails(payload);
+    }
+  }
+
+  // Navigate to chat screen
+  static void _navigateToChatScreen(Map<String, dynamic>? payload) {
+    if (payload == null) return;
+
+    Navigator.push(
+      Constant.navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (context) => LoadChatMessagesCubit()),
+            BlocProvider(create: (context) => DeleteMessageCubit()),
+          ],
+          child: ChatScreen(
+            profilePicture: payload['user_profile']?.toString() ?? '',
+            userName: payload['username']?.toString() ?? '',
+            propertyImage: payload['property_title_image']?.toString() ?? '',
+            proeprtyTitle: payload['title']?.toString() ?? '',
+            userId: payload['sender_id']?.toString() ?? '',
+            propertyId: payload['property_id']?.toString() ?? '',
+            isBlockedByMe: payload['is_blocked_by_me'] == 'true',
+            isBlockedByUser: payload['is_blocked_by_user'] == 'true',
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Navigate to property details
+  static Future<void> _navigateToPropertyDetails(
+    Map<String, dynamic>? payload,
+  ) async {
+    if (payload == null) return;
+
+    final id = payload['id']?.toString() ?? '';
+    final isMyProperty = payload['added_by'] == HiveUtils.getUserId();
+
+    final property = await PropertyRepository().fetchPropertyFromPropertyId(
+      id: int.parse(id),
+      isMyProperty: isMyProperty,
+    );
+
+    HelperUtils.goToNextPage(
+      Routes.propertyDetails,
+      Constant.navigatorKey.currentContext!,
+      false,
+      args: {
+        'propertyData': property,
+        'fromMyProperty': false,
       },
     );
   }
 
-  @pragma('vm:entry-point')
-  static Future<void> onTapNotificationHandler(context) async {
-    onMessageOpen = FirebaseMessaging.onMessageOpenedApp
-        .listen((RemoteMessage message) async {
-      if (message.data['type'] == 'chat') {
-        final username = message.data['title'];
-        final propertyTitleImage = message.data['property_title_image'];
-        final propertyTitle = message.data['property_title'];
-        final userProfile = message.data['user_profile'];
-        final senderId = message.data['sender_id'];
-        final propertyId = message.data['property_id'];
-        final isBlockedByMe = message.data['is_blocked_by_me'];
-        final isBlockedByUser = message.data['is_blocked_by_user'];
-        Future.delayed(
-          Duration.zero,
-          () {
-            Navigator.push(
-              Constant.navigatorKey.currentContext!,
-              MaterialPageRoute(
-                builder: (context) {
-                  return BlocProvider(
-                    create: (context) {
-                      return LoadChatMessagesCubit();
-                    },
-                    child: Builder(
-                      builder: (context) {
-                        return ChatScreen(
-                          profilePicture: userProfile ?? '',
-                          userName: username ?? '',
-                          propertyImage: propertyTitleImage ?? '',
-                          proeprtyTitle: propertyTitle ?? '',
-                          userId: senderId ?? '',
-                          propertyId: propertyId ?? '',
-                          isBlockedByMe: isBlockedByMe ?? false,
-                          isBlockedByUser: isBlockedByUser ?? false,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        );
-      } else {
-        final String id = message.data['id'] ?? '';
-        final isMyProperty = message.data['added_by'] == HiveUtils.getUserId();
-        final property = await PropertyRepository().fetchPropertyFromPropertyId(
-            id: int.parse(id), isMyProperty: isMyProperty);
-        Future.delayed(Duration.zero, () {
-          HelperUtils.goToNextPage(
-            Routes.propertyDetails,
-            Constant.navigatorKey.currentContext!,
-            false,
-            args: {
-              'propertyData': property,
-              'fromMyProperty': false,
-            },
-          );
-        });
-      }
-    }
-            // if (message.data["screen"] == "profile") {
-            //   Navigator.pushNamed(context, profileRoute);
-            // }
-
-            );
+  // Update FCM token
+  Future<void> updateFCMToken() async {
+    // Implement token update logic here
   }
 
-  @pragma('vm:entry-point')
-  static Future<void> registerListeners(context) async {
-    await FirebaseMessaging.instance
-        .setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    await forgroundNotificationHandler(context);
-    await terminatedStateNotificationHandler(context);
-    await onTapNotificationHandler(context);
-  }
-
-  static void disposeListeners() {
-    onMessageOpen.cancel();
-    foregroundStream.cancel();
+  // Dispose listeners
+  void dispose() {
+    _awesomeNotifications.dispose();
   }
 }

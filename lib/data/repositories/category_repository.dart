@@ -21,10 +21,12 @@ class CategoryRepository {
 
       final modelList = (response['data'] as List).map(
         (e) {
-          return Category.fromJson(e);
+          return Category.fromJson(e as Map<String, dynamic>? ?? {});
         },
       ).toList();
-      return DataOutput(total: response['total'] ?? 0, modelList: modelList);
+      return DataOutput(
+          total: int.parse(response['total']?.toString() ?? '0'),
+          modelList: modelList);
     } catch (e) {
       rethrow;
     }

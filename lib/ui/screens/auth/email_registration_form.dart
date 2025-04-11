@@ -4,7 +4,7 @@ import 'package:ebroker/utils/validator.dart';
 import 'package:flutter/material.dart';
 
 class EmailRegistrationForm extends StatefulWidget {
-  const EmailRegistrationForm({super.key, required this.email});
+  const EmailRegistrationForm({required this.email, super.key});
 
   final String email;
 
@@ -14,10 +14,14 @@ class EmailRegistrationForm extends StatefulWidget {
   static Route route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments! as Map;
     return BlurredRouter(
-      builder: (_) => MultiBlocProvider(providers: [
-        BlocProvider(create: (context) => SendOtpCubit()),
-        BlocProvider(create: (context) => VerifyOtpCubit()),
-      ], child: EmailRegistrationForm(email: arguments['email'])),
+      builder: (_) => MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (context) => SendOtpCubit()),
+          BlocProvider(create: (context) => VerifyOtpCubit()),
+        ],
+        child:
+            EmailRegistrationForm(email: arguments['email']?.toString() ?? ''),
+      ),
     );
   }
 }
@@ -60,7 +64,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
 
   @override
   void dispose() {
-    otpResendTime.dispose();
+    if (mounted) otpResendTime.dispose();
 
     super.dispose();
   }
@@ -82,19 +86,24 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
         }
         if (state is SendOtpSuccess) {
           Widgets.hideLoder(context);
-          Navigator.pushReplacementNamed(context, Routes.otpScreen, arguments: {
-            'isDeleteAccount': false,
-            'phoneNumber': mobileController.text,
-            'email': emailController.text,
-            'otpVerificationId': state.verificationId,
-            'countryCode': countryCode,
-            'otpIs': state.verificationId,
-            'isEmailSelected': true,
-          });
+          Navigator.pushReplacementNamed(
+            context,
+            Routes.otpScreen,
+            arguments: {
+              'isDeleteAccount': false,
+              'phoneNumber': mobileController.text,
+              'email': emailController.text,
+              'otpVerificationId': state.verificationId,
+              'countryCode': countryCode,
+              'otpIs': state.verificationId,
+              'isEmailSelected': true,
+            },
+          );
         }
       },
       child: Scaffold(
         extendBody: true,
+        backgroundColor: context.color.primaryColor,
         appBar: UiUtils.buildAppBar(
           context,
           showBackButton: true,
@@ -103,9 +112,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
-            physics: AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
+            physics: Constant.scrollPhysics,
             child: buildEmailRegistrationForm(context),
           ),
         ),
@@ -120,31 +127,41 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            buildTextField(context,
-                title: 'fullName'.translate(context),
-                controller: nameController,
-                validator: CustomTextFieldValidator.nullCheck,
-                isPhoneNumber: false,
-                isPassword: false),
-            buildTextField(context,
-                title: 'email'.translate(context),
-                validator: CustomTextFieldValidator.email,
-                controller: emailController,
-                isPhoneNumber: false,
-                isPassword: false),
-            buildTextField(context,
-                title: 'phoneNumber'.translate(context),
-                validator: CustomTextFieldValidator.phoneNumber,
-                controller: mobileController,
-                keyboard: TextInputType.phone,
-                isPhoneNumber: true,
-                isPassword: false),
+            buildTextField(
+              context,
+              title: 'fullName'.translate(context),
+              controller: nameController,
+              validator: CustomTextFieldValidator.nullCheck,
+              isPhoneNumber: false,
+              isPassword: false,
+              hintText: 'fullName'.translate(context),
+            ),
+            buildTextField(
+              context,
+              title: 'email'.translate(context),
+              hintText: 'example@email.com',
+              validator: CustomTextFieldValidator.email,
+              controller: emailController,
+              isPhoneNumber: false,
+              isPassword: false,
+            ),
+            buildTextField(
+              context,
+              title: 'phoneNumber'.translate(context),
+              hintText: '0000000000',
+              validator: CustomTextFieldValidator.phoneNumber,
+              controller: mobileController,
+              keyboard: TextInputType.phone,
+              isPhoneNumber: true,
+              isPassword: false,
+            ),
             buildFirstPasswordTextField(
               context,
               title: 'password'.translate(context),
+              hintText: 'password'.translate(context),
               validator: (value) => Validator.validatePassword(
                 // Added return here
-                value,
+                value?.toString() ?? '',
                 secondFieldValue: passwordController.text,
               ),
               controller: passwordController,
@@ -152,29 +169,33 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
             buildSecondPasswordTextField(
               context,
               title: 'confirmPassword'.translate(context),
+              hintText: 'confirmPassword'.translate(context),
               controller: confirmPasswordController,
               validator: (value) => Validator.validatePassword(
                 // Added return here
-                value,
+                value?.toString() ?? '',
                 secondFieldValue: passwordController.text,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             UiUtils.buildButton(
               context,
               buttonTitle: 'register'.translate(context),
               onPressed: () async {
-                bool checkMobile = mobileController.text.isNotEmpty;
+                final checkMobile = mobileController.text.isNotEmpty;
                 if (_formKey.currentState!.validate()) {
                   await context.read<SendOtpCubit>().sendEmailOTP(
-                      email: emailController.text,
-                      name: nameController.text,
-                      phoneNumber: checkMobile ? mobileController.text : '',
-                      password: passwordController.text,
-                      confirmPassword: confirmPasswordController.text);
+                        email: emailController.text,
+                        name: nameController.text,
+                        phoneNumber: checkMobile ? mobileController.text : '',
+                        password: passwordController.text,
+                        confirmPassword: confirmPasswordController.text,
+                      );
                 } else {
-                  HelperUtils.showSnackBarMessage(
-                      context, 'pleaseFillAllFields'.translate(context));
+                  await HelperUtils.showSnackBarMessage(
+                    context,
+                    'pleaseFillAllFields'.translate(context),
+                  );
                 }
               },
             ),
@@ -187,16 +208,17 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
   Widget buildTextField(
     BuildContext context, {
     required String title,
-    List<TextInputFormatter>? formaters,
     required TextEditingController controller,
+    required bool isPhoneNumber,
+    required bool isPassword,
+    required String hintText,
+    List<TextInputFormatter>? formaters,
     TextInputType? keyboard,
     Widget? prefix,
     Widget? suffix,
     CustomTextFieldValidator? validator,
     bool? readOnly,
     TextDirection? textDirection,
-    required bool isPhoneNumber,
-    required bool isPassword,
   }) {
     final requiredSymbol = CustomText(
       '*',
@@ -221,6 +243,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
           height: 10.rh(context),
         ),
         CustomTextFormField(
+          hintText: hintText,
           textDirection: textDirection,
           controller: controller,
           keyboard: keyboard,
@@ -256,7 +279,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
                     ),
                   ),
                 )
-              : SizedBox.shrink(),
+              : null,
           formaters: formaters,
           //
           fillColor: context.color.textLightColor.withValues(alpha: 00.01),
@@ -268,8 +291,9 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
   Widget buildFirstPasswordTextField(
     BuildContext context, {
     required String title,
-    List<TextInputFormatter>? formaters,
     required TextEditingController controller,
+    required String hintText,
+    List<TextInputFormatter>? formaters,
     TextInputType? keyboard,
     Widget? prefix,
     Widget? suffix,
@@ -300,17 +324,20 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
           height: 10.rh(context),
         ),
         TextFormField(
-          maxLines: 1,
           textDirection: textDirection,
           controller: controller,
           obscureText: isFirstPasswordVisible ?? false,
           inputFormatters: formaters,
           keyboardAppearance: Brightness.light,
-          style: TextStyle(fontSize: context.font.large),
+          style: TextStyle(
+            fontSize: context.font.large,
+            color: context.color.textColorDark,
+          ),
           validator: validator,
           keyboardType: keyboard,
           decoration: InputDecoration(
             prefix: prefix,
+            hintText: hintText,
             suffixIcon: IconButton(
               onPressed: () {
                 if (isFirstPasswordVisible == true) {
@@ -320,9 +347,11 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
                 }
                 setState(() {});
               },
-              icon: Icon(isFirstPasswordVisible ?? false
-                  ? Icons.visibility_outlined
-                  : Icons.visibility_off_outlined),
+              icon: Icon(
+                isFirstPasswordVisible ?? false
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+              ),
               color: context.color.inverseSurface,
             ),
             hintStyle: TextStyle(
@@ -355,8 +384,9 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
   Widget buildSecondPasswordTextField(
     BuildContext context, {
     required String title,
-    List<TextInputFormatter>? formaters,
     required TextEditingController controller,
+    required String hintText,
+    List<TextInputFormatter>? formaters,
     TextInputType? keyboard,
     Widget? prefix,
     Widget? suffix,
@@ -392,23 +422,29 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
           obscureText: isSecondPasswordVisible ?? false,
           inputFormatters: formaters,
           keyboardAppearance: Brightness.light,
-          style: TextStyle(fontSize: context.font.large),
+          style: TextStyle(
+            fontSize: context.font.large,
+            color: context.color.textColorDark,
+          ),
           validator: validator,
           keyboardType: keyboard,
           decoration: InputDecoration(
             prefix: prefix,
+            hintText: hintText,
             suffixIcon: IconButton(
               onPressed: () {
-                if (isSecondPasswordVisible == true) {
+                if (isSecondPasswordVisible ?? false) {
                   isSecondPasswordVisible = false;
                 } else {
                   isSecondPasswordVisible = true;
                 }
                 setState(() {});
               },
-              icon: Icon(isSecondPasswordVisible ?? false
-                  ? Icons.visibility_outlined
-                  : Icons.visibility_off_outlined),
+              icon: Icon(
+                isSecondPasswordVisible ?? false
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+              ),
               color: context.color.inverseSurface,
             ),
             hintStyle: TextStyle(
@@ -538,7 +574,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
           otpResendTime.value = Constant.otpResendSecond;
           setState(() {});
         } else {
-          otpResendTime.value--;
+          if (mounted) otpResendTime.value--;
         }
       },
     );

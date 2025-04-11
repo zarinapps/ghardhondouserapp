@@ -51,34 +51,48 @@ class FetchSystemSettingsCubit extends Cubit<FetchSystemSettingsState> {
         },
         onSuccess: (Map<dynamic, dynamic>? data) {
           if (data == null) return;
+          final response = data['data'] as Map<dynamic, dynamic>;
           Constant.currencySymbol =
-              _getSetting(data, SystemSetting.currencySymbol);
+              _getSetting(data, SystemSetting.currencySymbol)?.toString() ?? '';
           Constant.googlePlaceAPIkey = RSAEncryption().decrypt(
             privateKey: Constant.keysDecryptionPasswordRSA,
-            encryptedData: data['data']['place_api_key'],
+            encryptedData: response['place_api_key']?.toString() ?? '',
           );
-          Constant.isAdmobAdsEnabled = (data['data']['show_admob_ads'] == '1');
-          Constant.adaptThemeColorSvg = (data['data']['svg_clr'] == '1');
+          Constant.isAdmobAdsEnabled = (response['show_admob_ads'] == '1');
+          Constant.adaptThemeColorSvg = (response['svg_clr'] == '1');
           Constant.admobBannerAndroid =
-              data['data']?['android_banner_ad_id'] ?? '';
-          Constant.admobBannerIos = data['data']?['ios_banner_ad_id'] ?? '';
+              response['android_banner_ad_id']?.toString() ?? '';
+          Constant.admobBannerIos =
+              response['ios_banner_ad_id']?.toString() ?? '';
           Constant.admobNativeAndroid =
-              data['data']?['android_native_ad_id'] ?? '';
-          Constant.admobNativeIos = data['data']?['ios_native_ad_id'] ?? '';
+              response['android_native_ad_id']?.toString() ?? '';
+          Constant.admobNativeIos =
+              response['ios_native_ad_id']?.toString() ?? '';
 
           Constant.admobInterstitialAndroid =
-              data['data']?['android_interstitial_ad_id'] ?? '';
+              response['android_interstitial_ad_id']?.toString() ?? '';
           Constant.admobInterstitialIos =
-              data['data']?['ios_interstitial_ad_id'] ?? '';
+              response['ios_interstitial_ad_id']?.toString() ?? '';
 
-          AppSettings.playstoreURLAndroid = data['data']?['playstore_id'] ?? '';
-          AppSettings.appstoreURLios = data['data']?['appstore_id'] ?? '';
+          AppSettings.playstoreURLAndroid =
+              response['playstore_id']?.toString() ?? '';
+          AppSettings.appstoreURLios =
+              response['appstore_id']?.toString() ?? '';
           AppSettings.iOSAppId =
-              (data['data']?['appstore_id'] ?? '').toString().split('/').last;
+              (response['appstore_id'] ?? '').toString().split('/').last;
           AppSettings.otpServiceProvider =
-              data['data']?['otp_service_provider'] ?? '';
+              response['otp_service_provider']?.toString() ?? '';
           AppSettings.isVerificationRequired =
-              data['data']?['verification_required_for_user'] ?? false;
+              (response['verification_required_for_user'] as bool?) ?? false;
+          final selectedCurrencyData =
+              response['selected_currency_data'] ?? <String, dynamic>{};
+          if (selectedCurrencyData.isNotEmpty as bool? ?? false) {
+            // AppSettings.currencyName = response['selected_currency_data']['name'];
+            AppSettings.currencyCode =
+                response['selected_currency_data']['code'] as String? ?? '';
+            AppSettings.currencySymbol =
+                response['selected_currency_data']['symbol'] as String? ?? '';
+          }
           emit(FetchSystemSettingsSuccess(settings: data));
         },
         hasData: state is FetchSystemSettingsSuccess,
@@ -90,8 +104,8 @@ class FetchSystemSettingsCubit extends Cubit<FetchSystemSettingsState> {
 
   dynamic getSetting(SystemSetting selected) {
     if (state is FetchSystemSettingsSuccess) {
-      final Map settings =
-          (state as FetchSystemSettingsSuccess).settings['data'];
+      final settings =
+          (state as FetchSystemSettingsSuccess).settings['data'] as Map;
 
       if (selected == SystemSetting.languageType) {
         return settings['languages'];
@@ -113,14 +127,14 @@ class FetchSystemSettingsCubit extends Cubit<FetchSystemSettingsState> {
     }
   }
 
-  Map getRawSettings() {
+  Map<dynamic, dynamic> getRawSettings() {
     if (state is FetchSystemSettingsSuccess) {
-      return (state as FetchSystemSettingsSuccess).settings['data'];
+      return (state as FetchSystemSettingsSuccess).settings['data'] as Map;
     }
     return {};
   }
 
-  dynamic _getSetting(Map settings, SystemSetting selected) {
+  dynamic _getSetting(Map<dynamic, dynamic> settings, SystemSetting selected) {
     final selectedSettingData =
         settings['data'][Constant.systemSettingKeys[selected]];
 

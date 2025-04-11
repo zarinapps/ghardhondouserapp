@@ -7,10 +7,12 @@ class MortgageCalculatorModel {
   factory MortgageCalculatorModel.fromJson(Map<String, dynamic> json) {
     return MortgageCalculatorModel(
       mainTotal: json['main_total'] != null
-          ? MainTotal.fromJson(json['main_total'])
+          ? MainTotal.fromJson(
+              json['main_total'] as Map<String, dynamic>? ?? {})
           : null,
       yearlyTotals: (json['yearly_totals'] as List?)
-              ?.map((v) => YearlyTotals.fromJson(v))
+              ?.map((v) =>
+                  YearlyTotals.fromJson(v as Map<String, dynamic>? ?? {}))
               .toList() ??
           [],
     );
@@ -69,7 +71,8 @@ class YearlyTotals {
     if (json['monthly_totals'] != null) {
       monthlyTotals = <MonthlyTotals>[];
       json['monthly_totals'].forEach((v) {
-        monthlyTotals!.add(new MonthlyTotals.fromJson(v));
+        monthlyTotals!
+            .add(MonthlyTotals.fromJson(v as Map<String, dynamic>? ?? {}));
       });
     }
   }
@@ -101,7 +104,7 @@ class MonthlyTotals {
   });
 
   MonthlyTotals.fromJson(Map<String, dynamic> json) {
-    month = json['month'];
+    month = json['month']?.toString() ?? '';
     principalAmount = json['principal_amount'].toString();
     payableInterest = json['payable_interest'].toString();
     remainingBalance = json['remaining_balance'].toString();

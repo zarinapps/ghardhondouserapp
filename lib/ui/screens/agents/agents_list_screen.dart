@@ -67,9 +67,7 @@ Widget buildAgentsList(BuildContext context) {
             );
       },
       child: SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: Constant.scrollPhysics,
         controller: agentsListScreenController,
         child: Column(
           children: <Widget>[

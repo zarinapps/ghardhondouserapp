@@ -57,9 +57,7 @@ class _CityListScreenState extends State<CityListScreen>
       ),
       body: SingleChildScrollView(
         controller: cityScreenController,
-        physics: AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: Constant.scrollPhysics,
         child: Column(
           children: <Widget>[
             BlocBuilder<FetchCityCategoryCubit, FetchCityCategoryState>(
@@ -164,7 +162,7 @@ class CityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onLongPress: () {
+      onLongPress: () async {
         HelperUtils.share(context, city.count, city.name);
       },
       onTap: () {
@@ -232,7 +230,7 @@ class CityCard extends StatelessWidget {
                     CustomText(
                       'Properties(${city.count})',
                       fontSize: context.font.normal,
-                    )
+                    ),
                   ],
                 ),
               ),

@@ -11,10 +11,11 @@ import 'package:image_picker/image_picker.dart';
 
 class PickImage {
   final ImagePicker _picker = ImagePicker();
-  final StreamController _imageStreamController = StreamController.broadcast();
-  Stream get imageStream => _imageStreamController.stream;
-  StreamSink get _sink => _imageStreamController.sink;
-  StreamSubscription? subscription;
+  final StreamController<dynamic> _imageStreamController =
+      StreamController.broadcast();
+  Stream<dynamic> get imageStream => _imageStreamController.stream;
+  StreamSink<dynamic> get _sink => _imageStreamController.sink;
+  StreamSubscription<dynamic>? subscription;
   File? _pickedFile;
   File? pickedPreviousFile;
   File? get pickedFile => _pickedFile;
@@ -79,7 +80,6 @@ class PickImage {
         'error': '',
         'file': templistFile,
       });
-      // templistFile.clear();
     }
   }
 
@@ -92,29 +92,29 @@ class PickImage {
   ) {
     return StreamBuilder(
       stream: imageStream,
-      builder: (context, AsyncSnapshot snapshot) {
+      builder: (context, snapshot) {
         if (snapshot.hasData &&
             snapshot.connectionState == ConnectionState.active) {
           if (snapshot.data['file'] is File) {
-            pickedFile = snapshot.data['file'];
+            pickedFile = snapshot.data['file'] as File?;
           }
 
           return ondata.call(
             context,
             snapshot.data['file'],
-          );
+          ) as Widget;
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return ondata.call(
             context,
             null,
-          );
+          ) as Widget;
         }
         return ondata.call(
           context,
           null,
-        );
+        ) as Widget;
       },
     );
   }

@@ -11,7 +11,9 @@ class GalleryProperty {
       : id = json['id'] as int,
         name = json['name']?.toString() ?? '',
         image = json['image']?.toString() ?? '',
-        typeValues = json['type_values'],
+        typeValues = json['type_values'] != null
+            ? (json['type_values'] as List).map((e) => e.toString()).toList()
+            : null,
         value = json['value']?.toString() ?? '';
 
   final int id;

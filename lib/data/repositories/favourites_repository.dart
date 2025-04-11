@@ -45,7 +45,7 @@ class FavoriteRepository {
         .toList();
 
     return DataOutput<PropertyModel>(
-      total: response['total'] ?? 0,
+      total: response['total'] as int? ?? 0,
       modelList: modelList,
     );
   }

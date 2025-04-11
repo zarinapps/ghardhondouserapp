@@ -37,7 +37,8 @@ class ViewAllScreen<T extends StateStreamable<C>, C> extends StatefulWidget {
   }
 
   final String title;
-  final StateMap map;
+  final StateMap<dynamic, dynamic, PropertySuccessStateWireframe,
+      PropertyErrorStateWireframe> map;
 
   void open(BuildContext context) {
     Navigator.push(
@@ -51,11 +52,11 @@ class ViewAllScreen<T extends StateStreamable<C>, C> extends StatefulWidget {
   }
 
   @override
-  _ViewAllScreenState<T, C> createState() => _ViewAllScreenState<T, C>();
+  ViewAllScreenState<T, C> createState() => ViewAllScreenState<T, C>();
 }
 
-class _ViewAllScreenState<T extends StateStreamable<C>, C>
-    extends State<ViewAllScreen> {
+class ViewAllScreenState<T extends StateStreamable<C>, C>
+    extends State<ViewAllScreen<dynamic, dynamic>> {
   final ScrollController _pageScrollListener = ScrollController();
 
   @override
@@ -77,7 +78,7 @@ class _ViewAllScreenState<T extends StateStreamable<C>, C>
     ///This is extension which will check if we reached end or not
     if (_pageScrollListener.isEndReached()) {
       if (isSubtype<T, PropertyCubitWireframe>()) {
-        if (read<T>().hasMoreData()) {
+        if (read<T>().hasMoreData() as bool? ?? false) {
           read<T>().fetchMore();
         }
       }
@@ -127,9 +128,7 @@ class StateMap<INITIAL, PROGRESS, SUCCESS extends PropertySuccessStateWireframe,
         children: [
           Expanded(
             child: ListView.builder(
-              physics: AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
+              physics: Constant.scrollPhysics,
               controller: controller,
               padding: const EdgeInsets.all(20),
               itemBuilder: (context, index) {

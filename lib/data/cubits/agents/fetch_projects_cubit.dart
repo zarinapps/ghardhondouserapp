@@ -19,12 +19,12 @@ final class FetchAgentsProjectSuccess extends FetchAgentsProjectState {
 
   final int offset;
   final int total;
-  final AgentsProperty agentsProperty;
+  final AgentPropertyProjectModel agentsProperty;
   final bool isLoadingMore;
   final bool hasLoadMoreError;
 
   FetchAgentsProjectSuccess copyWith({
-    AgentsProperty? agentsProperty,
+    AgentPropertyProjectModel? agentsProperty,
     int? total,
     int? offset,
     bool? isLoadingMore,

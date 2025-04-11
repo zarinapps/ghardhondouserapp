@@ -1,8 +1,9 @@
 import UIKit
 import Flutter
-import FirebaseCore
+// import FirebaseCore
 import GoogleMaps
-import FirebaseAuth
+import Firebase
+// import FirebaseAuth
 import awesome_notifications
 //import shared_preferences_ios
 

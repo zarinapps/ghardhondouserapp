@@ -65,7 +65,7 @@ class _NearbyInterestState extends State<NearbyInterest>
       ),
       body: SingleChildScrollView(
         child: Container(
-          margin: EdgeInsets.all(16),
+          margin: const   EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

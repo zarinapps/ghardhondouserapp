@@ -12,7 +12,8 @@ class MortgageCalculatorRepository {
       );
 
       if (response['error'] == false && response['data'] != null) {
-        return MortgageCalculatorModel.fromJson(response['data']);
+        return MortgageCalculatorModel.fromJson(
+            response['data'] as Map<String, dynamic>? ?? {});
       } else {
         throw Exception(response['message'] ?? 'Failed to fetch mortgage data');
       }

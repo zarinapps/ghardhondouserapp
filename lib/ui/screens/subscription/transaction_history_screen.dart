@@ -26,7 +26,7 @@ class _TransactionHistoryState extends State<TransactionHistory> {
   late final ScrollController _pageScrollController = ScrollController()
     ..addListener(_pageScrollListener);
 
-  late Map<int, String> statusMap;
+  late Map<String, String> statusMap;
   @override
   void initState() {
     context.read<FetchTransactionsCubit>().fetchTransactions();
@@ -44,8 +44,9 @@ class _TransactionHistoryState extends State<TransactionHistory> {
   @override
   void didChangeDependencies() {
     statusMap = {
-      1: UiUtils.translate(context, 'statusSuccess'),
-      2: UiUtils.translate(context, 'statusFail'),
+      'success': UiUtils.translate(context, 'statusSuccess'),
+      'failed': UiUtils.translate(context, 'statusFail'),
+      'pending': UiUtils.translate(context, 'pendingLbl'),
     };
     super.didChangeDependencies();
   }
@@ -110,63 +111,6 @@ class _TransactionHistoryState extends State<TransactionHistory> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: customTransactionItem(context, transaction),
-
-                          // ListTile(
-                          //     contentPadding:
-                          //         const EdgeInsetsDirectional.fromSTEB(
-                          //             16, 5, 16, 5),
-                          //     style: ListTileStyle.list,
-                          //     subtitle: Row(
-                          //       children: [
-                          //         Expanded(
-                          //           child: CustomText(
-                          //             transaction.createdAt
-                          //                 .toString()
-                          //                 .formatDate(),
-                          //           ).size(context.font.small),
-                          //         ),
-                          //       ],
-                          //     ),
-                          //     trailing: Column(
-                          //       mainAxisAlignment: MainAxisAlignment.center,
-                          //       children: [
-                          //         CustomText(
-                          //             "${Constant.currencySymbol}${transaction.amount}"),
-                          //         CustomText(statusMap[int.parse(transaction.status)]
-                          //             .toString())
-                          //       ],
-                          //     ),
-                          //     title: Row(
-                          //       children: [
-                          //         Expanded(
-                          //             child: CustomText(transaction.transactionId
-                          //                 .toString())),
-                          //         const SizedBox(
-                          //           width: 5,
-                          //         ),
-                          //         GestureDetector(
-                          //             onTap: () async {
-                          //               await HapticFeedback.vibrate();
-                          //               var clipboardData = ClipboardData(
-                          //                   text: transaction.transactionId ??
-                          //                       "");
-                          //
-                          //               Clipboard.setData(clipboardData)
-                          //                   .then((_) {
-                          //                 ScaffoldMessenger.of(context)
-                          //                     .showSnackBar(SnackBar(
-                          //                         content: CustomText(UiUtils
-                          //                             .getTranslatedLabel(
-                          //                                 context, "copied"))));
-                          //               });
-                          //             },
-                          //             child: Icon(
-                          //               Icons.copy,
-                          //               size: context.font.larger,
-                          //             ))
-                          //       ],
-                          //     )),
-                          //
                         ),
                       );
                     },
@@ -281,7 +225,8 @@ class _TransactionHistoryState extends State<TransactionHistory> {
                     height: 6,
                   ),
                   CustomText(
-                      statusMap[int.parse(transaction.status)].toString()),
+                    statusMap[transaction.status?.toString() ?? ''].toString(),
+                  ),
                 ],
               ),
             ],

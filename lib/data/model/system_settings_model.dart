@@ -37,7 +37,7 @@ enum SystemSetting {
 // "company_address": "Time Square Empire, 262-263, highway, Mirjapar, Bhuj, Mirjapar Part, Gujarat 370001",
 // "place_api_key": "p6gei2ntBCYkOzK2SD7adVdqJIRSSw7zWc2vjwSBmG1gp8xMPjewOUsykSDXXOQMgUkDPYTJ8lYNC/ZrilXyDZ6PinCW9MRxqboCWuHzxS7RH5cWQt31LEMLXlOYS3eCZGnGW9iPef01DZpJsPKWXNvdTjVxMQe4Cwo+mfqGDFRkza3zztYBWUxz+5mUrRE4oIVxVc9J5+26hEIcp/BdTgM3xmqNXu0pUBkDzPjXs16duTXkfSqFRHasM6R/7ayFvLCGK+jfgmOECcjFc/T9CX2LNcbMa23r2s4Vmunapw43qrJBPwJWtSK5Oi4WYqcBhdLUgYcP/YZ43DK2crqV+g==",
 // "svg_clr": "1",
-// "playstore_id": "https://play.google.com/store/apps/details?id=ghardhondo.zarin.solutions",
+// "playstore_id": "https://play.google.com/store/apps/details?id=com.ebroker.wrteam",
 // "appstore_id": "https://testflight.apple.com/join/nrmIds1a",
 // "seo_settings": "0",
 // "show_admob_ads": "0",

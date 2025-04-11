@@ -1,11 +1,4 @@
 class FacilitiesModel {
-  final int? id;
-  final String? name;
-  final String? typeOfParameter;
-  final List<String>? typeValues;
-  final String? image;
-  final int? isRequired;
-
   const FacilitiesModel({
     this.id,
     this.name,
@@ -16,14 +9,22 @@ class FacilitiesModel {
   });
 
   FacilitiesModel.fromJson(Map<String, dynamic> json)
-      : id = json['id'],
-        name = json['name'],
-        typeOfParameter = json['type_of_parameter'],
-        typeValues = json['type_values'] != null
-            ? List<String>.from(json['type_values'])
-            : null,
-        image = json['image'],
-        isRequired = json['is_required'];
+      : id = json['id'] as int,
+        name = json['name']?.toString() ?? '',
+        typeOfParameter = json['type_of_parameter']?.toString() ?? '',
+        typeValues = (json['type_values'] as List?)
+                ?.where((element) => element != null) // Remove null values
+                .map((element) => element.toString()) // Convert to string
+                .toList() ??
+            [], // Default to empty list if null
+        image = json['image']?.toString() ?? '',
+        isRequired = json['is_required'] as int? ?? 0;
+  final int? id;
+  final String? name;
+  final String? typeOfParameter;
+  final List<String>? typeValues;
+  final String? image;
+  final int? isRequired;
 
   Map<String, dynamic> toJson() => {
         'id': id,

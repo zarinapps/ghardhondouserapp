@@ -146,7 +146,7 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
 
   void removeFromGroup(String groupName, dynamic key) {
     if (cloudData.containsKey(groupName)) {
-      if (cloudData[groupName].containsKey(key)) {
+      if (cloudData[groupName].containsKey(key) as bool? ?? false) {
         cloudData[groupName].remove(key);
       }
     }

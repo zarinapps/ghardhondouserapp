@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:ebroker/settings.dart';
+import 'package:ebroker/utils/api.dart';
 import 'package:ebroker/utils/payment/lib/payment.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,7 @@ class StripeService {
   static String apiBase = 'https://api.stripe.com/v1';
   static String paymentApiUrl = '${StripeService.apiBase}/payment_intents';
   static String? secret;
+  static String? paymentTransactionID;
 
   static Map<String, String> headers = {
     'Authorization': 'Bearer ${StripeService.secret}',
@@ -26,7 +28,7 @@ class StripeService {
     Stripe.publishableKey = stripePublishable ?? '';
     StripeService.secret = stripeSecrate;
 
-    Stripe.merchantIdentifier = 'merchant.flut=ter.stripe.testaaa';
+    Stripe.merchantIdentifier = 'merchant.flutter.stripe.test';
     if (Stripe.publishableKey == '') {
       log('Please add stripe publishable key');
     } else if (StripeService.secret == null) {
@@ -35,103 +37,126 @@ class StripeService {
   }
 
   static Future<StripeTransactionResponse> payWithPaymentSheet({
-    required int amount,
+    required num amount,
     required bool isTestEnvironment,
+    required String awaitedOrderId,
     String? currency,
     String? from,
     BuildContext? context,
-    String? awaitedOrderId,
     Map<String, dynamic>? metadata,
   }) async {
     try {
       //create Payment intent
-
       isPaymentGatewayOpen = true;
-      final paymentIntent = await StripeService.createPaymentIntent(
+      final createPaymentIntent = await StripeService.createPaymentIntent(
         amount: amount,
         currency: currency,
         from: from,
         context: context,
-        metadata: metadata, //{"packageId": 123, "userId": 123}
-        // awaitedOrderID: awaitedOrderId,
+        metadata: metadata,
+        awaitedOrderID: awaitedOrderId,
       );
 
-      //setting up Payment Sheet
-      if (AppSettings.stripeCurrency == 'USD') {
-        await Stripe.instance.initPaymentSheet(
-          paymentSheetParameters: SetupPaymentSheetParameters(
-            paymentIntentClientSecret: paymentIntent!['client_secret'],
-            allowsDelayedPaymentMethods: true,
-            billingDetailsCollectionConfiguration:
-                const BillingDetailsCollectionConfiguration(
-              address: AddressCollectionMode.full,
-              email: CollectionMode.always,
-              name: CollectionMode.always,
-              phone: CollectionMode.always,
-            ),
-            customerId: paymentIntent['customer'],
-            style: ThemeMode.light,
-            merchantDisplayName: AppSettings.applicationName,
-          ),
-        );
-      } else {
-        await Stripe.instance.initPaymentSheet(
-          paymentSheetParameters: SetupPaymentSheetParameters(
-            paymentIntentClientSecret: paymentIntent!['client_secret'],
-            allowsDelayedPaymentMethods: true,
-            customerId: paymentIntent['customer'],
-            style: ThemeMode.light,
-            merchantDisplayName: AppSettings.applicationName,
-          ),
+      if (createPaymentIntent == null) {
+        isPaymentGatewayOpen = false;
+        return StripeTransactionResponse(
+          message: 'Failed to create payment intent',
+          success: false,
+          status: 'failed',
         );
       }
+
+      // Extract the client secret correctly
+      final paymentIntent =
+          createPaymentIntent['payment_intent'] as Map<String, dynamic>? ?? {};
+      final paymentGatewayResponse =
+          paymentIntent['payment_gateway_response'] as Map<String, dynamic>? ??
+              {};
+      final clientSecret =
+          paymentGatewayResponse['client_secret']?.toString() ?? '';
+      final paymentIntentId = paymentIntent['id']?.toString() ?? '';
+      paymentTransactionID =
+          paymentIntent['payment_transaction_id']?.toString() ?? '';
+
+      if (clientSecret.isEmpty) {
+        isPaymentGatewayOpen = false;
+        return StripeTransactionResponse(
+          message: 'Invalid client secret from server',
+          success: false,
+          status: 'failed',
+        );
+      }
+
+      //setting up Payment Sheet
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: clientSecret,
+          allowsDelayedPaymentMethods: true,
+          billingDetailsCollectionConfiguration:
+              const BillingDetailsCollectionConfiguration(
+            address: AddressCollectionMode.full,
+            email: CollectionMode.always,
+            name: CollectionMode.always,
+            phone: CollectionMode.always,
+          ),
+          style: ThemeMode.light,
+          merchantDisplayName: AppSettings.applicationName,
+        ),
+      );
 
       //open payment sheet
       await Stripe.instance.presentPaymentSheet();
 
-      //confirm payment
-      final response = await Dio().post(
-        '${StripeService.paymentApiUrl}/${paymentIntent['id']}',
-        options: Options(headers: headers),
+      // After successful presentation, retrieve the payment intent status
+      final response = await Dio().get(
+        '${StripeService.paymentApiUrl}/$paymentIntentId',
+        options: Options(headers: getHeaders()),
       );
 
-      final getdata = Map.from(response.data);
+      final getdata = Map.from(response.data as Map<String, dynamic>? ?? {});
       final statusOfTransaction = getdata['status'];
       log('--stripe response $getdata');
+
       if (statusOfTransaction == 'succeeded') {
         isPaymentGatewayOpen = false;
-
         return StripeTransactionResponse(
           message: 'Transaction successful',
           success: true,
-          status: statusOfTransaction,
+          status: statusOfTransaction?.toString() ?? '',
         );
       } else if (statusOfTransaction == 'pending' ||
           statusOfTransaction == 'captured') {
         isPaymentGatewayOpen = false;
-
         return StripeTransactionResponse(
           message: 'Transaction pending',
           success: true,
-          status: statusOfTransaction,
+          status: statusOfTransaction?.toString() ?? '',
         );
       } else {
         isPaymentGatewayOpen = false;
-
+        await paymentTransactionFail(
+          paymentTransactionID: paymentTransactionID ?? '',
+        );
         return StripeTransactionResponse(
-          message: 'Transaction failed',
+          message: 'Transaction failed: $statusOfTransaction',
           success: false,
-          status: statusOfTransaction,
+          status: statusOfTransaction?.toString() ?? '',
         );
       }
     } on PlatformException catch (err) {
-      log('Platform issue: $err');
+      log('Platform issue: ${err.message}, code: ${err.code}, details: ${err.details}');
       isPaymentGatewayOpen = false;
-
+      await paymentTransactionFail(
+        paymentTransactionID: paymentTransactionID ?? '',
+      );
       return StripeService.getPlatformExceptionErrorResult(err);
     } catch (error) {
-      log('Other issue issue: $error');
+      log('Other issue: $error');
       isPaymentGatewayOpen = false;
+      await paymentTransactionFail(
+        paymentTransactionID: paymentTransactionID ?? '',
+      );
+
       return StripeTransactionResponse(
         message: 'Transaction failed: $error',
         success: false,
@@ -153,42 +178,68 @@ class StripeService {
     );
   }
 
+  static Future<void> paymentTransactionFail({
+    required String paymentTransactionID,
+  }) async {
+    try {
+      final response = await Api.post(
+        url: Api.paymentTransactionFail,
+        useAuthToken: true,
+        parameter: {
+          'payment_transaction_id': paymentTransactionID,
+        },
+      );
+      print('paymentTransactionFail $response');
+    } catch (e) {
+      log('Failed to cancel payment transaction: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>?> createPaymentIntent({
-    required int amount,
+    required num amount,
+    required String awaitedOrderID,
     String? currency,
     String? from,
     BuildContext? context,
-    String? awaitedOrderID,
     Map<String, dynamic>? metadata,
   }) async {
     try {
       final parameter = <String, dynamic>{
         'amount': amount,
         'currency': currency,
+        'description': metadata?['packageName'],
         'metadata': metadata,
       };
 
-      // if (from == 'order') parameter['metadata[order_id]'] = awaitedOrderID;
+      log('Creating payment intent with parameters: $parameter');
 
-      final dio = Dio();
-
-      final response = await dio.post(
-        StripeService.paymentApiUrl,
-        data: parameter,
-        options: Options(
-          headers: StripeService.getHeaders(),
-        ),
+      final response = await Api.post(
+        url: Api.createPaymentIntent,
+        useAuthToken: true,
+        parameter: {
+          'platform_type': 'app',
+          'package_id': awaitedOrderID,
+        },
       );
 
-      return Map.from(response.data);
-    } catch (e) {
-      if (e is DioException) {
-        log(e.response!.data.toString());
-      }
+      log('Payment intent response: $response');
 
-      log('STRIPE ISSUE ${e is DioException}');
+      // Return the entire data object that contains payment_intent
+      return response['data'] as Map<String, dynamic>?;
+    } catch (e) {
+      isPaymentGatewayOpen = false;
+      if (e is DioException) {
+        if (e.response != null && e.response!.data != null) {
+          log('Stripe API Error: ${e.response!.data}');
+          log('Stripe API Status: ${e.response!.statusCode}');
+        } else {
+          log('Dio Error: ${e.message}');
+        }
+      } else {
+        log('Error creating payment intent: $e');
+      }
+      return null;
     }
-    return null;
   }
 }
 
@@ -201,6 +252,7 @@ class StripeTransactionResponse {
 
 Future<void> openStripePaymentGateway({
   required double amount,
+  required String awaitedOrderID,
   required Map<String, dynamic> metadata,
   required VoidCallback onSuccess,
   required Function(dynamic message) onError,
@@ -212,10 +264,11 @@ Future<void> openStripePaymentGateway({
     );
 
     final response = await StripeService.payWithPaymentSheet(
-      amount: (amount * 100).toInt(),
+      amount: amount * 100,
       currency: AppSettings.stripeCurrency,
       isTestEnvironment: true,
       metadata: metadata,
+      awaitedOrderId: awaitedOrderID,
     );
 
     if (response.status == 'succeeded') {
@@ -225,5 +278,6 @@ Future<void> openStripePaymentGateway({
     }
   } catch (e) {
     log('ERROR IS $e');
+    onError.call("Payment failed: $e");
   }
 }

@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 class AddProjectDetails extends StatefulWidget {
   const AddProjectDetails({super.key, this.editData});
 
-  final Map? editData;
+  final Map<dynamic, dynamic>? editData;
 
   static BlurredRouter route(RouteSettings settings) {
     return BlurredRouter(
@@ -34,7 +34,9 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
   String metaDescription = '';
   String metaImageUrl = '';
 
-  late ProjectModel? project = getEditProjectData(widget.editData?['project']);
+  late ProjectModel? project = getEditProjectData(
+    widget.editData?['project'] as Map<String, dynamic>? ?? {},
+  );
 
   late final TextEditingController _titleController =
       TextEditingController(text: project?.title);
@@ -48,7 +50,7 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
   GooglePlaceModel? suggestion;
   final GlobalKey<FormState> _formKey = GlobalKey();
 
-  List<Document> documentFiles = [];
+  List<Document<dynamic>> documentFiles = [];
   List<int> removedDocumentId = [];
   List<int> removedGalleryImageId = [];
 
@@ -69,10 +71,10 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
   // final TextEditingController _main=TextEditingController();
   double? latitude;
   double? longitude;
-  Map? floorPlans = {};
-  List<Map> floorPlansRawData = [];
-  ImagePickerValue? titleImage;
-  ImagePickerValue? galleryImages;
+  Map<dynamic, dynamic>? floorPlans = {};
+  List<Map<dynamic, dynamic>> floorPlansRawData = [];
+  ImagePickerValue<dynamic>? titleImage;
+  ImagePickerValue<dynamic>? galleryImages;
   String projectType = 'upcoming';
   List<int> removedPlansId = [];
 
@@ -101,15 +103,15 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
         _slugController.text = generateSlug(_titleController.text);
       });
     });
-    metaTitle = widget.editData?['meta_title'] ?? '';
-    metaDescription = widget.editData?['meta_description'] ?? '';
-    metaImageUrl = widget.editData?['meta_image'] ?? '';
+    metaTitle = widget.editData?['meta_title']?.toString() ?? '';
+    metaDescription = widget.editData?['meta_description']?.toString() ?? '';
+    metaImageUrl = widget.editData?['meta_image']?.toString() ?? '';
     final list = project?.documents?.map((document) {
       return UrlDocument(document.name!, document.id!);
     }).toList();
 
     if (list != null) {
-      documentFiles = List<Document>.from(list as List<Document>);
+      documentFiles = List<Document<dynamic>>.from(list as List<Document>);
     }
     projectType = project?.type ?? 'upcoming';
     if (project != null && project?.image != '') {
@@ -151,96 +153,98 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
           child: MaterialButton(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              color: context.color.tertiaryColor,
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  Map documents;
-                  documents = {};
-                  try {
-                    documents = documentFiles.fold({}, (pr, el) {
-                      if (el is FileDocument) {
-                        pr.addAll({
-                          'documents[${pr.length}]':
-                              MultipartFile.fromFileSync(el.value.path),
-                        });
-                      }
-                      return pr;
-                    });
-                  } catch (e) {
-                    log('issue is $e');
-                  }
-
-                  projectDetails = {
-                    'title': _titleController.text,
-                    'slug_id': _slugController.text,
-                    'description': _descriptionController.text,
-                    'latitude': latitude,
-                    'longitude': longitude,
-                    'city': _cityNameController.text,
-                    'state': _stateNameController.text,
-                    'country': _countryNameController.text,
-                    'location': _addressController.text,
-                    'video_link': _videoLinkController.text,
-                    if (titleImage != null &&
-                        titleImage is! UrlValue &&
-                        titleImage?.value != '')
-                      'image': titleImage,
-                    'gallery_images': galleryImages,
-                    ...documents,
-                    'is_edit': isEdit,
-                    'project': project,
-                    'type': projectType,
-                    'remove_gallery_images': removedGalleryImageId.join(','),
-                    'remove_documents': removedDocumentId.join(','),
-                    'remove_plans': removedPlansId.join(','),
-                    'meta_title': metaTitle,
-                    'meta_description': metaDescription,
-                    'meta_image': metaImageUrl,
-
-                    ////If there is data it will add into it
-                    ...widget.editData ?? {},
-                  };
-                  addCloudData(
-                    'add_project_details',
-                    projectDetails,
-                  );
-                  //this will create Map from List<Map>
-
-                  floorPlansRawData
-                      .removeWhere((element) => element['image'] is String);
-
-                  final fold =
-                      floorPlansRawData.fold({}, (previousValue, element) {
-                    previousValue.addAll({
-                      'plans[${previousValue.length ~/ 2}][id]':
-                          (element['id'] is ValueKey)
-                              ? (element['id'] as ValueKey).value
-                              : '',
-                      'plans[${previousValue.length ~/ 2}][document]':
-                          element['image'],
-                      'plans[${previousValue.length ~/ 2}][title]':
-                          element['title'],
-                    });
-                    return previousValue;
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            color: context.color.tertiaryColor,
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                Map<dynamic, dynamic> documents;
+                documents = {};
+                try {
+                  documents = documentFiles.fold({}, (pr, el) {
+                    if (el is FileDocument) {
+                      pr.addAll({
+                        'documents[${pr.length}]':
+                            MultipartFile.fromFileSync(el.value.path),
+                      });
+                    }
+                    return pr;
                   });
-
-                  addCloudData('floor_plans', fold);
-                  Navigator.pushNamed(
-                    context,
-                    Routes.projectMetaDataScreens,
-                    arguments: {
-                      'project': projectDetails,
-                    },
-                  );
+                } catch (e) {
+                  log('issue is $e');
                 }
-              },
-              height: 50,
-              child: CustomText(
-                'continue'.translate(context),
-                color: context.color.secondaryColor,
-              )),
+
+                projectDetails = {
+                  'title': _titleController.text,
+                  'slug_id': _slugController.text,
+                  'description': _descriptionController.text,
+                  'latitude': latitude,
+                  'longitude': longitude,
+                  'city': _cityNameController.text,
+                  'state': _stateNameController.text,
+                  'country': _countryNameController.text,
+                  'location': _addressController.text,
+                  'video_link': _videoLinkController.text,
+                  if (titleImage != null &&
+                      titleImage is! UrlValue &&
+                      titleImage?.value != '')
+                    'image': titleImage,
+                  'gallery_images': galleryImages,
+                  ...documents.cast<String, dynamic>(),
+                  'is_edit': isEdit,
+                  'project': project,
+                  'type': projectType,
+                  'remove_gallery_images': removedGalleryImageId.join(','),
+                  'remove_documents': removedDocumentId.join(','),
+                  'remove_plans': removedPlansId.join(','),
+                  'meta_title': metaTitle,
+                  'meta_description': metaDescription,
+                  'meta_image': metaImageUrl,
+
+                  ////If there is data it will add into it
+                  ...widget.editData?.cast<String, dynamic>() ?? {},
+                };
+                addCloudData(
+                  'add_project_details',
+                  projectDetails,
+                );
+                //this will create Map from List<Map>
+
+                floorPlansRawData
+                    .removeWhere((element) => element['image'] is String);
+
+                final fold =
+                    floorPlansRawData.fold({}, (previousValue, element) {
+                  previousValue.addAll({
+                    'plans[${previousValue.length ~/ 2}][id]':
+                        (element['id'] is ValueKey)
+                            ? (element['id'] as ValueKey).value
+                            : '',
+                    'plans[${previousValue.length ~/ 2}][document]':
+                        element['image'],
+                    'plans[${previousValue.length ~/ 2}][title]':
+                        element['title'],
+                  });
+                  return previousValue;
+                });
+
+                addCloudData('floor_plans', fold);
+                Navigator.pushNamed(
+                  context,
+                  Routes.projectMetaDataScreens,
+                  arguments: {
+                    'project': projectDetails,
+                  },
+                );
+              }
+            },
+            height: 50,
+            child: CustomText(
+              'continue'.translate(context),
+              color: context.color.secondaryColor,
+            ),
+          ),
         ),
       ),
       body: BlocListener<ManageProjectCubit, ManageProjectState>(
@@ -261,11 +265,11 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
               ..pop();
           }
           if (state is ManageProjectInFail) {
-            throw state.error;
+            throw state.error?.toString() ?? '';
           }
         },
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: Constant.scrollPhysics,
           child: Form(
             key: _formKey,
             child: Padding(
@@ -275,6 +279,9 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
                 children: [
                   Text.rich(
                     TextSpan(
+                      style: TextStyle(
+                        color: context.color.textColorDark,
+                      ),
                       children: [
                         TextSpan(text: 'projectName'.translate(context)),
                         const TextSpan(
@@ -305,6 +312,9 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
                   height(),
                   Text.rich(
                     TextSpan(
+                      style: TextStyle(
+                        color: context.color.textColorDark,
+                      ),
                       children: [
                         TextSpan(text: 'Description'.translate(context)),
                         const TextSpan(
@@ -334,6 +344,9 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
                   height(),
                   Text.rich(
                     TextSpan(
+                      style: TextStyle(
+                        color: context.color.textColorDark,
+                      ),
                       children: [
                         TextSpan(text: 'uploadMainPicture'.translate(context)),
                         const TextSpan(
@@ -352,7 +365,7 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
                     allowedSizeBytes: 3000000,
                     value: isEdit ? UrlValue(project!.image!) : null,
                     title: UiUtils.translate(context, 'addMainPicture'),
-                    onSelect: (ImagePickerValue? selected) {
+                    onSelect: (ImagePickerValue<dynamic>? selected) {
                       titleImage = selected;
                       setState(() {});
                     },
@@ -363,20 +376,21 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
                   AdaptiveImagePickerWidget(
                     title: UiUtils.translate(context, 'addOtherImage'),
                     onRemove: (value) {
-                      if (value is UrlValue) {
-                        removedGalleryImageId.add(value.metaData['id']);
+                      if (value is UrlValue && value.metaData != null) {
+                        removedGalleryImageId.add(value.metaData['id'] as int);
                       }
                     },
                     multiImage: true,
                     value: MultiValue([
-                      ...project?.gallaryImages?.map(
-                            (e) => UrlValue(e.name!, {
-                              'id': e.id!,
-                            }),
-                          ) ??
-                          [],
+                      if (project?.gallaryImages != null)
+                        ...project?.gallaryImages?.map(
+                              (e) => UrlValue(e.name!, {
+                                'id': e.id!,
+                              }),
+                            ) ??
+                            [],
                     ]),
-                    onSelect: (ImagePickerValue? selected) {
+                    onSelect: (ImagePickerValue<dynamic>? selected) {
                       if (selected is MultiValue) {
                         galleryImages = selected;
                         setState(() {});
@@ -423,9 +437,10 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
                             arguments: {'floorPlan': floorPlansRawData},
                           ) as Map?;
                           if (data != null) {
-                            floorPlansRawData = data['floorPlans'] ?? [];
+                            floorPlansRawData = (data['floorPlans'] as List)
+                                .cast<Map<String, dynamic>>();
 
-                            removedPlansId = data['removed'];
+                            removedPlansId = data['removed'] as List<int>;
                           }
                           setState(() {});
                         },
@@ -447,10 +462,17 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CustomText('projectStatus'.translate(context)),
+        CustomText(
+          'projectStatus'.translate(context),
+          color: context.color.textColorDark,
+        ),
         height(),
-        InputDecorator(
-          decoration: InputDecoration(
+        DropdownMenu(
+          textStyle: TextStyle(
+            color: context.color.textColorDark,
+          ),
+          width: MediaQuery.of(context).size.width * 0.9,
+          inputDecorationTheme: InputDecorationTheme(
             hintStyle: TextStyle(
               color: context.color.textColorDark.withValues(alpha: 0.7),
               fontSize: context.font.large,
@@ -475,28 +497,40 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          child: DropdownButton(
-            isExpanded: true,
-            value: projectType,
-            isDense: true,
-            borderRadius: BorderRadius.zero,
-            padding: EdgeInsets.zero,
-            underline: const SizedBox.shrink(),
-            items: [
-              DropdownMenuItem(
-                value: 'upcoming',
-                child: CustomText('Upcoming'.translate(context)),
-              ),
-              DropdownMenuItem(
-                value: 'under_construction',
-                child: CustomText('under_construction'.translate(context)),
-              ),
-            ],
-            onChanged: (value) {
-              projectType = value!;
-              setState(() {});
-            },
-          ),
+          onSelected: (value) {
+            projectType = value!;
+            setState(() {});
+          },
+          dropdownMenuEntries: [
+            DropdownMenuEntry(
+              value: 'upcoming',
+              label: 'Upcoming'.translate(context),
+            ),
+            DropdownMenuEntry(
+              value: 'under_construction',
+              label: 'under_construction'.translate(context),
+            ),
+          ],
+          // isExpanded: true,
+          // value: projectType,
+          // isDense: true,
+          // borderRadius: BorderRadius.zero,
+          // padding: EdgeInsets.zero,
+          // underline: const SizedBox.shrink(),
+          // items: [
+          //   DropdownMenuItem(
+          //     value: 'upcoming',
+          //     child: CustomText('Upcoming'.translate(context)),
+          //   ),
+          //   DropdownMenuItem(
+          //     value: 'under_construction',
+          //     child: CustomText('under_construction'.translate(context)),
+          //   ),
+          // ],
+          // onChanged: (value) {
+          //   projectType = value!;
+          //   setState(() {});
+          // },
         ),
       ],
     );
@@ -555,8 +589,16 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
         children: [
           Text.rich(
             TextSpan(
+              style: TextStyle(
+                color: context.color.textColorDark,
+              ),
               children: [
-                TextSpan(text: 'projectLocation'.translate(context)),
+                TextSpan(
+                  text: 'projectLocation'.translate(context),
+                  style: TextStyle(
+                    color: context.color.textColorDark,
+                  ),
+                ),
                 const TextSpan(
                   text: ' *',
                   style: TextStyle(
@@ -627,7 +669,7 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
     );
   }
 
-  Future<void> _onTapChooseLocation(FormFieldState state) async {
+  Future<void> _onTapChooseLocation(FormFieldState<dynamic> state) async {
     try {
       FocusManager.instance.primaryFocus?.unfocus();
 
@@ -635,9 +677,14 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
         context,
         Routes.chooseLocaitonMap,
         arguments: {
-          'latitude': project != null ? double.parse(project!.latitude!) : null,
-          'longitude':
-              project != null ? double.parse(project!.longitude!) : null,
+          'latitude': project!.latitude != null && project!.latitude != ''
+              ? double.parse(project!.latitude!)
+              : null,
+          'longitude': project!.longitude != null && project!.longitude != ''
+              ? double.parse(
+                  project!.longitude!,
+                )
+              : null,
         },
       ) as Map?;
       final latlng = placeMark?['latlng'] as LatLng?;
@@ -715,7 +762,7 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
                     allowMultiple: true,
                   );
                   if (filePickerResult != null) {
-                    final list = List<Document>.from(
+                    final list = List<Document<dynamic>>.from(
                       filePickerResult.files.map((e) {
                         return FileDocument(File(e.path!));
                       }).toList(),
@@ -753,14 +800,14 @@ abstract class Document<T> {
   abstract final T value;
 }
 
-class FileDocument extends Document {
+class FileDocument extends Document<dynamic> {
   FileDocument(this.value);
 
   @override
   final File value;
 }
 
-class UrlDocument extends Document {
+class UrlDocument extends Document<dynamic> {
   UrlDocument(this.value, this.id);
 
   @override

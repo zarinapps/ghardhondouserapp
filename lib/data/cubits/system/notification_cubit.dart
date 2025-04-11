@@ -35,30 +35,19 @@ class NotificationCubit extends Cubit<NotificationState> {
       context,
     )
         .then((value) => emit(NotificationSetSuccess(value)))
-        .catchError((e) => emit(NotificationSetFailure(e.toString())));
+        .catchError((Object e) => emit(NotificationSetFailure(e.toString())));
   }
 
   Future<List<NotificationData>> getNotificationFromDb(
     BuildContext context,
   ) async {
-    final body = <String, String>{};
-    var notificationList = <NotificationData>[];
     final response = await HelperUtils.sendApiRequest(
       Api.apiGetNotificationList,
-      body,
+      {},
       false,
       context,
-    );
-    final getdata = json.decode(response);
-    if (getdata != null) {
-      if (!getdata[Api.error]) {
-        final List<Map<String, dynamic>> list = getdata['data'];
-        notificationList =
-            list.map<NotificationData>(NotificationData.fromJson).toList();
-      } else {
-        throw CustomException(getdata[Api.message]);
-      }
-    } else {
+    ) as String?;
+    if (response == null) {
       Future.delayed(
         Duration.zero,
         () {
@@ -66,6 +55,12 @@ class NotificationCubit extends Cubit<NotificationState> {
         },
       );
     }
-    return notificationList;
+    final getdata = json.decode(response.toString()) as Map<String, dynamic>;
+    if (getdata[Api.error] as bool) {
+      throw CustomException(getdata[Api.message]);
+    }
+
+    final list = (getdata['data'] as List).cast<Map<String, dynamic>>();
+    return list.map(NotificationData.fromJson).toList();
   }
 }

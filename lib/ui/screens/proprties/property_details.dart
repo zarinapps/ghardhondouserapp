@@ -14,7 +14,7 @@ import 'package:ebroker/data/cubits/property/update_property_status.dart';
 import 'package:ebroker/data/model/category.dart';
 import 'package:ebroker/data/model/interested_user_model.dart';
 import 'package:ebroker/data/model/system_settings_model.dart';
-import 'package:ebroker/data/repositories/system_repository.dart';
+import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/chat/chat_screen.dart';
 import 'package:ebroker/ui/screens/proprties/Property%20tab/sell_rent_screen.dart';
@@ -28,6 +28,7 @@ import 'package:ebroker/ui/screens/widgets/video_view_screen.dart';
 import 'package:ebroker/utils/AdMob/interstitialAdManager.dart';
 import 'package:ebroker/utils/Network/networkAvailability.dart';
 import 'package:ebroker/utils/string_extenstion.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' as f;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -55,7 +56,7 @@ class PropertyDetails extends StatefulWidget {
   @override
   PropertyDetailsState createState() => PropertyDetailsState();
 
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     try {
       final arguments = routeSettings.arguments as Map?;
       return BlurredRouter(
@@ -81,10 +82,12 @@ class PropertyDetails extends StatefulWidget {
             ),
           ],
           child: PropertyDetails(
-            property: arguments?['propertyData'],
-            fromMyProperty: arguments?['fromMyProperty'] ?? false,
-            fromCompleteEnquiry: arguments?['fromCompleteEnquiry'] ?? false,
-            fromPropertyAddSuccess: arguments?['fromSuccess'] ?? false,
+            property:
+                arguments?['propertyData'] as PropertyModel? ?? PropertyModel(),
+            fromMyProperty: arguments?['fromMyProperty'] as bool? ?? false,
+            fromCompleteEnquiry:
+                arguments?['fromCompleteEnquiry'] as bool? ?? false,
+            fromPropertyAddSuccess: arguments?['fromSuccess'] as bool? ?? false,
           ),
         ),
       );
@@ -106,7 +109,7 @@ class PropertyDetailsState extends State<PropertyDetails>
   bool isPlayingYoutubeVideo = false;
   bool fromMyProperty = false; //get its value from Widget
   bool fromCompleteEnquiry = false; //get its value from Widget
-  List promotedProeprtiesIds = [];
+  List<dynamic> promotedProeprtiesIds = [];
   bool toggleEnqButton = false;
   PropertyModel? property;
   bool isPromoted = false;
@@ -114,7 +117,7 @@ class PropertyDetailsState extends State<PropertyDetails>
   bool isEnquiryFromChat = false;
   BannerAd? _bannerAd;
   bool isVerified = false;
-  bool isEnabled = false;
+  ValueNotifier<bool> isEnabled = ValueNotifier(false);
   bool isApproved = false;
   bool isProfileCompleted = HiveUtils.getUserDetails().email != '' &&
       HiveUtils.getUserDetails().mobile != '' &&
@@ -123,7 +126,6 @@ class PropertyDetailsState extends State<PropertyDetails>
       HiveUtils.getUserDetails().profile != '';
   @override
   bool get wantKeepAlive => true;
-  GlobalKey appBarKey = GlobalKey();
 
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
@@ -147,16 +149,14 @@ class PropertyDetailsState extends State<PropertyDetails>
   @override
   void initState() {
     super.initState();
-    isEnabled = widget.property?.status.toString() == '1';
+    isEnabled.value = widget.property?.status.toString() == '1';
     isApproved = widget.property?.requestStatus.toString() == 'approved';
     isVerified = widget.property?.isVerified ?? false;
-    isPremiumProperty = widget.property?.allPropData['is_premium'] ?? false;
+    isPremiumProperty =
+        widget.property?.allPropData['is_premium'] as bool? ?? false;
 
-    isPremiumUser = context
-            .read<FetchSystemSettingsCubit>()
-            .getRawSettings()['is_premium'] ??
-        false;
-    isReported = widget.property?.allPropData?['is_reported'] ?? false;
+    false;
+    isReported = widget.property?.allPropData?['is_reported'] as bool? ?? false;
 
     loadAd();
     interstitialAdManager.load();
@@ -322,18 +322,15 @@ class PropertyDetailsState extends State<PropertyDetails>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    var rentPrice = property!.price!
-        .priceFormat(
-          enabled: Constant.isNumberWithSuffix == true,
-          context: context,
-        )
-        .formatAmount(prefix: true);
+    var rentPrice = property!.price!.priceFormat(
+      enabled: Constant.isNumberWithSuffix == true,
+      context: context,
+    );
 
     if (property?.rentduration != '' && property?.rentduration != null) {
       rentPrice =
           ('$rentPrice / ') + (property!.rentduration ?? '').translate(context);
     }
-
     return SafeArea(
       child: PopScope(
         canPop: false,
@@ -342,7 +339,7 @@ class PropertyDetailsState extends State<PropertyDetails>
           await interstitialAdManager.show();
           context.read<MortgageCalculatorCubit>().emptyMortgageCalculatorData();
           if (widget.property?.addedBy.toString() == HiveUtils.getUserId()) {
-            context.read<FetchMyPropertiesCubit>().fetchMyProperties(
+            await context.read<FetchMyPropertiesCubit>().fetchMyProperties(
                   type: '',
                   status: '',
                 );
@@ -377,128 +374,40 @@ class PropertyDetailsState extends State<PropertyDetails>
                     actions: [
                       const Spacer(),
                       if (!HiveUtils.isGuest()) ...[
-                        if (int.parse(HiveUtils.getUserId() ?? '0') ==
-                            property?.addedBy)
-                          IconButton(
-                            onPressed: () async {
-                              final interestedUserCubitReference =
-                                  context.read<GetInterestedUserCubit>();
-                              await showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                backgroundColor: context.color.secondaryColor,
-                                constraints: BoxConstraints(
-                                  minWidth: double.infinity,
-                                  maxHeight: context.screenHeight * 0.7,
-                                  minHeight: context.screenHeight * 0.3,
-                                ),
-                                builder: (context) {
-                                  return InterestedUserListWidget(
-                                    totalCount:
-                                        '${widget.property?.totalInterestedUsers}',
-                                    interestedUserCubitReference:
-                                        interestedUserCubitReference,
-                                  );
-                                },
-                              );
-                              return;
-                            },
-                            icon: Icon(
-                              Icons.analytics,
-                              color: context.color.tertiaryColor,
-                            ),
-                          ),
                         if (!(int.parse(HiveUtils.getUserId() ?? '0') ==
                             property?.addedBy))
-                          IconButton(
-                            onPressed: () {
-                              HelperUtils.share(
-                                context,
-                                property!.id!,
-                                property?.slugId ?? '',
-                              );
-                            },
-                            icon: Icon(
-                              Icons.share,
-                              color: context.color.tertiaryColor,
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(
+                              end: 12,
+                            ),
+                            child: GestureDetector(
+                              onTap: () {
+                                HelperUtils.share(
+                                  context,
+                                  property!.id!,
+                                  property?.slugId ?? '',
+                                );
+                              },
+                              child: UiUtils.getSvg(
+                                AppIcons.shareIcon,
+                              ),
                             ),
                           ),
                       ],
                       if (property?.addedBy.toString() == HiveUtils.getUserId())
                         PopupMenuButton<String>(
                           onSelected: (value) async {
-                            final state =
-                                context.read<ChangePropertyStatusCubit>().state;
-                            final successState = context
-                                .read<ChangePropertyStatusCubit>()
-                                .state is ChangePropertyStatusSuccess;
-                            final failureState = context
-                                .read<ChangePropertyStatusCubit>()
-                                .state is ChangePropertyStatusFailure;
-                            if (value == 'enable') {
-                              await context
-                                  .read<ChangePropertyStatusCubit>()
-                                  .enableProperty(
-                                      propertyId: property!.id!,
-                                      status: property!.status as int);
-                              if (successState) {
-                                isEnabled = true;
-                                HelperUtils.showSnackBarMessage(
-                                  context,
-                                  (state as ChangePropertyStatusSuccess)
-                                          .message ??
-                                      'statusChanged'.translate(context),
-                                  type: MessageType.success,
-                                );
-                              } else if (failureState) {
-                                HelperUtils.showSnackBarMessage(
-                                  context,
-                                  (state as ChangePropertyStatusFailure).error,
-                                  type: MessageType.success,
-                                );
-                              }
-                              return;
-                            }
-                            if (value == 'disable') {
-                              await context
-                                  .read<ChangePropertyStatusCubit>()
-                                  .disableProperty(
-                                      propertyId: property!.id!,
-                                      status: property!.status as int);
-                              if (successState) {
-                                isEnabled = false;
-                                HelperUtils.showSnackBarMessage(
-                                  context,
-                                  (state as ChangePropertyStatusSuccess)
-                                          .message ??
-                                      'statusChanged'.translate(context),
-                                  type: MessageType.success,
-                                );
-                              } else if (failureState) {
-                                HelperUtils.showSnackBarMessage(
-                                  context,
-                                  (state as ChangePropertyStatusFailure).error,
-                                  type: MessageType.success,
-                                );
-                              }
-
-                              return;
-                            }
                             if (value == 'share') {
-                              HelperUtils.share(
+                              await HelperUtils.share(
                                 context,
                                 property!.id!,
                                 property?.slugId ?? '',
                               );
-                              return;
                             }
                             if (value == 'interestedUsers') {
                               final interestedUserCubitReference =
                                   context.read<GetInterestedUserCubit>();
-                              await showModalBottomSheet(
+                              await showModalBottomSheet<dynamic>(
                                 context: context,
                                 isScrollControlled: true,
                                 shape: RoundedRectangleBorder(
@@ -521,64 +430,71 @@ class PropertyDetailsState extends State<PropertyDetails>
                               );
                               return;
                             }
-                            if (value == 'changeStatus') {
+                            if (value == 'markAsSold') {
                               final action = await UiUtils.showBlurredDialoge(
                                 context,
                                 dialoge: BlurredDialogBuilderBox(
                                   title:
                                       'changePropertyStatus'.translate(context),
                                   acceptButtonName: 'change'.translate(context),
+                                  cancelTextColor: context.color.tertiaryColor,
                                   contentBuilder: (context, s) {
-                                    return FittedBox(
-                                      fit: BoxFit.none,
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            decoration: BoxDecoration(
+                                    return Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: context.color.primaryColor,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              color: context.color.borderColor,
+                                            ),
+                                          ),
+                                          width: s.maxWidth,
+                                          height: 50,
+                                          child: Center(
+                                            child: CustomText(
+                                              property!.properyType!
+                                                  .translate(context),
                                               color:
-                                                  context.color.tertiaryColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                10,
-                                              ),
-                                            ),
-                                            width: s.maxWidth / 4,
-                                            height: 50,
-                                            child: Center(
-                                              child: CustomText(
-                                                property!.properyType!
-                                                    .translate(context),
-                                                color:
-                                                    context.color.buttonColor,
-                                              ),
+                                                  context.color.inverseSurface,
                                             ),
                                           ),
-                                          CustomText(
-                                            'toArrow'.translate(context),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: CustomText(
+                                            'to'.translate(context),
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
                                           ),
-                                          Container(
-                                            width: s.maxWidth / 4,
-                                            decoration: BoxDecoration(
-                                              color: context.color.tertiaryColor
-                                                  .withValues(alpha: 0.4),
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                10,
-                                              ),
+                                        ),
+                                        Container(
+                                          width: s.maxWidth,
+                                          decoration: BoxDecoration(
+                                            color: context.color.primaryColor,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
                                             ),
-                                            height: 50,
-                                            child: Center(
-                                                child: CustomText(
-                                                    _statusFilter(
-                                                          property!
-                                                              .properyType!,
-                                                        ) ??
-                                                        '',
-                                                    color: context
-                                                        .color.buttonColor)),
+                                            border: Border.all(
+                                              color: context.color.borderColor,
+                                            ),
                                           ),
-                                        ],
-                                      ),
+                                          height: 50,
+                                          child: Center(
+                                            child: CustomText(
+                                              _statusFilter(
+                                                    property!.properyType!,
+                                                  ) ??
+                                                  '',
+                                              color:
+                                                  context.color.inverseSurface,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     );
                                   },
                                 ),
@@ -599,63 +515,26 @@ class PropertyDetailsState extends State<PropertyDetails>
                           color: context.color.secondaryColor,
                           itemBuilder: (BuildContext context) {
                             return [
-                              if (isApproved == true && isEnabled == false)
-                                PopupMenuItem<String>(
-                                  value: 'enable',
-                                  textStyle: TextStyle(
-                                    color: context.color.textColorDark,
-                                  ),
-                                  child: CustomText(
-                                    'enable'.translate(context),
-                                  ),
-                                ),
-                              if (isApproved == true && isEnabled == true)
-                                PopupMenuItem<String>(
-                                  value: 'disable',
-                                  textStyle: TextStyle(
-                                    color: context.color.textColorDark,
-                                  ),
-                                  child: CustomText(
-                                    'disable'.translate(context),
-                                  ),
-                                ),
-                              PopupMenuItem<String>(
-                                value: 'share',
-                                textStyle: TextStyle(
-                                  color: context.color.textColorDark,
-                                ),
-                                child: CustomText(
-                                  'share'.translate(context),
-                                ),
+                              buildPopupMenItem(
+                                context: context,
+                                title: 'share',
+                                icon: AppIcons.shareIcon,
+                                index: 0,
                               ),
-                              PopupMenuItem<String>(
-                                value: 'interestedUsers',
-                                textStyle: TextStyle(
-                                  color: context.color.textColorDark,
-                                ),
-                                child: CustomText(
-                                    'interestedUsers'.translate(context)),
+                              buildPopupMenItem(
+                                context: context,
+                                title: 'interestedUsers',
+                                icon: AppIcons.interestedUsers,
+                                index: 1,
                               ),
-                              PopupMenuItem<String>(
-                                value: 'changeStatus',
-                                textStyle: TextStyle(
-                                  color: context.color.textColorDark,
+                              if (property?.properyType != 'sold')
+                                buildPopupMenItem(
+                                  context: context,
+                                  title: 'markAsSold',
+                                  icon: AppIcons.changeStatus,
+                                  index: 2,
                                 ),
-                                child: CustomText(
-                                    'changeStatus'.translate(context)),
-                              ),
                             ];
-                            // return {
-                            //   'changeStatus'.translate(context),
-                            // }.map((String choice) {
-                            //   return PopupMenuItem<String>(
-                            //     value: choice,
-                            //     textStyle: TextStyle(
-                            //       color: context.color.textColorDark,
-                            //     ),
-                            //     child: CustomText(choice),
-                            //   );
-                            // }).toList();
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -677,7 +556,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                       : Container(),
                   bottomNavigationBar: isPlayingYoutubeVideo == false
                       ? BottomAppBar(
-                          key: appBarKey,
+                          key: UniqueKey(),
                           padding: EdgeInsets.zero,
                           color: context.color.secondaryColor,
                           child: bottomNavBar(),
@@ -706,7 +585,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                     },
                     child: SafeArea(
                       child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
+                        physics: Constant.scrollPhysics,
                         child: BlocListener<UpdatePropertyStatusCubit,
                             UpdatePropertyStatusState>(
                           listener: (context, state) {
@@ -853,6 +732,10 @@ class PropertyDetailsState extends State<PropertyDetails>
                                       const SizedBox(
                                         height: 15,
                                       ),
+                                      if (property?.addedBy.toString() ==
+                                          HiveUtils.getUserId()) ...[
+                                        buildEnableDisableSwitch(),
+                                      ],
                                       Row(
                                         children: [
                                           UiUtils.imageType(
@@ -943,21 +826,20 @@ class PropertyDetailsState extends State<PropertyDetails>
                                             ),
                                           ] else ...[
                                             CustomText(
-                                              property!.price!
-                                                  .priceFormat(
-                                                    enabled: Constant
-                                                            .isNumberWithSuffix ==
-                                                        true,
-                                                    context: context,
-                                                  )
-                                                  .formatAmount(prefix: true),
+                                              property!.price!.priceFormat(
+                                                enabled: Constant
+                                                        .isNumberWithSuffix ==
+                                                    true,
+                                                context: context,
+                                              ),
                                               fontWeight: FontWeight.w700,
                                               fontSize: context.font.larger,
                                               color:
                                                   context.color.tertiaryColor,
                                             ),
                                           ],
-                                          if (Constant.isNumberWithSuffix) ...[
+                                          if (Constant.isNumberWithSuffix ==
+                                              true) ...[
                                             if (property!.properyType
                                                     .toString()
                                                     .toLowerCase() !=
@@ -966,7 +848,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                 width: 5,
                                               ),
                                               CustomText(
-                                                '(${property!.price!})',
+                                                '(${property!.price!.priceFormat(context: context, enabled: false)})',
                                                 fontWeight: FontWeight.w500,
                                                 fontSize: context.font.larger,
                                                 color:
@@ -993,7 +875,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                                         width: double.infinity,
                                         child: GridView.builder(
                                           physics:
-                                              const BouncingScrollPhysics(),
+                                              const NeverScrollableScrollPhysics(),
                                           padding: EdgeInsets.zero,
                                           shrinkWrap: true,
                                           semanticChildCount:
@@ -1002,7 +884,9 @@ class PropertyDetailsState extends State<PropertyDetails>
                                               const SliverGridDelegateWithFixedCrossAxisCount(
                                             crossAxisCount: 2,
                                             childAspectRatio: 2,
-                                            mainAxisExtent: 51,
+                                            // Increase the mainAxisExtent to accommodate multiple lines
+                                            mainAxisExtent:
+                                                80, // Changed from 51 to allow more vertical space
                                           ),
                                           itemCount:
                                               property?.parameters?.length ?? 0,
@@ -1013,6 +897,9 @@ class PropertyDetailsState extends State<PropertyDetails>
                                               padding: EdgeInsets.zero,
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment
+                                                        .start, // Align to top for better multi-line layout
                                                 children: [
                                                   Container(
                                                     width: 40.rw(context),
@@ -1026,8 +913,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                       ),
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                        10,
-                                                      ),
+                                                              10),
                                                     ),
                                                     child: SizedBox(
                                                       height: 30.rh(context),
@@ -1050,12 +936,8 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                   SizedBox(
                                                     width: 10.rw(context),
                                                   ),
-                                                  SizedBox(
-                                                    width:
-                                                        MediaQuery.of(context)
-                                                                .size
-                                                                .width *
-                                                            0.3,
+                                                  Flexible(
+                                                    // Use Flexible instead of fixed SizedBox
                                                     child: Column(
                                                       crossAxisAlignment:
                                                           CrossAxisAlignment
@@ -1065,6 +947,8 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                       children: [
                                                         CustomText(
                                                           parameter?.name ?? '',
+                                                          maxLines:
+                                                              1, // Keep parameter name as single line
                                                           textAlign:
                                                               TextAlign.start,
                                                           fontSize: context
@@ -1079,87 +963,75 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                                 ?.typeOfParameter ==
                                                             'file') ...{
                                                           InkWell(
-                                                              onTap: () async {
-                                                                await urllauncher
-                                                                    .launchUrl(
-                                                                  Uri.parse(
-                                                                    parameter!
-                                                                        .value,
-                                                                  ),
-                                                                  mode: LaunchMode
-                                                                      .externalApplication,
-                                                                );
-                                                              },
-                                                              child: CustomText(
-                                                                UiUtils
-                                                                    .translate(
-                                                                  context,
-                                                                  'viewFile',
+                                                            onTap: () async {
+                                                              await urllauncher
+                                                                  .launchUrl(
+                                                                Uri.parse(
+                                                                  parameter!
+                                                                          .value
+                                                                          ?.toString() ??
+                                                                      '',
                                                                 ),
-                                                                showUnderline:
-                                                                    true,
-                                                                color: context
-                                                                    .color
-                                                                    .tertiaryColor,
-                                                              )),
+                                                                mode: LaunchMode
+                                                                    .externalApplication,
+                                                              );
+                                                            },
+                                                            child: CustomText(
+                                                              UiUtils.translate(
+                                                                  context,
+                                                                  'viewFile'),
+                                                              showUnderline:
+                                                                  true,
+                                                              color: context
+                                                                  .color
+                                                                  .tertiaryColor,
+                                                            ),
+                                                          ),
                                                         } else if (parameter
                                                                 ?.value
                                                             is List) ...{
-                                                          Container(
-                                                            color: Colors.red,
-                                                            width:
-                                                                MediaQuery.of(
-                                                                      context,
-                                                                    )
-                                                                        .size
-                                                                        .width *
-                                                                    0.3,
+                                                          Flexible(
+                                                            // Use Flexible instead of fixed Container
                                                             child: CustomText(
                                                               (parameter?.value
                                                                       as List)
-                                                                  .join(','),
+                                                                  .join(
+                                                                      ', '), // Added space after comma
+                                                              maxLines:
+                                                                  3, // Allow multiple lines
                                                             ),
                                                           ),
                                                         } else ...[
                                                           if (parameter
                                                                   ?.typeOfParameter ==
                                                               'textarea') ...[
-                                                            SizedBox(
-                                                              width: MediaQuery
-                                                                      .of(
-                                                                    context,
-                                                                  ).size.width *
-                                                                  0.3,
+                                                            Flexible(
+                                                              // Use Flexible to allow content to adjust
                                                               child: CustomText(
                                                                 '${parameter?.value}',
+                                                                maxLines:
+                                                                    3, // Allow up to 3 lines for textarea
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w600,
                                                                 fontSize:
                                                                     context.font
-                                                                        .normal,
+                                                                        .small,
                                                               ),
                                                             ),
                                                           ] else ...[
-                                                            ConstrainedBox(
-                                                              constraints:
-                                                                  BoxConstraints(
-                                                                maxWidth: MediaQuery
-                                                                            .of(
-                                                                      context,
-                                                                    )
-                                                                        .size
-                                                                        .width *
-                                                                    0.4,
-                                                              ),
+                                                            Flexible(
+                                                              // Use Flexible instead of ConstrainedBox
                                                               child: CustomText(
                                                                 '${parameter?.value}',
+                                                                maxLines:
+                                                                    2, // Allow up to 2 lines for other content
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w600,
                                                                 fontSize:
                                                                     context.font
-                                                                        .normal,
+                                                                        .small,
                                                               ),
                                                             ),
                                                           ],
@@ -1256,8 +1128,6 @@ class PropertyDetailsState extends State<PropertyDetails>
                                       GestureDetector(
                                         onTap: () {},
                                         child: AgentProfileWidget(
-                                          hideDetails:
-                                              shouldRestrictPropertyAccess(),
                                           widget: widget,
                                         ),
                                       ),
@@ -1359,7 +1229,8 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                             onTap: () {
                                                               Navigator.push(
                                                                 context,
-                                                                MaterialPageRoute(
+                                                                MaterialPageRoute<
+                                                                    dynamic>(
                                                                   builder:
                                                                       (context) {
                                                                     return VideoViewScreen(
@@ -1432,27 +1303,26 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                               );
                                                             },
                                                             child: Container(
-                                                                alignment:
-                                                                    Alignment
-                                                                        .center,
+                                                              alignment:
+                                                                  Alignment
+                                                                      .center,
+                                                              color: Colors
+                                                                  .black
+                                                                  .withValues(
+                                                                alpha: 0.3,
+                                                              ),
+                                                              child: CustomText(
+                                                                '+${(property?.gallery?.length ?? 0) - 3}',
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize:
+                                                                    context.font
+                                                                        .large,
                                                                 color: Colors
-                                                                    .black
-                                                                    .withValues(
-                                                                  alpha: 0.3,
-                                                                ),
-                                                                child:
-                                                                    CustomText(
-                                                                  '+${(property?.gallery?.length ?? 0) - 3}',
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize:
-                                                                      context
-                                                                          .font
-                                                                          .large,
-                                                                  color: Colors
-                                                                      .white,
-                                                                )),
+                                                                    .white,
+                                                              ),
+                                                            ),
                                                           ),
                                                         ),
                                                     ],
@@ -1527,12 +1397,8 @@ class PropertyDetailsState extends State<PropertyDetails>
                                                 width: 5.rw(context),
                                               ),
                                               Expanded(
-                                                child: HideDetailsBlur(
-                                                  hide:
-                                                      shouldRestrictPropertyAccess(),
-                                                  child: CustomText(
-                                                    property?.address ?? '',
-                                                  ),
+                                                child: CustomText(
+                                                  property?.address ?? '',
                                                 ),
                                               ),
                                             ],
@@ -1707,6 +1573,105 @@ class PropertyDetailsState extends State<PropertyDetails>
     );
   }
 
+  PopupMenuItem<String> buildPopupMenItem({
+    required BuildContext context,
+    required String title,
+    required String icon,
+    required int index,
+  }) {
+    return PopupMenuItem<String>(
+      value: title,
+      child: Row(
+        children: [
+          UiUtils.getSvg(
+            icon,
+          ),
+          const SizedBox(
+            width: 5,
+          ),
+          CustomText(
+            title.translate(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildEnableDisableSwitch() {
+    final state = context.read<ChangePropertyStatusCubit>().state;
+    final successState = context.read<ChangePropertyStatusCubit>().state
+        is ChangePropertyStatusSuccess;
+    final failureState = context.read<ChangePropertyStatusCubit>().state
+        is ChangePropertyStatusFailure;
+    final progressState = context.read<ChangePropertyStatusCubit>().state
+        is ChangePropertyStatusInProgress;
+    return Column(
+      children: [
+        Row(
+          children: [
+            CustomText(
+              'updatePropertyStatus'.translate(context),
+              fontSize: context.font.large,
+              color: context.color.tertiaryColor,
+              fontWeight: FontWeight.w600,
+            ),
+            const Spacer(),
+            ValueListenableBuilder(
+              valueListenable: isEnabled,
+              builder: (context, value, child) {
+                return child!;
+              },
+              child: IgnorePointer(
+                ignoring: progressState,
+                child: CupertinoSwitch(
+                  activeTrackColor: context.color.tertiaryColor,
+                  value: isEnabled.value,
+                  onChanged: (value) async {
+                    if (progressState) return;
+                    final status = isEnabled.value == false ? 1 : 0;
+                    await context
+                        .read<ChangePropertyStatusCubit>()
+                        .enableProperty(
+                          propertyId: property!.id!,
+                          status: status,
+                        );
+                    if (successState) {
+                      setState(() {
+                        isEnabled.value = value;
+                      });
+                    } else if (failureState) {
+                      final errorMessage =
+                          (state as ChangePropertyStatusFailure)
+                                  .error
+                                  .contains('429')
+                              ? 'tooManyRequestsPleaseWait'.translate(context)
+                              : state.error;
+                      await HelperUtils.showSnackBarMessage(
+                        context,
+                        errorMessage,
+                        type: MessageType.success,
+                      );
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(
+          height: 7,
+        ),
+        const Divider(
+          color: Colors.grey,
+          height: 3,
+        ),
+        const SizedBox(
+          height: 10,
+        ),
+      ],
+    );
+  }
+
   Widget _buildMortgageCalculatorContainer() {
     return Container(
       width: MediaQuery.of(context).size.width,
@@ -1750,7 +1715,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                 CustomText(
                   'calculateMortgage'.translate(context),
                   color: context.color.tertiaryColor,
-                  fontSize: context.font.larger,
+                  fontSize: context.font.large,
                   fontWeight: FontWeight.w900,
                 ),
                 const SizedBox(
@@ -1779,7 +1744,7 @@ class PropertyDetailsState extends State<PropertyDetails>
               color: context.color.tertiaryColor,
             ),
             onPressed: () async {
-              await showModalBottomSheet(
+              await showModalBottomSheet<dynamic>(
                 sheetAnimationStyle: AnimationStyle(
                   duration: const Duration(milliseconds: 500),
                   reverseDuration: const Duration(milliseconds: 200),
@@ -1823,10 +1788,21 @@ class PropertyDetailsState extends State<PropertyDetails>
         height: 32,
         child: Row(
           children: [
+            if (property != null &&
+                property?.allPropData['is_premium'] == true) ...[
+              UiUtils.getSvg(
+                AppIcons.premium,
+                height: 20,
+                width: 20,
+              ),
+            ],
+            const SizedBox(
+              width: 4,
+            ),
             if (property?.promoted == true && property?.promoted != null) ...[
               Container(
                 width: 83,
-                height: 32,
+                height: 28,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: context.color.tertiaryColor,
@@ -1834,27 +1810,9 @@ class PropertyDetailsState extends State<PropertyDetails>
                 ),
                 child: CustomText(
                   UiUtils.translate(context, 'featured'),
-                  fontSize: context.font.small,
+                  fontSize: context.font.normal,
                   color: context.color.buttonColor,
-                ),
-              ),
-              const SizedBox(
-                width: 4,
-              ),
-            ],
-            if (property != null &&
-                property?.allPropData['is_premium'] == true) ...[
-              Container(
-                height: 32,
-                width: 32,
-                // margin: EdgeInsets.symmetric(horizontal: 0),
-                decoration: BoxDecoration(
-                  color: context.color.tertiaryColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.none,
-                  child: SvgPicture.asset(AppIcons.promoted),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -1897,15 +1855,18 @@ class PropertyDetailsState extends State<PropertyDetails>
                           BlocBuilder<GetSubsctiptionPackageLimitsCubit,
                               GetSubscriptionPackageLimitsState>(
                             builder: (context, state) {
-                              bool isLoading = context
+                              final isLoading = context
                                       .read<GetSubsctiptionPackageLimitsCubit>()
                                       .state
                                   is GetSubscriptionPackageLimitsInProgress;
                               return Expanded(
                                 child: UiUtils.buildButton(
                                   context,
-                                  disabled: property?.status.toString() == '0',
-                                  // padding: const EdgeInsets.symmetric(horizontal: 1),
+                                  disabled:
+                                      property?.status.toString() == '0' ||
+                                          property?.advertisementStatus
+                                                  .toString() ==
+                                              '1',
                                   outerPadding: const EdgeInsets.all(
                                     1,
                                   ),
@@ -1914,30 +1875,17 @@ class PropertyDetailsState extends State<PropertyDetails>
                                         .read<
                                             GetSubsctiptionPackageLimitsCubit>()
                                         .getLimits(
-                                          type: 'advertisement',
+                                          packageType: 'property_feature',
                                         );
                                     if (state
                                         is GetSubsctiptionPackageLimitsFailure) {
                                       await UiUtils.showBlurredDialoge(
                                         context,
-                                        dialoge: BlurredDialogBox(
-                                          title: state.errorMessage
-                                              .firstUpperCase(),
+                                        dialoge:
+                                            const BlurredSubscriptionDialogBox(
+                                          packageType: SubscriptionPackageType
+                                              .propertyFeature,
                                           isAcceptContainesPush: true,
-                                          onAccept: () async {
-                                            await Navigator.popAndPushNamed(
-                                              context,
-                                              Routes
-                                                  .subscriptionPackageListRoute,
-                                              arguments: {
-                                                'from': 'propertyDetails',
-                                              },
-                                            );
-                                          },
-                                          content: CustomText(
-                                            'yourPackageLimitOver'
-                                                .translate(context),
-                                          ),
                                         ),
                                       );
                                     } else if (state
@@ -2002,7 +1950,6 @@ class PropertyDetailsState extends State<PropertyDetails>
                                             height: 14,
                                           ),
                                   ),
-
                                   fontSize: context.font.normal,
                                   width: context.screenWidth / 3,
                                   buttonTitle: isLoading
@@ -2037,7 +1984,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                                         Routes.completeProfile,
                                         arguments: {
                                           'from': 'home',
-                                          'navigateToHome': true
+                                          'navigateToHome': true,
                                         },
                                       );
                                     },
@@ -2049,12 +1996,12 @@ class PropertyDetailsState extends State<PropertyDetails>
                                 return;
                               }
                               unawaited(Widgets.showLoader(context));
-                              final systemRepository = SystemRepository();
-                              final settings =
-                                  await systemRepository.fetchSystemSettings(
-                                isAnonymouse: false,
+                              final checkPackage = CheckPackage();
+                              final packageAvailable =
+                                  await checkPackage.checkPackageAvailable(
+                                packageType: PackageType.propertyList,
                               );
-                              if (settings['data']['is_premium'] == true) {
+                              if (packageAvailable) {
                                 final category = await context
                                     .read<FetchCategoryCubit>()
                                     .get(
@@ -2122,20 +2069,10 @@ class PropertyDetailsState extends State<PropertyDetails>
                                 Widgets.hideLoder(context);
                                 await UiUtils.showBlurredDialoge(
                                   context,
-                                  dialoge: BlurredDialogBox(
-                                    title: 'Subscription needed',
+                                  dialoge: const BlurredSubscriptionDialogBox(
+                                    packageType:
+                                        SubscriptionPackageType.propertyList,
                                     isAcceptContainesPush: true,
-                                    onAccept: () async {
-                                      await Navigator.popAndPushNamed(
-                                        context,
-                                        Routes.subscriptionPackageListRoute,
-                                        arguments: {'from': 'propertyDetails'},
-                                      );
-                                    },
-                                    content: CustomText(
-                                      'subscribeToUseThisFeature'
-                                          .translate(context),
-                                    ),
                                   ),
                                 );
                               }
@@ -2324,12 +2261,12 @@ class PropertyDetailsState extends State<PropertyDetails>
               padding: const EdgeInsetsDirectional.only(end: 14),
               child: (icon is String)
                   ? SvgPicture.asset(
-                      icon,
+                      icon?.toString() ?? '',
                       width: 22,
                       height: 22,
                     )
                   : Icon(
-                      icon,
+                      icon as IconData,
                       color: Theme.of(context).colorScheme.buttonColor,
                       size: 22,
                     ),
@@ -2480,27 +2417,7 @@ class PropertyDetailsState extends State<PropertyDetails>
       onInternet: () {
         GuestChecker.check(
           onNotGuest: () async {
-            if (isPremiumProperty && !isPremiumUser) {
-              await UiUtils.showBlurredDialoge(
-                context,
-                dialoge: BlurredDialogBox(
-                  title: 'Subscription needed',
-                  isAcceptContainesPush: true,
-                  onAccept: () async {
-                    await Navigator.popAndPushNamed(
-                      context,
-                      Routes.subscriptionPackageListRoute,
-                      arguments: {'from': 'propertyDetails'},
-                    );
-                  },
-                  content: CustomText(
-                    'subscribeToUseThisFeature'.translate(context),
-                  ),
-                ),
-              );
-              return;
-            }
-            final chatState = await context.read<GetChatListCubit>().state;
+            final chatState = context.read<GetChatListCubit>().state;
             if (chatState is GetChatListSuccess) {
               // if (chatState.chatedUserList.isEmpty) {
               //   return;
@@ -2592,9 +2509,7 @@ class _InterestedUserListWidgetState extends State<InterestedUserListWidget> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
+        physics: Constant.scrollPhysics,
         controller: _bottomSheetScrollController,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2617,7 +2532,7 @@ class _InterestedUserListWidgetState extends State<InterestedUserListWidget> {
 
                 if (state is GetInterestedUserSuccess) {
                   if (state.list.isEmpty) {
-                    return Center(
+                    return const Center(
                       child: CustomText('No data found'),
                     );
                   }
@@ -2754,7 +2669,7 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
         if (didPop) return;
         isGoogleMapVisible = false;
         setState(() {});
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future<void>.delayed(const Duration(milliseconds: 500));
         Future.delayed(
           Duration.zero,
           () {
@@ -2795,10 +2710,7 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
 }
 
 class AgentProfileWidget extends StatelessWidget {
-  final bool hideDetails;
-
   const AgentProfileWidget({
-    required this.hideDetails,
     required this.widget,
     super.key,
   });
@@ -2807,27 +2719,31 @@ class AgentProfileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HideDetailsBlur(
-      hide: hideDetails,
-      sigmaX: 4,
-      sigmaY: 4,
-      child: GestureDetector(
-        onTap: () async {
-          GuestChecker.check(
-            onNotGuest: () async {
-              await context
-                  .read<FetchAgentsPropertyCubit>()
-                  .fetchAgentsProperty(
-                      agentId: widget.property!.addedBy!,
-                      forceRefresh: true,
-                      isAdmin: widget.property!.addedBy!.toString() == '0');
-              final state = context.read<FetchAgentsPropertyCubit>().state;
-              final bool isPremium = context
-                      .read<FetchSystemSettingsCubit>()
-                      .getRawSettings()['is_premium'] ??
-                  false;
-              if (isPremium && state is FetchAgentsPropertySuccess) {
-                Navigator.pushNamed(
+    return GestureDetector(
+      onTap: () async {
+        GuestChecker.check(
+          onNotGuest: () async {
+            await context.read<FetchAgentsPropertyCubit>().fetchAgentsProperty(
+                  agentId: widget.property!.addedBy!,
+                  forceRefresh: true,
+                  isAdmin: widget.property!.addedBy!.toString() == '0',
+                );
+            final state = context.read<FetchAgentsPropertyCubit>().state;
+
+            if (state is FetchAgentsPropertySuccess) {
+              await Navigator.pushNamed(
+                context,
+                Routes.agentDetailsScreen,
+                arguments: {
+                  'agent': state.agentsProperty.customerData,
+                  'isAdmin': widget.property!.addedBy.toString() == '0',
+                },
+              );
+            } else {
+              if ((widget.property!.addedBy.toString() ==
+                      HiveUtils.getUserId()) &&
+                  state is FetchAgentsPropertySuccess) {
+                await Navigator.pushNamed(
                   context,
                   Routes.agentDetailsScreen,
                   arguments: {
@@ -2836,90 +2752,77 @@ class AgentProfileWidget extends StatelessWidget {
                   },
                 );
               } else {
-                if ((widget.property!.addedBy.toString() ==
-                        HiveUtils.getUserId()) &&
-                    state is FetchAgentsPropertySuccess) {
-                  Navigator.pushNamed(
-                    context,
-                    Routes.agentDetailsScreen,
-                    arguments: {
-                      'agent': state.agentsProperty.customerData,
-                      'isAdmin': widget.property!.addedBy.toString() == '0',
+                await UiUtils.showBlurredDialoge(
+                  context,
+                  dialoge: BlurredDialogBox(
+                    title: 'Subscription needed',
+                    isAcceptContainesPush: true,
+                    onAccept: () async {
+                      await Navigator.popAndPushNamed(
+                        context,
+                        Routes.subscriptionPackageListRoute,
+                        arguments: {'from': 'home'},
+                      );
                     },
-                  );
-                } else {
-                  UiUtils.showBlurredDialoge(
-                    context,
-                    dialoge: BlurredDialogBox(
-                      title: 'Subscription needed',
-                      isAcceptContainesPush: true,
-                      onAccept: () async {
-                        await Navigator.popAndPushNamed(
-                          context,
-                          Routes.subscriptionPackageListRoute,
-                          arguments: {'from': 'home'},
-                        );
-                      },
-                      content: CustomText(
-                        'subscribeToUseThisFeature'.translate(context),
+                    content: CustomText(
+                      'subscribeToUseThisFeature'.translate(context),
+                    ),
+                  ),
+                );
+              }
+            }
+          },
+        );
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 70,
+            height: 70,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: UiUtils.getImage(
+              widget.property?.customerProfile ?? '',
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(
+            width: 10,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: CustomText(
+                        widget.property?.customerName ?? '',
+                        fontWeight: FontWeight.bold,
+                        fontSize: context.font.large,
                       ),
                     ),
-                  );
-                }
-              }
-            },
-          );
-        },
-        child: Row(
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: UiUtils.getImage(
-                widget.property?.customerProfile ?? '',
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(
-              width: 10,
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: CustomText(
-                          widget.property?.customerName ?? '',
-                          fontWeight: FontWeight.bold,
-                          fontSize: context.font.large,
+                    if (widget.property?.isVerified ?? false)
+                      FittedBox(
+                        fit: BoxFit.none,
+                        child: UiUtils.getSvg(
+                          AppIcons.agentBadge,
+                          height: 24,
+                          width: 24,
+                          color: context.color.tertiaryColor,
                         ),
                       ),
-                      if (widget.property?.isVerified ?? false)
-                        FittedBox(
-                          fit: BoxFit.none,
-                          child: UiUtils.getSvg(
-                            AppIcons.agentBadge,
-                            height: 24,
-                            width: 24,
-                            color: context.color.tertiaryColor,
-                          ),
-                        ),
-                    ],
-                  ),
-                  CustomText(widget.property?.customerEmail ?? ''),
-                ],
-              ),
+                  ],
+                ),
+                CustomText(widget.property?.customerEmail ?? ''),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -2988,12 +2891,13 @@ class OutdoorFacilityListWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Flexible(
-                        child: CustomText(
-                      '${facility.distance ?? ''}  ',
-                      fontSize: context.font.small,
-                      color: context.color.inverseSurface,
-                      maxLines: 1,
-                    )),
+                      child: CustomText(
+                        '${facility.distance ?? ''}  ',
+                        fontSize: context.font.small,
+                        color: context.color.inverseSurface,
+                        maxLines: 1,
+                      ),
+                    ),
                     Flexible(
                       child: CustomText(
                         '$distanceOption'.firstUpperCase(),
@@ -3009,39 +2913,6 @@ class OutdoorFacilityListWidget extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class HideDetailsBlur extends StatelessWidget {
-  final Widget child;
-  final bool hide;
-  final double? sigmaX;
-  final double? sigmaY;
-
-  const HideDetailsBlur({
-    required this.child,
-    required this.hide,
-    super.key,
-    this.sigmaX,
-    this.sigmaY,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      child: Stack(
-        // fit: StackFit.expand,
-        children: [
-          child,
-          if (hide)
-            BackdropFilter(
-              filter:
-                  ImageFilter.blur(sigmaY: sigmaY ?? 3, sigmaX: sigmaX ?? 4),
-              child: Container(),
-            ),
-        ],
-      ),
     );
   }
 }

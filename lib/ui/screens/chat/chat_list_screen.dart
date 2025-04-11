@@ -6,7 +6,7 @@ import 'package:shimmer/shimmer.dart';
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
-  static Route route(RouteSettings settings) {
+  static Route<dynamic> route(RouteSettings settings) {
     return BlurredRouter(
       builder: (context) {
         return const ChatListScreen();
@@ -23,7 +23,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   @override
   void initState() {
     chatScreenController.addListener(() {
-      if (chatScreenController.isEndReached()) {
+      if (chatScreenController.isEndReached() && mounted) {
         if (context.read<GetChatListCubit>().hasMoreData()) {
           context.read<GetChatListCubit>().loadMore();
         }
@@ -62,10 +62,12 @@ class _ChatListScreenState extends State<ChatListScreen>
                 return ScrollConfiguration(
                   behavior: RemoveGlow(),
                   child: SingleChildScrollView(
-                      physics: AlwaysScrollableScrollPhysics(),
-                      child: Container(
-                          height: MediaQuery.of(context).size.height * 0.6,
-                          child: SomethingWentWrong())),
+                    physics: Constant.scrollPhysics,
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: const SomethingWentWrong(),
+                    ),
+                  ),
                 );
               }
             }
@@ -75,9 +77,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             if (state is GetChatListSuccess) {
               if (state.chatedUserList.isEmpty) {
                 return SingleChildScrollView(
-                  physics: AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
+                  physics: Constant.scrollPhysics,
                   child: Container(
                     alignment: Alignment.center,
                     height: MediaQuery.of(context).size.height * 0.7,
@@ -88,10 +88,12 @@ class _ChatListScreenState extends State<ChatListScreen>
                         const SizedBox(
                           height: 20,
                         ),
-                        CustomText(UiUtils.translate(context, 'noChats'),
-                            fontWeight: FontWeight.w600,
-                            fontSize: context.font.extraLarge,
-                            color: context.color.tertiaryColor),
+                        CustomText(
+                          UiUtils.translate(context, 'noChats'),
+                          fontWeight: FontWeight.w600,
+                          fontSize: context.font.extraLarge,
+                          color: context.color.tertiaryColor,
+                        ),
                         const SizedBox(
                           height: 14,
                         ),
@@ -106,10 +108,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 );
               }
               return ListView.builder(
-                physics: AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                shrinkWrap: false,
+                physics: Constant.scrollPhysics,
                 controller: chatScreenController,
                 itemCount: state.chatedUserList.length,
                 padding: const EdgeInsetsDirectional.all(16),
@@ -136,7 +135,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 },
               );
             }
-            return SizedBox.shrink();
+            return const SizedBox.shrink();
           },
         ),
       ),
@@ -146,7 +145,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   Widget buildChatListLoadingShimmer() {
     return ListView.builder(
       itemCount: 10,
-      physics: const BouncingScrollPhysics(),
+      physics: Constant.scrollPhysics,
       padding: const EdgeInsetsDirectional.all(16),
       itemBuilder: (context, index) {
         return Padding(
@@ -271,8 +270,6 @@ class ChatTile extends StatelessWidget {
           context,
           BlurredRouter(
             builder: (context) {
-              currentlyChatingWith = id;
-              currentlyChatPropertyId = propertyId;
               return MultiBlocProvider(
                 providers: [
                   BlocProvider(

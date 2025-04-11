@@ -66,7 +66,6 @@ class _FavoritesScreenState extends State<FavoritesScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const ClipRRect(
-                clipBehavior: Clip.antiAliasWithSaveLayer,
                 borderRadius: BorderRadius.all(Radius.circular(15)),
                 child: CustomShimmer(height: 90, width: 90),
               ),
@@ -161,7 +160,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         itemCount: state.propertymodel.length,
                         shrinkWrap: true,
-                        physics: const BouncingScrollPhysics(),
+                        physics: Constant.scrollPhysics,
                         itemBuilder: (context, index) {
                           final property = state.propertymodel[index];
                           context.read<LikedPropertiesCubit>().add(property.id);

@@ -12,7 +12,7 @@ class PersonalizedInterestSettings {
 
   factory PersonalizedInterestSettings.fromMap(Map<String, dynamic> map) {
     return PersonalizedInterestSettings(
-      userId: map['user_id'] ?? 0,
+      userId: map['user_id'] as int,
       categoryIds: (map['category_ids'] is String)
           ? []
           : ((map['category_ids']) as List).forceInt(),
@@ -24,8 +24,8 @@ class PersonalizedInterestSettings {
           : (map['property_type'] as List).forceInt(),
       outdoorFacilityIds: (map['outdoor_facilitiy_ids'] is String)
           ? []
-          : ((map['outdoor_facilitiy_ids'] ?? []) as List).forceInt(),
-      city: map['city'] ?? '',
+          : (map['outdoor_facilitiy_ids'] as List? ?? []).forceInt(),
+      city: map['city']?.toString() ?? '',
     );
   }
 

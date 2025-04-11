@@ -81,7 +81,7 @@ class NotificationsState extends State<Notifications> {
                   Expanded(
                     child: ListView.separated(
                       controller: _pageScrollController,
-                      physics: const BouncingScrollPhysics(),
+                      physics: Constant.scrollPhysics,
                       padding: const EdgeInsets.all(10),
                       separatorBuilder: (context, index) => const SizedBox(
                         height: 2,
@@ -127,9 +127,9 @@ class NotificationsState extends State<Notifications> {
                                       );
                                     },
                                     child: ClipRRect(
-                                      clipBehavior: Clip.antiAliasWithSaveLayer,
                                       borderRadius: const BorderRadius.all(
-                                          Radius.circular(15)),
+                                        Radius.circular(15),
+                                      ),
                                       child: UiUtils.getImage(
                                         notificationData.image!,
                                         height: 53.rh(context),

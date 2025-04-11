@@ -76,7 +76,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             if (state is FetchFavoritesSuccess) {
               if (state.propertymodel.isEmpty) {
                 return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+                  physics: Constant.scrollPhysics,
                   child: SizedBox(
                     height: context.screenHeight - 100.rh(context),
                     child: Center(
@@ -95,7 +95,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   Expanded(
                     child: ListView.builder(
                       controller: _pageScrollController,
-                      physics: const BouncingScrollPhysics(),
+                      physics: Constant.scrollPhysics,
                       padding: const EdgeInsets.all(16),
                       itemCount: state.propertymodel.length,
                       shrinkWrap: true,
@@ -162,7 +162,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const ClipRRect(
-                clipBehavior: Clip.antiAliasWithSaveLayer,
                 borderRadius: BorderRadius.all(Radius.circular(15)),
                 child: CustomShimmer(height: 90, width: 90),
               ),

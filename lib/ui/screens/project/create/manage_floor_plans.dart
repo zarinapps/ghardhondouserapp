@@ -10,7 +10,8 @@ class ManageFloorPlansScreen extends StatefulWidget {
     return BlurredRouter(
       builder: (context) {
         return ManageFloorPlansScreen(
-          floorPlans: arguments?['floorPlan'],
+          floorPlans: (arguments?['floorPlan'] as List? ?? [])
+              .cast<Map<String, dynamic>>(),
         );
       },
     );
@@ -31,12 +32,14 @@ class _ManageFloorPlansScreenState extends CloudState<ManageFloorPlansScreen> {
     if (widget.floorPlans != null) {
       widget.floorPlans?.forEach((value) {
         final floorPlan = FloorPlan(
-          planKey: value['id'] is int ? ValueKey(value['id']) : value['id'],
+          planKey: value['id'] is int
+              ? ValueKey(value['id'])
+              : value['id'] as ValueKey,
           key: UniqueKey(),
-          title: value['title'],
+          title: value['title']?.toString() ?? '',
           imagePickerValue: value['image'] is String
-              ? UrlValue(value['image'])
-              : value['image'],
+              ? UrlValue(value['image']?.toString() ?? '')
+              : value['image'] as UrlValue? ?? UrlValue(''),
           onClose: (e) {
             removeFromListWhere(
               listKey: 'floorsList',
@@ -44,7 +47,7 @@ class _ManageFloorPlansScreenState extends CloudState<ManageFloorPlansScreen> {
               equals: e,
             );
             if (e is ValueKey) {
-              removePlanId.add(e.value);
+              removePlanId.add(e.value as int? ?? 0);
             }
             floorPlans.removeWhere((element) => element.planKey == e);
             setState(() {});
@@ -60,7 +63,7 @@ class _ManageFloorPlansScreenState extends CloudState<ManageFloorPlansScreen> {
         onClose: (key) {
           removeFromGroup('floors', key);
           if (key is ValueKey) {
-            removePlanId.add(key.value);
+            removePlanId.add(key.value as int? ?? 0);
           }
           floorPlans.removeWhere((element) => element.planKey == key);
           setState(() {});
@@ -92,23 +95,24 @@ class _ManageFloorPlansScreenState extends CloudState<ManageFloorPlansScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             child: MaterialButton(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                color: context.color.tertiaryColor,
-                onPressed: () {
-                  final floors = getCloudData('floorsList') as List<Map>?;
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              color: context.color.tertiaryColor,
+              onPressed: () {
+                final floors = getCloudData('floorsList') as List<Map>?;
 
-                  Navigator.pop(context, {
-                    'floorPlans': floors,
-                    'removed': removePlanId,
-                  });
-                },
-                height: 50,
-                child: CustomText(
-                  'continue'.translate(context),
-                  color: context.color.secondaryColor,
-                )),
+                Navigator.pop(context, {
+                  'floorPlans': floors,
+                  'removed': removePlanId,
+                });
+              },
+              height: 50,
+              child: CustomText(
+                'continue'.translate(context),
+                color: context.color.secondaryColor,
+              ),
+            ),
           ),
         ),
         body: Form(
@@ -133,7 +137,7 @@ class _ManageFloorPlansScreenState extends CloudState<ManageFloorPlansScreen> {
                               equals: e,
                             );
                             if (e is ValueKey) {
-                              removePlanId.add(e.value);
+                              removePlanId.add(e.value as int? ?? 0);
                             }
                             floorPlans
                                 .removeWhere((element) => element.planKey == e);

@@ -40,7 +40,7 @@ class SomethingWentWrong extends StatelessWidget {
 class ErrorScreen extends StatelessWidget {
   const ErrorScreen({required this.stack, super.key});
   final StackTrace stack;
-  void _generateError(context) {
+  void _generateError(BuildContext context) {
     final filteredStackLines = stack.toString().split('\n').where((line) {
       return !line.contains('package:flutter');
     }).map((line) {

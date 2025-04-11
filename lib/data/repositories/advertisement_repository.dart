@@ -1,27 +1,26 @@
-import 'dart:io';
-
-import 'package:dio/dio.dart';
-
 import 'package:ebroker/utils/api.dart';
 
 class AdvertisementRepository {
-  Future<Map<String, dynamic>> create({
-    required String type,
-    required String propertyId,
-    File? image,
+  Future<String> create({
+    required String featureFor,
+    String? propertyId,
+    String? projectId,
   }) async {
     final parameters = <String, dynamic>{
-      Api.propertyId: propertyId,
-      Api.type: type,
+      'feature_for': featureFor,
+      if (featureFor == 'property') Api.propertyId: propertyId,
+      if (featureFor == 'project') Api.projectId: projectId,
     };
-    if (image != null) {
-      parameters[Api.image] = await MultipartFile.fromFile(image.path);
-    }
 
-    return Api.post(
+    final result = await Api.post(
       url: Api.storeAdvertisement,
       parameter: parameters,
     );
+    if (result['error'] == true) {
+      throw Exception(result['message']);
+    }
+
+    return result['message']?.toString() ?? '';
   }
 
   Future deleteAdvertisment(

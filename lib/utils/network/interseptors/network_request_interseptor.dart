@@ -10,7 +10,7 @@ class NetworkRequestInterseptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (options.data != null) {
-      map = (Map.fromEntries((options.data ?? {} as FormData).fields)
+      map = (Map.fromEntries((options.data as FormData).fields)
         ..addEntries(Iterable.castFrom((options.data as FormData).files)));
     }
     log('${options.path} : ${options.queryParameters}', name: 'Request-API');
@@ -37,7 +37,7 @@ class NetworkRequestInterseptor extends Interceptor {
       'Method': response.requestOptions.method,
       'status': response.statusCode,
       'statusMessage': response.statusMessage,
-      'response': response.data,
+      // 'response': response.data,
     }).mlog('Response-API');
 
     handler.next(response);

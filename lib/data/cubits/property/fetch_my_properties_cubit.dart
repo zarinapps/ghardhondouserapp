@@ -147,7 +147,7 @@ class FetchMyPropertiesCubit extends Cubit<FetchMyPropertiesState> {
 
         final updatedProperties = [
           ...currentState.myProperty,
-          ...result.modelList
+          ...result.modelList,
         ];
 
         emit(

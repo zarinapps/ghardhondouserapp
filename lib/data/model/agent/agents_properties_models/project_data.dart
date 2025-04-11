@@ -16,6 +16,8 @@ class ProjectData implements NativeAdWidgetContainer {
     required this.galleryImages,
     required this.categoryId,
     required this.category,
+    required this.isFeatured,
+    required this.addedBy,
   });
 
   ProjectData.fromJson(Map<String, dynamic> json)
@@ -35,7 +37,9 @@ class ProjectData implements NativeAdWidgetContainer {
         galleryImages = (json['gallary_images'] as List? ?? [])
             .cast<Map<String, dynamic>>()
             .map<GalleryImages>(GalleryImages.fromJson)
-            .toList();
+            .toList(),
+        addedBy = json['added_by']?.toString() ?? '',
+        isFeatured = json['is_featured'] as bool? ?? false;
 
   final int id;
   final String slugId;
@@ -49,4 +53,6 @@ class ProjectData implements NativeAdWidgetContainer {
   final List<GalleryImages> galleryImages;
   final int categoryId;
   final CategoryData category;
+  final bool isFeatured;
+  final String addedBy;
 }

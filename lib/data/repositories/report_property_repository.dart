@@ -12,10 +12,16 @@ class ReportPropertyRepository {
       );
 
       final list = (response['data'] as List).map((e) {
-        return ReportReason(id: e['id'], reason: e['reason']);
+        return ReportReason(
+          id: e['id'] as int,
+          reason: e['reason']?.toString() ?? '',
+        );
       }).toList();
 
-      return DataOutput(total: response['total'], modelList: list);
+      return DataOutput(
+        total: int.parse(response['total']?.toString() ?? '0'),
+        modelList: list,
+      );
     } catch (e) {
       rethrow;
     }

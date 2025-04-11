@@ -14,15 +14,15 @@ class TransactionModel {
   });
 
   TransactionModel.fromMap(Map<String, dynamic> json) {
-    id = json['id'];
-    transactionId = json['transaction_id'];
+    id = json['id'] as int?;
+    transactionId = json['transaction_id']?.toString() ?? '';
     amount = json['amount'];
-    paymentGateway = json['payment_gateway'];
+    paymentGateway = json['payment_gateway']?.toString() ?? '';
     packageId = Adapter.forceInt(json['package_id']);
     customerId = Adapter.forceInt(json['customer_id']);
     status = json['status'];
-    createdAt = json['created_at'];
-    updatedAt = json['updated_at'];
+    createdAt = json['created_at']?.toString() ?? '';
+    updatedAt = json['updated_at']?.toString() ?? '';
   }
   int? id;
   String? transactionId;

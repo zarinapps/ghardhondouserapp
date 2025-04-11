@@ -48,26 +48,31 @@ class LoginCubit extends Cubit<LoginState> {
         uid: uniqueId,
       );
 
-      ///Storing data to local database {HIVE}
-      await HiveUtils.setJWT(result['token']);
-
-      if (result['data']['name'] == '' ||
-          result['data']['email'] == '' ||
-          result['data']['phone'] == '') {
-        await HiveUtils.setProfileNotCompleted();
-        isProfileIsCompleted = false;
-        final data = result['data'];
-        data['countryCode'] = countryCode;
-        data['type'] = type.name;
-        await HiveUtils.setUserData(data);
-      } else {
-        isProfileIsCompleted = true;
-        final data = result['data'];
-        data['countryCode'] = countryCode;
-        data['type'] = type.name;
-
-        await HiveUtils.setUserData(data);
+      if (result['error'] == true) {
+        emit(LoginFailure(result['message']?.toString() ?? ''));
+        return;
       }
+
+      ///Storing data to local database {HIVE}
+      await HiveUtils.setJWT(result['token']?.toString() ?? '');
+
+      // if (result['data']['name'] == '' ||
+      //     result['data']['email'] == '' ||
+      //     result['data']['phone'] == '') {
+      //   await HiveUtils.setProfileNotCompleted();
+      //   isProfileIsCompleted = false;
+      //   final data = result['data'];
+      //   data['countryCode'] = countryCode;
+      //   data['type'] = type.name;
+      //   await HiveUtils.setUserData(data);
+      // } else {
+      isProfileIsCompleted = true;
+      final data = result['data'] as Map;
+      data['countryCode'] = countryCode;
+      data['type'] = type.name;
+
+      await HiveUtils.setUserData(data);
+      // }
 
       emit(LoginSuccess(isProfileCompleted: isProfileIsCompleted));
     } catch (e) {
@@ -75,10 +80,11 @@ class LoginCubit extends Cubit<LoginState> {
     }
   }
 
-  Future<void> loginWithEmail(
-      {required String email,
-      required String password,
-      required LoginType type}) async {
+  Future<void> loginWithEmail({
+    required String email,
+    required String password,
+    required LoginType type,
+  }) async {
     try {
       emit(LoginInProgress());
       final result = await _authRepository.loginWithEmail(
@@ -88,16 +94,15 @@ class LoginCubit extends Cubit<LoginState> {
       );
 
       if (result['error'] == true) {
-        emit(LoginFailure(result['message']));
+        emit(LoginFailure(result['message']?.toString() ?? ''));
         return;
       }
       if (result['error'] != true) {
         ///Storing data to local database {HIVE}
-        await HiveUtils.setJWT(result['token']);
+        await HiveUtils.setJWT(result['token']?.toString() ?? '');
 
         isProfileIsCompleted = true;
-        final data = result['data'];
-        data['countryCode'] = result['data']['countryCode'];
+        final data = result['data'] as Map;
         data['type'] = type.name;
 
         await HiveUtils.setUserData(data);

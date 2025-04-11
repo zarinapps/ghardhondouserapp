@@ -1,4 +1,5 @@
 import 'package:ebroker/data/cubits/Utility/mortgage_calculator_cubit.dart';
+import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/proprties/widgets/donutChart.dart';
 import 'package:ebroker/ui/screens/proprties/widgets/yearlyBreakdownScreen.dart';
@@ -310,10 +311,7 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
   Widget _buildMortgageCalculatorOutput() {
     return BlocBuilder<MortgageCalculatorCubit, MortgageCalculatorState>(
       builder: (context, state) {
-        final bool isPremiumUser = context
-                .read<FetchSystemSettingsCubit>()
-                .getRawSettings()['is_premium'] ??
-            false;
+        bool? isMortgageCalculatorAvailable;
         if (state is MortgageCalculatorLoading) {
           return Center(
             child: UiUtils.progress(),
@@ -416,9 +414,16 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
                     context,
                     onPressed: () {
                       GuestChecker.check(
-                        onNotGuest: () {
-                          if (isPremiumUser) {
-                            Navigator.push(
+                        onNotGuest: () async {
+                          final checkPackage = CheckPackage();
+                          final packageAvailable =
+                              await checkPackage.checkPackageAvailable(
+                            packageType: PackageType.mortgageCalculatorDetail,
+                          );
+                          isMortgageCalculatorAvailable = packageAvailable;
+
+                          if (packageAvailable) {
+                            await Navigator.push(
                               context,
                               BlurredRouter(
                                 builder: (context) {
@@ -430,30 +435,19 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
                               ),
                             );
                           } else {
-                            UiUtils.showBlurredDialoge(
+                            await UiUtils.showBlurredDialoge(
                               context,
-                              dialoge: BlurredDialogBox(
-                                title: 'subscribeToUseThisFeature'
-                                    .translate(context),
+                              dialoge: const BlurredSubscriptionDialogBox(
+                                packageType: SubscriptionPackageType
+                                    .mortgageCalculatorDetail,
                                 isAcceptContainesPush: true,
-                                onAccept: () async {
-                                  await Navigator.popAndPushNamed(
-                                    context,
-                                    Routes.subscriptionPackageListRoute,
-                                    arguments: {'from': 'propertyDetails'},
-                                  );
-                                },
-                                content: CustomText(
-                                  'subscribeToUseThisFeature'
-                                      .translate(context),
-                                ),
                               ),
                             );
                           }
                         },
                       );
                     },
-                    prefixWidget: isPremiumUser
+                    prefixWidget: isMortgageCalculatorAvailable ?? false
                         ? null
                         : Container(
                             margin: const EdgeInsetsDirectional.only(end: 8),

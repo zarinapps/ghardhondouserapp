@@ -55,7 +55,7 @@ class CustomNumberField extends CustomField {
                   width: 24,
                   child: FittedBox(
                     child: UiUtils.imageType(
-                      data['image'],
+                      data['image']?.toString() ?? '',
                       color: Constant.adaptThemeColorSvg
                           ? context.color.tertiaryColor
                           : null,
@@ -70,7 +70,7 @@ class CustomNumberField extends CustomField {
                 width: 10.rw(context),
               ),
               CustomText(
-                data['name'],
+                data['name']?.toString() ?? '',
                 fontWeight: FontWeight.w500,
                 fontSize: context.font.large,
                 color: context.color.textColorDark,

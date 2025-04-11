@@ -111,7 +111,7 @@ class KRegisteredFields {
 
   CustomField? get(String type) {
     CustomField? selectedField;
-    for (final CustomField field in _fields) {
+    for (final CustomField field in _fields.cast<CustomField>()) {
       if (field.type == type) {
         selectedField = field;
       }

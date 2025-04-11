@@ -1,7 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:io';
 
-import 'package:ebroker/data/model/property_model.dart';
 import 'package:ebroker/data/repositories/advertisement_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,11 +10,10 @@ class CreateAdvertisementInitial extends CreateAdvertisementState {}
 class CreateAdvertisementInProgress extends CreateAdvertisementState {}
 
 class CreateAdvertisementSuccess extends CreateAdvertisementState {
-  final dynamic proeprtyId;
-  final PropertyModel property;
+  final String message;
+
   CreateAdvertisementSuccess({
-    required this.property,
-    required this.proeprtyId,
+    required this.message,
   });
 }
 
@@ -37,21 +34,21 @@ class CreateAdvertisementCubit extends Cubit<CreateAdvertisementState> {
         );
 
   Future<void> create({
-    required String type,
-    required String propertyId,
-    File? image,
+    required String featureFor,
+    String? propertyId,
+    String? projectId,
   }) async {
     try {
       emit(CreateAdvertisementInProgress());
       final result = await _advertisementRepository.create(
-        propertyId: propertyId,
-        type: type,
-        image: image,
+        featureFor: featureFor,
+        projectId: projectId ?? '',
+        propertyId: propertyId ?? '',
       );
+
       emit(
         CreateAdvertisementSuccess(
-          proeprtyId: propertyId,
-          property: PropertyModel.fromMap(result['data'][0]),
+          message: result,
         ),
       );
     } catch (e) {

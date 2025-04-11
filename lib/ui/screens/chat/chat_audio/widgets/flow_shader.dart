@@ -83,9 +83,9 @@ class FlowShaderState extends State<FlowShader>
       shaderCallback: (rect) {
         return LinearGradient(
           colors: [
-            animation3.value,
-            animation2.value,
-            animation1.value,
+            animation3.value as Color,
+            animation2.value as Color,
+            animation1.value as Color,
           ],
           begin: widget.direction == Axis.horizontal
               ? Alignment.centerLeft

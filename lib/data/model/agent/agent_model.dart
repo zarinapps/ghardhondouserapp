@@ -14,15 +14,15 @@ class AgentModel implements NativeAdWidgetContainer {
   });
 
   AgentModel.fromJson(Map<String, dynamic> json)
-      : id = json['id'],
-        name = json['name'] ?? '',
+      : id = json['id'] as int,
+        name = json['name']?.toString() ?? '',
         profile = json['profile']?.toString() ?? '',
         email = json['email']?.toString() ?? '',
         mobile = json['mobile']?.toString() ?? '',
-        projectsCount = json['projects_count'] ?? 0,
-        propertyCount = json['property_count'] ?? 0,
-        isVerified = json['is_verified'] ?? false,
-        isAdmin = json['is_admin'] ?? false;
+        projectsCount = json['projects_count'] as int? ?? 0,
+        propertyCount = json['property_count'] as int? ?? 0,
+        isVerified = json['is_verified'] as bool? ?? false,
+        isAdmin = json['is_admin'] as bool? ?? false;
 
   final int id;
   final String name;

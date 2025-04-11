@@ -39,7 +39,8 @@ class AllGallaryImages extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) {
-                        return VideoViewScreen(videoUrl: images[index].image);
+                        return VideoViewScreen(
+                            videoUrl: images[index].image?.toString() ?? '');
                       },
                     ),
                   );
@@ -71,7 +72,7 @@ class AllGallaryImages extends StatelessWidget {
                         ],
                       )
                     : UiUtils.getImage(
-                        images[index].imageUrl ?? '',
+                        images[index].imageUrl?.toString() ?? '',
                         fit: BoxFit.cover,
                       ),
               ),

@@ -26,10 +26,12 @@ class Stripe extends Payment {
       );
 
       final response = await StripeService.payWithPaymentSheet(
-        amount: (_modal!.price! * 100).toInt(),
+        amount: _modal!.price * 100, // Make sure to convert to int
         currency: AppSettings.stripeCurrency,
         isTestEnvironment: true,
+        awaitedOrderId: _modal!.id.toString(),
         metadata: {
+          'packageName': _modal!.name,
           'packageId': _modal!.id,
           'userId': HiveUtils.getUserId(),
         },
@@ -38,6 +40,9 @@ class Stripe extends Payment {
       if (response.status == 'succeeded') {
         emit(Success(message: 'Success'));
       } else {
+        await StripeService.paymentTransactionFail(
+          paymentTransactionID: StripeService.paymentTransactionID ?? '',
+        );
         emit(Failure(message: 'Fail'));
       }
     } catch (e) {

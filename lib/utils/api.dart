@@ -45,7 +45,7 @@ class ApiException implements Exception {
 
   @override
   String toString() {
-    return ErrorFilter.check(errorMessage).error;
+    return ErrorFilter.check(errorMessage).error?.toString() ?? '';
   }
 }
 
@@ -60,9 +60,12 @@ class Api {
     if (GuestChecker.value == true) {
       return {};
     } else {
-      final String jwtToken = Hive.box(HiveKeys.userDetailsBox).get(
-        HiveKeys.jwtToken,
-      );
+      final jwtToken = Hive.box(HiveKeys.userDetailsBox)
+              .get(
+                HiveKeys.jwtToken,
+              )
+              ?.toString() ??
+          '';
       log('JWT : $jwtToken');
       if (kDebugMode) {
         return {
@@ -99,14 +102,17 @@ class Api {
   static String apiGetUnit = 'get_unit';
   static String getFacilities = 'get-facilities-for-filter';
 
-  static String apiGetPropertyDetails = 'get_property'; // ? ADD
-  static String apiGetPropertyList = 'get-property-list'; // * DONE
-  static String apiGetMortgageCalculator = 'mortgage-calculator'; // * DONE
+  static String apiGetPropertyDetails = 'get_property';
+  static String apiGetPropertyList = 'get-property-list';
+  static String apiGetMortgageCalculator = 'mortgage-calculator';
   static String getAddedProperties = 'get-added-properties';
+  static String apiCheckPackageLimit = 'check-package-limit';
+  static String getFeaturedData = 'get-featured-data';
 
   static String apiPostProperty = 'post_property';
   static String apiUpdateProperty = 'update_post_property';
   static String changePropertyStatus = 'change-property-status';
+  static String changeProjectStatus = 'change-project-status';
   static String apiDeleteProperty = 'delete_property';
   static String apiGetHouseType = 'get_house_type';
   static String apiGetNotificationList = 'get_notification_list';
@@ -120,7 +126,7 @@ class Api {
   static String getNearByProperties = 'get_nearby_properties';
   static String addFavourite = 'add_favourite';
   static String removeFavorite = 'delete_favourite';
-  static String getPackage = 'get_package';
+  static String getPackage = 'get-package';
   static String userPurchasePackage = 'user_purchase_package';
   static String deleteInquiry = 'delete_inquiry';
   static String getLanguagae = 'get_languages';
@@ -140,7 +146,6 @@ class Api {
   static String getFavoriteProperty = 'get_favourite_property';
   static String interestedUsers = 'interested_users';
   static String storeAdvertisement = 'store_advertisement';
-  static String getLimitsOfPackage = 'get_limits';
   static String getPaymentDetails = 'get_payment_details';
   static String deleteAdvertisement = 'delete_advertisement';
   static String updatePropertyStatus = 'update_property_status';
@@ -157,7 +162,8 @@ class Api {
   static String personalisedFields = 'personalised-fields';
 
   ///
-  static String createPaymentIntent = 'createPaymentIntent';
+  static String createPaymentIntent = 'create-payment-intent';
+  static String paymentTransactionFail = 'payment-transaction-fail';
 
   //Chat module apis
   static String getChatList = 'get_chats';
@@ -216,6 +222,7 @@ class Api {
   static String company = 'company';
   static String actionType = 'action_type';
   static String propertyId = 'property_id';
+  static String projectId = 'project_id';
   static String customerId = 'customer_id';
   static String propertysId = 'propertys_id';
   static String customersId = 'customers_id';
@@ -254,6 +261,7 @@ class Api {
   static List<String> currentlyCallingAPI = [];
 
   static void initInterceptors() {
+    // dio.interceptors.add(ApiLogger.use());
     if (kDebugMode) {
       // dio.interceptors.add(ThrottleInterceptor(minInterval: 1000));
     }
@@ -293,11 +301,11 @@ class Api {
 
       final resp = response.data;
 
-      if (resp['error'] ?? false) {
+      if (resp['error'] as bool? ?? false) {
         throw ApiException(resp['message'].toString());
       }
 
-      return Map.from(resp);
+      return Map.from(resp as Map<dynamic, dynamic>? ?? {});
     } catch (e) {
       rethrow;
     }
@@ -331,9 +339,17 @@ class Api {
       );
       final resp = response.data;
 
-      return Map.from(resp);
+      return Map.from(resp as Map<dynamic, dynamic>? ?? {});
     } on DioException catch (e) {
-      throw ApiException(e.toString());
+      // Handle DioException specifically
+      if (e.response != null) {
+        // Extract the error message from the response
+        final errorMessage = e.response?.data['message'] ?? e.message;
+        throw ApiException(errorMessage);
+      } else {
+        // If there's no response, just throw the message from the exception
+        throw ApiException(e.message ?? 'An error occurred');
+      }
     } on ApiException catch (e) {
       throw ApiException(e.errorMessage);
     } catch (e) {
@@ -353,9 +369,17 @@ class Api {
         queryParameters: queryParameters,
         options: (useAuthToken ?? true) ? Options(headers: headers()) : null,
       );
-      return Map.from(response.data);
+      return Map.from(response.data as Map<dynamic, dynamic>? ?? {});
     } on DioException catch (e) {
-      throw _handleDioError(e) as ApiException;
+      // Handle DioException specifically
+      if (e.response != null) {
+        // Extract the error message from the response
+        final errorMessage = e.response?.data['message'] ?? e.message;
+        throw ApiException(errorMessage);
+      } else {
+        // If there's no response, just throw the message from the exception
+        throw ApiException(e.message ?? 'An error occurred');
+      }
     } on ApiException catch (e) {
       throw ApiException(e.errorMessage);
     } catch (e) {

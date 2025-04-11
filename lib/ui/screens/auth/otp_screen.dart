@@ -5,9 +5,9 @@ import 'package:sms_autofill/sms_autofill.dart';
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({
-    super.key,
     required this.isDeleteAccount,
     required this.isEmailSelected,
+    super.key,
     this.phoneNumber,
     this.email,
     this.password,
@@ -38,13 +38,13 @@ class OtpScreen extends StatefulWidget {
             BlocProvider(create: (context) => VerifyOtpCubit()),
           ],
           child: OtpScreen(
-            isDeleteAccount: arguments['isDeleteAccount'],
-            phoneNumber: arguments['phoneNumber'],
-            email: arguments['email'],
-            otpVerificationId: arguments['otpVerificationId'],
-            countryCode: arguments['countryCode'],
-            otpIs: arguments['otpIs'],
-            isEmailSelected: arguments['isEmailSelected'],
+            isDeleteAccount: arguments['isDeleteAccount'] as bool? ?? false,
+            phoneNumber: arguments['phoneNumber']?.toString() ?? '',
+            email: arguments['email']?.toString() ?? '',
+            otpVerificationId: arguments['otpVerificationId']?.toString() ?? '',
+            countryCode: arguments['countryCode']?.toString() ?? '',
+            otpIs: arguments['otpIs']?.toString() ?? '',
+            isEmailSelected: arguments['isEmailSelected'] as bool? ?? false,
           ),
         );
       },
@@ -118,10 +118,12 @@ class _OtpScreenState extends State<OtpScreen> {
         if (state is VerifyOtpSuccess) {
           Widgets.hideLoder(context);
           if (widget.isEmailSelected) {
-            Navigator.of(context)
-                .pushReplacementNamed(Routes.login, arguments: {
-              'isDeleteAccount': widget.isDeleteAccount,
-            });
+            Navigator.of(context).pushReplacementNamed(
+              Routes.login,
+              arguments: {
+                'isDeleteAccount': widget.isDeleteAccount,
+              },
+            );
             HelperUtils.showSnackBarMessage(
               context,
               'OTP verified successfully',
@@ -135,8 +137,9 @@ class _OtpScreenState extends State<OtpScreen> {
           } else if (AppSettings.otpServiceProvider == 'firebase') {
             context.read<LoginCubit>().login(
                   type: LoginType.phone,
-                  phoneNumber: state.credential!.user!.phoneNumber,
-                  uniqueId: state.credential!.user!.uid,
+                  phoneNumber:
+                      state.credential!.user!.phoneNumber?.toString() ?? '',
+                  uniqueId: state.credential!.user!.uid?.toString() ?? '',
                   countryCode: widget.countryCode,
                 );
           } else if (AppSettings.otpServiceProvider == 'twilio') {
@@ -150,6 +153,7 @@ class _OtpScreenState extends State<OtpScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: context.color.primaryColor,
         appBar: UiUtils.buildAppBar(
           context,
           title: UiUtils.translate(context, 'enterCodeSend'),
@@ -169,20 +173,18 @@ class _OtpScreenState extends State<OtpScreen> {
               padding: const EdgeInsets.all(20),
               width: MediaQuery.of(context).size.width,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
                   CustomText(
-                      "${UiUtils.translate(context, "weSentCodeOnEmail")}",
-                      fontSize: context.font.large,
-                      color:
-                          context.color.textColorDark.withValues(alpha: 0.8)),
+                    UiUtils.translate(context, 'weSentCodeOnEmail'),
+                    fontSize: context.font.large,
+                    color: context.color.textColorDark.withValues(alpha: 0.8),
+                  ),
                   CustomText(
-                      "${widget.isDeleteAccount ? HiveUtils.getUserDetails().email : widget.email}",
-                      fontSize: context.font.large,
-                      color:
-                          context.color.textColorDark.withValues(alpha: 0.8)),
+                    '${widget.isDeleteAccount ? HiveUtils.getUserDetails().email : widget.email}',
+                    fontSize: context.font.large,
+                    color: context.color.textColorDark.withValues(alpha: 0.8),
+                  ),
                   SizedBox(
                     height: 20.rh(context),
                   ),
@@ -252,23 +254,21 @@ class _OtpScreenState extends State<OtpScreen> {
               padding: const EdgeInsets.all(20),
               width: MediaQuery.of(context).size.width,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
                   if (widget.isEmailSelected)
                     ...[]
                   else ...[
                     CustomText(
-                        "${UiUtils.translate(context, "weSentCodeOnNumber")}",
-                        fontSize: context.font.large,
-                        color:
-                            context.color.textColorDark.withValues(alpha: 0.8)),
+                      UiUtils.translate(context, 'weSentCodeOnNumber'),
+                      fontSize: context.font.large,
+                      color: context.color.textColorDark.withValues(alpha: 0.8),
+                    ),
                     CustomText(
-                        "+${widget.isDeleteAccount ? HiveUtils.getUserDetails().mobile : widget.countryCode}${widget.phoneNumber}",
-                        fontSize: context.font.large,
-                        color:
-                            context.color.textColorDark.withValues(alpha: 0.8)),
+                      "+${widget.isDeleteAccount ? HiveUtils.getUserDetails().mobile : widget.countryCode}${widget.phoneNumber}",
+                      fontSize: context.font.large,
+                      color: context.color.textColorDark.withValues(alpha: 0.8),
+                    ),
                   ],
                   SizedBox(
                     height: 20.rh(context),
@@ -360,7 +360,7 @@ class _OtpScreenState extends State<OtpScreen> {
           otpResendTime.value = Constant.otpResendSecond;
           setState(() {});
         } else {
-          otpResendTime.value--;
+          if (mounted) otpResendTime.value--;
         }
       },
     );
@@ -497,9 +497,13 @@ class _OtpScreenState extends State<OtpScreen> {
               email: widget.email ?? '',
             );
         if (context.read<VerifyOtpCubit>().state is VerifyOtpSuccess) {
-          Navigator.pushReplacementNamed(context, Routes.main, arguments: {
-            'from': 'login',
-          });
+          Navigator.pushReplacementNamed(
+            context,
+            Routes.main,
+            arguments: {
+              'from': 'login',
+            },
+          );
         }
         return;
       } catch (e) {
@@ -512,7 +516,7 @@ class _OtpScreenState extends State<OtpScreen> {
       }
     }
     try {
-      if (otpController.text.length == 0) {
+      if (otpController.text.isEmpty) {
         await HelperUtils.showSnackBarMessage(
           context,
           UiUtils.translate(context, 'lblEnterOtp'),
@@ -541,7 +545,9 @@ class _OtpScreenState extends State<OtpScreen> {
     } catch (e) {
       Widgets.hideLoder(context);
       await HelperUtils.showSnackBarMessage(
-          context, 'invalidOtp'.translate(context));
+        context,
+        'invalidOtp'.translate(context),
+      );
     }
   }
 

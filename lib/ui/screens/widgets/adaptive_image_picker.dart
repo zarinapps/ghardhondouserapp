@@ -14,7 +14,7 @@ abstract class ImagePickerValue<T> {
   abstract final T value;
 }
 
-class UrlValue extends ImagePickerValue {
+class UrlValue extends ImagePickerValue<dynamic> {
   UrlValue(this.value, [this.metaData]);
   @override
   final String value;
@@ -28,29 +28,29 @@ class FileValue extends ImagePickerValue<File> {
   final FileSize? fileSize;
 }
 
-class IdentifyValue extends ImagePickerValue {
+class IdentifyValue extends ImagePickerValue<dynamic> {
   IdentifyValue(this.value) {
     if (value is File) {
       final file = value;
-      final int fileSizeInBytes = file.lengthSync();
+      final fileSizeInBytes = file.lengthSync() as int;
 
-      value = FileValue(file, formatFileSize(fileSizeInBytes));
+      value = FileValue(file as File, formatFileSize(fileSizeInBytes));
       // value = FileValue(
       //   value,
       // );
     }
     if (value is String) {
-      value = UrlValue(value);
+      value = UrlValue(value?.toString() ?? '');
     }
   }
   @override
   dynamic value;
 }
 
-class MultiValue extends ImagePickerValue {
+class MultiValue extends ImagePickerValue<dynamic> {
   MultiValue(this.value);
   @override
-  List<ImagePickerValue> value;
+  List<ImagePickerValue<dynamic>> value;
 }
 
 class FileSize {
@@ -94,9 +94,10 @@ class AdaptiveImagePickerWidget extends StatefulWidget {
   final int? allowedSizeBytes;
   final bool? isRequired;
   final bool? multiImage;
-  final ImagePickerValue? value;
-  final void Function(dynamic value)? onRemove;
-  final void Function(ImagePickerValue? selected) onSelect;
+  final ImagePickerValue<dynamic>? value;
+  final void Function(ImagePickerValue<dynamic>?)?
+      onRemove; // Changed to accept null
+  final void Function(ImagePickerValue<dynamic>? selected) onSelect;
 
   @override
   State<AdaptiveImagePickerWidget> createState() =>
@@ -107,8 +108,8 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
   ImagePicker imagePicker = ImagePicker();
 
   Widget currentWidget = Container();
-  ImagePickerValue? imagePickedValue;
-  dynamic get(ImagePickerValue imagePickerValue) {
+  ImagePickerValue<dynamic>? imagePickedValue;
+  Widget? get(ImagePickerValue<dynamic> imagePickerValue) {
     if (imagePickerValue is UrlValue) {
       return Image.network(
         imagePickerValue.value,
@@ -122,8 +123,10 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
       );
     }
     if (imagePickedValue is IdentifyValue) {
-      return get(imagePickerValue);
+      return get(imagePickerValue.value
+          as ImagePickerValue<dynamic>); // Access the .value property
     }
+    return null; // Explicitly return null for unhandled cases
   }
 
   @override
@@ -134,7 +137,7 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
     super.initState();
   }
 
-  dynamic getProvider(imagePickedValue) {
+  dynamic getProvider(ImagePickerValue<dynamic> imagePickedValue) {
     if (imagePickedValue is FileValue) {
       return FileImage(imagePickedValue.value);
     }
@@ -142,11 +145,13 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
       return NetworkImage(imagePickedValue.value);
     }
     if (imagePickedValue is IdentifyValue) {
-      return getProvider(imagePickedValue);
+      // Fix recursive call by accessing the value property
+      return getProvider(imagePickedValue.value as ImagePickerValue<dynamic>);
     }
+    return null; // Return null for unhandled cases
   }
 
-  Future<void> _onPick(FormFieldState state) async {
+  Future<void> _onPick(FormFieldState<dynamic> state) async {
     // _pickTitleImage.pick(pickMultiple: false);
     // titleImageURL = "";
 
@@ -185,9 +190,10 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
     setState(() {});
   }
 
-  _onRemove(dynamic value, FormFieldState state) {
+  void _onRemove(
+      ImagePickerValue<dynamic>? value, FormFieldState<dynamic> state) {
     if (widget.multiImage == true) {
-      if (imagePickedValue is MultiValue) {
+      if (imagePickedValue is MultiValue && value != null) {
         (imagePickedValue! as MultiValue).value.remove(value);
         widget.onRemove?.call(value);
       }
@@ -208,10 +214,15 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
     if (imagePickedValue != null) {
       currentWidget = GestureDetector(
         onTap: () {
-          UiUtils.showFullScreenImage(
-            context,
-            provider: getProvider(imagePickedValue),
-          );
+          if (imagePickedValue != null) {
+            final provider = getProvider(imagePickedValue!);
+            if (provider != null) {
+              UiUtils.showFullScreenImage(
+                context,
+                provider: provider as ImageProvider<Object>,
+              );
+            }
+          }
         },
         child: Column(
           children: [
@@ -222,7 +233,9 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
               clipBehavior: Clip.antiAlias,
               decoration:
                   BoxDecoration(borderRadius: BorderRadius.circular(10)),
-              child: get(imagePickedValue!),
+              child: imagePickedValue != null
+                  ? (get(imagePickedValue!) ?? const SizedBox())
+                  : const SizedBox(),
             ),
           ],
         ),
@@ -230,10 +243,10 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
     } else {
       currentWidget = Container();
     }
-    return CustomValidator<ImagePickerValue>(
+    return CustomValidator<ImagePickerValue<dynamic>>(
       initialValue: widget.value,
       validator: (value) {
-        if (widget.isRequired == true) {
+        if (widget.isRequired ?? false) {
           if (value == null) {
             return 'Please pick image';
           }
@@ -252,16 +265,15 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
           }
           if (widget.count != null &&
               widget.multiImage == true &&
-              widget.isRequired == true) {
-            if (imagePickedValue is MultiValue) {
-              final images = (imagePickedValue! as MultiValue).value.length;
-              if (widget.count?.min != null && images < widget.count!.min) {
-                return 'Minimum ${widget.count!.min} images required';
-              }
+              widget.isRequired == true &&
+              imagePickedValue is MultiValue) {
+            final images = (imagePickedValue! as MultiValue).value.length;
+            if (widget.count?.min != null && images < widget.count!.min) {
+              return 'Minimum ${widget.count!.min} images required';
+            }
 
-              if (widget.count?.max != null && images > widget.count!.max) {
-                return 'Maximum ${widget.count!.max} images are allowed';
-              }
+            if (widget.count?.max != null && images > widget.count!.max) {
+              return 'Maximum ${widget.count!.max} images are allowed';
             }
           }
         }
@@ -300,7 +312,7 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
             //         .color(context.color.error)
             //         .size(context.font.small),
             //   ),
-            if (imagePickedValue is! MultiValue)
+            if (imagePickedValue is! MultiValue && imagePickedValue != null)
               Stack(
                 children: [
                   currentWidget,
@@ -312,15 +324,18 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
             if (imagePickedValue is MultiValue) ...{
               ...(imagePickedValue! as MultiValue)
                   .value
-                  .map((ImagePickerValue impvalue) {
+                  .map((ImagePickerValue<dynamic> impvalue) {
                 return Stack(
                   children: [
                     GestureDetector(
                       onTap: () {
-                        UiUtils.showFullScreenImage(
-                          context,
-                          provider: getProvider(impvalue),
-                        );
+                        final provider = getProvider(impvalue);
+                        if (provider != null) {
+                          UiUtils.showFullScreenImage(
+                            context,
+                            provider: provider as ImageProvider<Object>,
+                          );
+                        }
                       },
                       child: Column(
                         children: [
@@ -332,7 +347,7 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: get(impvalue),
+                            child: get(impvalue) ?? const SizedBox(),
                           ),
                         ],
                       ),

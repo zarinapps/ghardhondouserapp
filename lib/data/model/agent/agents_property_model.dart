@@ -3,14 +3,17 @@ import 'package:ebroker/data/model/agent/agents_properties_models/project_data.d
 import 'package:ebroker/data/model/agent/agents_properties_models/properties_data.dart';
 import 'package:ebroker/utils/admob/native_ad_manager.dart';
 
-class AgentsProperty implements NativeAdWidgetContainer {
-  const AgentsProperty({
+class AgentPropertyProjectModel implements NativeAdWidgetContainer {
+  const AgentPropertyProjectModel({
     required this.customerData,
     required this.propertiesData,
     required this.projectData,
+    required this.premiumPropertyCount,
+    required this.isPackageAvailable,
+    required this.isFeatureAvailable,
   });
 
-  AgentsProperty.fromJson(Map<String, dynamic> json)
+  AgentPropertyProjectModel.fromJson(Map<String, dynamic> json)
       : projectData = (json['projects_data'] as List? ?? [])
             .cast<Map<String, dynamic>>()
             .map(ProjectData.fromJson)
@@ -21,21 +24,33 @@ class AgentsProperty implements NativeAdWidgetContainer {
             .toList(),
         customerData = CustomerData.fromJson(
           json['customer_data'] as Map<String, dynamic>,
-        );
+        ),
+        premiumPropertyCount = json['premium_properties_count'] as int? ?? 0,
+        isPackageAvailable = json['package_available'] as bool? ?? false,
+        isFeatureAvailable = json['feature_available'] as bool? ?? false;
 
   final List<ProjectData> projectData;
   final List<PropertiesData> propertiesData;
   final CustomerData customerData;
+  final int premiumPropertyCount;
+  final bool isPackageAvailable;
+  final bool isFeatureAvailable;
 
-  AgentsProperty copyWith({
+  AgentPropertyProjectModel copyWith({
     List<ProjectData>? projectData,
     List<PropertiesData>? propertiesData,
     CustomerData? customerData,
+    int? premiumPropertyCount,
+    bool? isPackageAvailable,
+    bool? isFeatureAvailable,
   }) {
-    return AgentsProperty(
+    return AgentPropertyProjectModel(
       projectData: projectData ?? this.projectData,
       propertiesData: propertiesData ?? this.propertiesData,
       customerData: customerData ?? this.customerData,
+      premiumPropertyCount: premiumPropertyCount ?? this.premiumPropertyCount,
+      isPackageAvailable: isPackageAvailable ?? this.isPackageAvailable,
+      isFeatureAvailable: isFeatureAvailable ?? this.isFeatureAvailable,
     );
   }
 }

@@ -37,10 +37,12 @@ class CreatePropertyCubit extends Cubit<CreatePropertyState> {
         parameters: parameters,
       );
 
+      final data = result['data'][0] as Map<String, dynamic>?;
+
       if (result['data'] != null) {
         emit(
           CreatePropertySuccess(
-            propertyModel: PropertyModel.fromMap(result['data'][0]),
+            propertyModel: PropertyModel.fromMap(data ?? {}),
           ),
         );
       } else {

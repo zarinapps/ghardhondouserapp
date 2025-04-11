@@ -11,24 +11,21 @@ class HomePageStateListener {
   bool isNearbyPropertiesEmpty = false;
   bool isHomePageDataEmpty = false;
 
-  void init(
-    void Function(VoidCallback vc) setState, {
+  void init({
     required VoidCallback onNetAvailable,
   }) {
     connectivity.onConnectivityChanged.listen((event) {
       if (event.contains(ConnectivityResult.none)) {
         isNetworkAvailable = false;
-        setState(() {});
       } else {
         onNetAvailable.call();
         isNetworkAvailable = true;
-        setState(() {});
       }
     });
   }
 
   void setNetworkState(setState, isAvailable) {
-    isNetworkAvailable = isAvailable;
+    isNetworkAvailable = isAvailable as bool? ?? false;
     setState(() {});
   }
 

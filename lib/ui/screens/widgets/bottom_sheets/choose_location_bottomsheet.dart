@@ -82,11 +82,12 @@ class ChooseLocatonBottomSheetState extends State<ChooseLocatonBottomSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             CustomText(
-                UiUtils.translate(
-                  context,
-                  'selectLocation',
-                ),
-                fontSize: context.font.larger),
+              UiUtils.translate(
+                context,
+                'selectLocation',
+              ),
+              fontSize: context.font.larger,
+            ),
             const SizedBox(height: 20),
             TextField(
               controller: _searchLocation,

@@ -10,6 +10,16 @@ class AppIcons {
   //
   static const String _basePath = 'assets/svg/';
   //** */
+
+  static String advertisementFeature = _svgPath('advertise_feature');
+  static String listingFeature = _svgPath('listing_feature');
+  static String featureAvailable = _svgPath('feature_available');
+  static String featureNotAvailable = _svgPath('feature_not_available');
+  static String info = _svgPath('info');
+  static String changeStatus = _svgPath('change_status');
+  static String interestedUsers = _svgPath('interested_users');
+  static String shareIcon = _svgPath('share_icon');
+  static String premium = _svgPath('premium');
   static String loginShape = _svgPath('login_shape');
   static String calculator = _svgPath('calculator');
   static String agentBadge = _svgPath('agent_badge');
@@ -100,6 +110,12 @@ class AppIcons {
   static String onBoardingsOne = _svgPath('onbo_a');
   static String onBoardingsTwo = _svgPath('onbo_b');
   static String onBoardingsThree = _svgPath('onbo_c');
+
+  //social media icons
+  static String facebook = _svgPath('social_media/Facebook');
+  static String twitter = _svgPath('social_media/Twitter');
+  static String instagram = _svgPath('social_media/Insta');
+  static String youtube = _svgPath('social_media/Youtube');
 
   ///
   ///

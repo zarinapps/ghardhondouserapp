@@ -27,33 +27,37 @@ class ProjectModel {
     this.documents,
     this.plans,
     this.category,
+    this.requestStatus,
+    this.isPromoted,
+    this.isFeatureAvailable,
   });
 
   factory ProjectModel.fromMap(Map<String, dynamic> map) {
     return ProjectModel(
-      id: map['id'] ?? 0,
-      slugId: map['slug_id'] ?? '',
-      categoryId: map['category_id'] ?? 0,
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      metaTitle: map['meta_title'] ?? '',
-      metaDescription: map['meta_description'] ?? '',
-      metaKeywords: map['meta_keywords'] ?? '',
-      metaImage: map['meta_image'] ?? '',
-      image: map['image'] ?? '',
-      videoLink: map['video_link'] ?? '',
-      location: map['location'] ?? '',
-      latitude: map['latitude'] ?? '',
-      longitude: map['longitude'] ?? '',
-      city: map['city'] ?? '',
-      state: map['state'] ?? '',
-      country: map['country'] ?? '',
-      type: map['type'] ?? '',
-      status: map['status'] ?? 0,
-      createdAt: map['created_at'] ?? '',
-      updatedAt: map['updated_at'] ?? '',
-      addedBy: map['added_by'] ?? 0,
-      customer: Customer.fromMap(map['customer'] ?? {}),
+      id: map['id'] as int?,
+      slugId: map['slug_id']?.toString() ?? '',
+      categoryId: map['category_id'] as int?,
+      title: map['title']?.toString() ?? '',
+      description: map['description']?.toString() ?? '',
+      metaTitle: map['meta_title']?.toString() ?? '',
+      metaDescription: map['meta_description']?.toString() ?? '',
+      metaKeywords: map['meta_keywords']?.toString() ?? '',
+      metaImage: map['meta_image']?.toString() ?? '',
+      image: map['image']?.toString() ?? '',
+      videoLink: map['video_link']?.toString() ?? '',
+      location: map['location']?.toString() ?? '',
+      latitude: map['latitude']?.toString() ?? '',
+      longitude: map['longitude']?.toString() ?? '',
+      city: map['city']?.toString() ?? '',
+      state: map['state']?.toString() ?? '',
+      country: map['country']?.toString() ?? '',
+      type: map['type']?.toString() ?? '',
+      status: map['status'] as int?,
+      createdAt: map['created_at']?.toString() ?? '',
+      updatedAt: map['updated_at']?.toString() ?? '',
+      addedBy: map['added_by'] as int?,
+      customer:
+          Customer.fromMap(map['customer'] as Map<String, dynamic>? ?? {}),
       gallaryImages: (map['gallary_images'] as List? ?? [])
           .cast<Map<String, dynamic>>()
           .map<Document>(Document.fromMap)
@@ -66,7 +70,12 @@ class ProjectModel {
           .cast<Map<String, dynamic>>()
           .map<Plan>(Plan.fromMap)
           .toList(),
-      category: ProjectCategory.fromMap(map['category'] ?? {}),
+      category: ProjectCategory.fromMap(
+        map['category'] as Map<String, dynamic>? ?? {},
+      ),
+      requestStatus: map['request_status'] as String? ?? '',
+      isPromoted: map['is_promoted'] as bool? ?? false,
+      isFeatureAvailable: map['is_feature_available'] as bool? ?? false,
     );
   }
   int? id;
@@ -96,6 +105,9 @@ class ProjectModel {
   List<Document>? documents;
   List<Plan>? plans;
   ProjectCategory? category;
+  String? requestStatus;
+  bool? isFeatureAvailable;
+  bool? isPromoted;
 
   Map<String, dynamic> toMap() {
     return {
@@ -126,12 +138,15 @@ class ProjectModel {
       'documents': documents?.map((x) => x.toMap()).toList(),
       'plans': plans?.map((x) => x.toMap()).toList(),
       'category': category?.toMap(),
+      'request_status': requestStatus,
+      'is_feature_available': isFeatureAvailable,
+      'is_promoted': isPromoted,
     };
   }
 
   @override
   String toString() {
-    return 'ProjectModel(id: $id, slugId: $slugId, categoryId: $categoryId, title: $title, description: $description, metaTitle: $metaTitle, metaDescription: $metaDescription, metaKeywords: $metaKeywords, metaImage: $metaImage, image: $image, videoLink: $videoLink, location: $location, latitude: $latitude, longitude: $longitude, city: $city, state: $state, country: $country, type: $type, status: $status, createdAt: $createdAt, updatedAt: $updatedAt, addedBy: $addedBy, customer: $customer, gallaryImages: $gallaryImages, documents: $documents, plans: $plans, category: $category)';
+    return 'ProjectModel(id: $id, slugId: $slugId, categoryId: $categoryId, title: $title, description: $description, metaTitle: $metaTitle, metaDescription: $metaDescription, metaKeywords: $metaKeywords, metaImage: $metaImage, image: $image, videoLink: $videoLink, location: $location, latitude: $latitude, longitude: $longitude, city: $city, state: $state, country: $country, type: $type, status: $status, createdAt: $createdAt, updatedAt: $updatedAt, addedBy: $addedBy, customer: $customer, gallaryImages: $gallaryImages, documents: $documents, plans: $plans, category: $category, requestStatus: $requestStatus), isPromoted: $isPromoted, isFeatureAvailable: $isFeatureAvailable )';
   }
 }
 
@@ -147,12 +162,12 @@ class Customer {
 
   factory Customer.fromMap(Map<String, dynamic> map) {
     return Customer(
-      id: map['id'],
-      name: map['name'],
-      profile: map['profile'],
-      email: map['email'],
-      mobile: map['mobile'],
-      customertotalpost: map['customertotalpost'],
+      id: map['id'] as int?,
+      name: map['name']?.toString() ?? '',
+      profile: map['profile']?.toString() ?? '',
+      email: map['email']?.toString() ?? '',
+      mobile: map['mobile']?.toString() ?? '',
+      customertotalpost: map['customertotalpost'] as int?,
     );
   }
   int? id;
@@ -186,12 +201,12 @@ class Document {
 
   factory Document.fromMap(Map<String, dynamic> map) {
     return Document(
-      id: map['id'],
-      name: map['name'],
-      type: map['type'],
-      createdAt: map['created_at'],
-      updatedAt: map['updated_at'],
-      projectId: map['project_id'],
+      id: map['id'] as int?,
+      name: map['name']?.toString() ?? '',
+      type: map['type']?.toString() ?? '',
+      createdAt: map['created_at']?.toString() ?? '',
+      updatedAt: map['updated_at']?.toString() ?? '',
+      projectId: map['project_id'] as int?,
     );
   }
   int? id;
@@ -225,12 +240,12 @@ class Plan {
 
   factory Plan.fromMap(Map<String, dynamic> map) {
     return Plan(
-      id: map['id'],
-      title: map['title'],
-      document: map['document'],
-      createdAt: map['created_at'],
-      updatedAt: map['updated_at'],
-      projectId: map['project_id'],
+      id: map['id'] as int?,
+      title: map['title']?.toString() ?? '',
+      document: map['document']?.toString() ?? '',
+      createdAt: map['created_at']?.toString() ?? '',
+      updatedAt: map['updated_at']?.toString() ?? '',
+      projectId: map['project_id'] as int?,
     );
   }
   int? id;
@@ -261,9 +276,9 @@ class ProjectCategory {
 
   factory ProjectCategory.fromMap(Map<String, dynamic> map) {
     return ProjectCategory(
-      id: map['id'],
-      category: map['category'],
-      image: map['image'],
+      id: map['id'] as int?,
+      category: map['category']?.toString() ?? '',
+      image: map['image']?.toString() ?? '',
     );
   }
   final int? id;

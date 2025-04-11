@@ -11,17 +11,20 @@ class AgentVerificationFormValueModel {
   });
 
   AgentVerificationFormValueModel.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    userId = json['user_id'];
-    status = json['status'];
-    createdAt = json['created_at'];
-    updatedAt = json['updated_at'];
-    deletedAt = json['deleted_at'];
-    user = json['user'] != null ? User.fromJson(json['user']) : null;
+    id = json['id'] as int?;
+    userId = json['user_id'] as int?;
+    status = json['status']?.toString() ?? '';
+    createdAt = json['created_at']?.toString() ?? '';
+    updatedAt = json['updated_at']?.toString() ?? '';
+    deletedAt = json['deleted_at']?.toString() ?? '';
+    user = json['user'] != null
+        ? User.fromJson(json['user'] as Map<String, dynamic>)
+        : null;
     if (json['verify_customer_values'] != null) {
       verifyCustomerValues = <VerifyCustomerValues>[];
       json['verify_customer_values'].forEach((v) {
-        verifyCustomerValues!.add(VerifyCustomerValues.fromJson(v));
+        verifyCustomerValues!
+            .add(VerifyCustomerValues.fromJson(v as Map<String, dynamic>));
       });
     }
   }
@@ -63,11 +66,11 @@ class User {
   });
 
   User.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    name = json['name'];
-    profile = json['profile'];
-    propertyCount = json['property_count'];
-    projectsCount = json['projects_count'];
+    id = json['id'] as int?;
+    name = json['name']?.toString() ?? '';
+    profile = json['profile']?.toString() ?? '';
+    propertyCount = json['property_count'] as int? ?? 0;
+    projectsCount = json['projects_count'] as int? ?? 0;
   }
   int? id;
   String? name;
@@ -96,12 +99,12 @@ class VerifyCustomerValues {
   });
 
   VerifyCustomerValues.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    verifyCustomerId = json['verify_customer_id'];
-    verifyCustomerFormId = json['verify_customer_form_id'];
+    id = json['id'] as int?;
+    verifyCustomerId = json['verify_customer_id'] as int?;
+    verifyCustomerFormId = json['verify_customer_form_id'] as int?;
     value = json['value'];
     verifyForm = json['verify_form'] != null
-        ? VerifyForm.fromJson(json['verify_form'])
+        ? VerifyForm.fromJson(json['verify_form'] as Map<String, dynamic>)
         : null;
   }
   int? id;
@@ -127,13 +130,14 @@ class VerifyForm {
   VerifyForm({this.id, this.name, this.fieldType, this.formFieldsValues});
 
   VerifyForm.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    name = json['name'];
-    fieldType = json['field_type'];
+    id = json['id'] as int?;
+    name = json['name']?.toString() ?? '';
+    fieldType = json['field_type']?.toString() ?? '';
     if (json['form_fields_values'] != null) {
       formFieldsValues = <FormFieldsValues>[];
       json['form_fields_values'].forEach((v) {
-        formFieldsValues!.add(FormFieldsValues.fromJson(v));
+        formFieldsValues!
+            .add(FormFieldsValues.fromJson(v as Map<String, dynamic>));
       });
     }
   }
@@ -159,9 +163,9 @@ class FormFieldsValues {
   FormFieldsValues({this.id, this.verifyCustomerFormId, this.value});
 
   FormFieldsValues.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    verifyCustomerFormId = json['verify_customer_form_id'];
-    value = json['value'];
+    id = json['id'] as int?;
+    verifyCustomerFormId = json['verify_customer_form_id'] as int?;
+    value = json['value']?.toString() ?? '';
   }
   int? id;
   int? verifyCustomerFormId;

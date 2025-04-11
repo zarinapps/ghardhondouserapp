@@ -24,6 +24,7 @@ Future<void> initApp() async {
     await Firebase.initializeApp();
   }
 
+  // Set up background message handler
   FirebaseMessaging.onBackgroundMessage(
     NotificationService.onBackgroundMessageHandler,
   );
@@ -52,8 +53,6 @@ class _AppState extends State<App> {
     context.read<LanguageCubit>().loadCurrentLanguage();
     final currentTheme = HiveUtils.getCurrentTheme();
 
-    ///Initialized notification services
-    LocalAwsomeNotification().init(context);
     ///////////////////////////////////////
     NotificationService.init(context);
 
@@ -74,7 +73,17 @@ class _AppState extends State<App> {
     );
 
     UiUtils.setContext(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkManager.initDeepLinks(context);
+      print('deep link is initialized at LAST');
+    });
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    DeepLinkManager.dispose(); // Clean up the deep link subscription
+    super.dispose();
   }
 
   @override
@@ -88,6 +97,7 @@ class _AppState extends State<App> {
       child: BlocBuilder<LanguageCubit, LanguageState>(
         builder: (context, languageState) {
           return MaterialApp(
+            scrollBehavior: RemoveGlow(),
             initialRoute: Routes.splash,
             // App will start from here splash screen is first screen,
             navigatorKey: Constant.navigatorKey,
@@ -135,10 +145,12 @@ class _AppState extends State<App> {
     );
   }
 
-  dynamic loadLocalLanguageIfFail(LanguageState state) {
+  Locale loadLocalLanguageIfFail(LanguageState state) {
     if (state is LanguageLoader) {
-      return Locale(state.languageCode);
+      return Locale(state.languageCode.toString());
     } else if (state is LanguageLoadFail) {
+      return const Locale('en');
+    } else {
       return const Locale('en');
     }
   }
@@ -166,10 +178,6 @@ void loadInitialData(
         loadWithoutDelay: loadWithoutDelay,
         forceRefresh: forceRefresh,
       );
-  context.read<FetchRecentPropertiesCubit>().fetch(
-        loadWithoutDelay: loadWithoutDelay,
-        forceRefresh: forceRefresh,
-      );
 
   if (context.read<AuthenticationCubit>().isAuthenticated()) {
     context.read<GetChatListCubit>().setContext(context);
@@ -192,5 +200,5 @@ void loadInitialData(
     }
   });
 
-//    // }
+  //    // }
 }

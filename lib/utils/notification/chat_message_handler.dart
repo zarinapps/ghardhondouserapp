@@ -12,7 +12,7 @@ class ChatMessageHandlerOLD {
   static final StreamController<List<Widget>> _chatMessageStream =
       StreamController<List<Widget>>.broadcast();
 
-  static void add(chat) {
+  static void add(Widget chat) {
     var msgs = messages;
 
     _chat.insert(0, chat);
@@ -113,7 +113,7 @@ class ChatMessageHandlerOLD {
           final chat = bloc! as ChatMessage;
 
           ///Extracting its key [which we were added locally]
-          final String chatKey = (chat.key! as ValueKey).value;
+          final chatKey = (chat.key! as ValueKey).value?.toString() ?? '';
 
           ///This identifier will come from ChatMessage's key when message send success.
           ///this identifier must be same as chatKey because we want exact element to change

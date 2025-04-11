@@ -4,7 +4,6 @@ import 'package:ebroker/data/model/subscription_pacakage_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/payment/gatways/paypal.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_paystack/flutter_paystack.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -23,8 +22,18 @@ class SubscriptionScreen extends StatefulWidget {
     return BlurredRouter(
       builder: (context) {
         return SubscriptionScreen(
-          pacakge: arguments['package'],
-          isPackageAlready: arguments['isPackageAlready'],
+          pacakge: arguments['package'] as SubscriptionPackageModel? ??
+              SubscriptionPackageModel(
+                id: 0,
+                name: '',
+                packageType: '',
+                price: 0,
+                duration: 0,
+                createdAt: DateTime.now(),
+                features: [],
+                iosProductId: '',
+              ),
+          isPackageAlready: arguments['isPackageAlready'] as bool? ?? false,
         );
       },
     );
@@ -35,7 +44,6 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  PaystackPlugin paystackPlugin = PaystackPlugin();
   final Razorpay _razorpay = Razorpay();
   int selectedPaymentMethod = 1;
   late WebViewController controllerGlobal;
@@ -73,7 +81,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           );
         },
       ),
-    ).then((dynamic value) {
+    ).then((value) {
       //push and show dialog box about paypal success or failed, after that we call purchase method it will refresh API and check if package is purchased or not
       if (value != null) {
         Future.delayed(
@@ -97,7 +105,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   }
                 },
                 isAcceptContainesPush: true,
-                content: CustomText(value['msg']),
+                content: CustomText(value['msg']?.toString() ?? ''),
               ),
             );
           },
@@ -148,7 +156,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   _openRazorPay() async {
     final options = {
       'key': Constant.razorpayKey,
-      'amount': widget.pacakge.price! * 100,
+      'amount': widget.pacakge.price * 100,
       'name': widget.pacakge.name,
       'description': '',
       'prefill': {
@@ -184,42 +192,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  _paystack() async {
-    final paystackCharge = Charge()
-      ..amount = (widget.pacakge.price! * 100).toInt()
-      ..email = HiveUtils.getUserDetails().email
-      ..currency = Constant.paystackCurrency
-      ..reference = generateReference(HiveUtils.getUserDetails().email!)
-      ..putMetaData('username', HiveUtils.getUserDetails().name)
-      ..putMetaData('package_id', widget.pacakge.id)
-      ..putMetaData('user_id', HiveUtils.getUserId());
-
-    final checkoutResponse = await paystackPlugin.checkout(
-      context,
-      logo: SizedBox(
-        height: 50,
-        width: 50,
-        child: UiUtils.getImage(
-          appSettings.placeholderLogo!,
-        ),
-      ),
-      charge: paystackCharge,
-      method: CheckoutMethod.card,
-    );
-
-    if (checkoutResponse.status) {
-      if (checkoutResponse.verify) {
-        await _purchase();
-      }
-    } else {
-      Future.delayed(
-        Duration.zero,
-        () {
-          HelperUtils.showSnackBarMessage(context, 'purchaseFailed');
-        },
-      );
-    }
-  }
+  _paystack() async {}
 
   String generateReference(String email) {
     late String platform;
@@ -239,7 +212,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   void initState() {
-    paystackPlugin.initialize(publicKey: Constant.paystackKey);
     super.initState();
   }
 
@@ -267,70 +239,67 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          ScrollConfiguration(
-            behavior: RemoveGlow(),
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              shrinkWrap: true,
-              children: <Widget>[
-                RadioListTile(
-                  title: CustomText(
-                    UiUtils.translate(
-                      context,
-                      'paystack',
-                    ),
-                  ),
-                  activeColor: context.color.tertiaryColor,
-                  secondary: paymentIcon(context, AppIcons.paystack),
-                  controlAffinity: ListTileControlAffinity.trailing,
-                  value: 1,
-                  groupValue: selectedPaymentMethod,
-                  onChanged: (dynamic v) {
-                    selectedPaymentMethod = v;
-                    setState(
-                      () {},
-                    );
-                  },
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                RadioListTile(
-                  title: CustomText(
-                    UiUtils.translate(context, 'paypal'),
-                  ),
-                  activeColor: context.color.tertiaryColor,
-                  secondary: paymentIcon(
+          ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            shrinkWrap: true,
+            children: <Widget>[
+              RadioListTile(
+                title: CustomText(
+                  UiUtils.translate(
                     context,
-                    AppIcons.paypal,
+                    'paystack',
                   ),
-                  controlAffinity: ListTileControlAffinity.trailing,
-                  value: 2,
-                  groupValue: selectedPaymentMethod,
-                  onChanged: (dynamic v) {
-                    selectedPaymentMethod = v;
-                    setState(() {});
-                  },
                 ),
-                const SizedBox(
-                  height: 5,
+                activeColor: context.color.tertiaryColor,
+                secondary: paymentIcon(context, AppIcons.paystack),
+                controlAffinity: ListTileControlAffinity.trailing,
+                value: 1,
+                groupValue: selectedPaymentMethod,
+                onChanged: (v) {
+                  selectedPaymentMethod = v as int;
+                  setState(
+                    () {},
+                  );
+                },
+              ),
+              const SizedBox(
+                height: 5,
+              ),
+              RadioListTile(
+                title: CustomText(
+                  UiUtils.translate(context, 'paypal'),
                 ),
-                RadioListTile(
-                  title: CustomText(
-                    UiUtils.translate(context, 'razorpay'),
-                  ),
-                  activeColor: context.color.tertiaryColor,
-                  secondary: paymentIcon(context, AppIcons.razorpay),
-                  controlAffinity: ListTileControlAffinity.trailing,
-                  value: 3,
-                  groupValue: selectedPaymentMethod,
-                  onChanged: (dynamic v) {
-                    selectedPaymentMethod = v;
-                    setState(() {});
-                  },
+                activeColor: context.color.tertiaryColor,
+                secondary: paymentIcon(
+                  context,
+                  AppIcons.paypal,
                 ),
-              ],
-            ),
+                controlAffinity: ListTileControlAffinity.trailing,
+                value: 2,
+                groupValue: selectedPaymentMethod,
+                onChanged: (v) {
+                  selectedPaymentMethod = v!;
+                  setState(() {});
+                },
+              ),
+              const SizedBox(
+                height: 5,
+              ),
+              RadioListTile(
+                title: CustomText(
+                  UiUtils.translate(context, 'razorpay'),
+                ),
+                activeColor: context.color.tertiaryColor,
+                secondary: paymentIcon(context, AppIcons.razorpay),
+                controlAffinity: ListTileControlAffinity.trailing,
+                value: 3,
+                groupValue: selectedPaymentMethod,
+                onChanged: (v) {
+                  selectedPaymentMethod = v!;
+                  setState(() {});
+                },
+              ),
+            ],
           ),
           const Spacer(),
           Padding(
@@ -357,48 +326,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         color: const Color(0xff072654),
       ),
       child: UiUtils.getSvg(icon, fit: BoxFit.none),
-    );
-  }
-
-  Widget buildPackageTile(
-    BuildContext context,
-    SubscriptionPackageModel subscriptionPacakge,
-  ) {
-    return Container(
-      color: Theme.of(context).colorScheme.tertiaryColor,
-      width: context.screenWidth,
-      height: 160,
-      child: Padding(
-        padding: const EdgeInsets.all(25),
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  CustomText(
-                    subscriptionPacakge.name.toString(),
-                    fontWeight: FontWeight.w600,
-                    fontSize: context.font.extraLarge,
-                    color: Theme.of(context).colorScheme.backgroundColor,
-                  ),
-                  CustomText(
-                    'Validity:${subscriptionPacakge.duration}',
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.backgroundColor,
-                  ),
-                ],
-              ),
-            ),
-            CustomText(
-              '${Constant.currencySymbol}${subscriptionPacakge.price}',
-              fontSize: 35,
-              color: Theme.of(context).colorScheme.backgroundColor,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

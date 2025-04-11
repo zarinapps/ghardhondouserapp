@@ -72,6 +72,10 @@ class AuthCubit extends Cubit<AuthState> {
     String? state,
     String? phone,
     String? country,
+    String? instagram,
+    String? facebook,
+    String? youtube,
+    String? twitter,
   }) async {
     final parameters = <String, dynamic>{
       Api.name: name ?? '',
@@ -84,6 +88,10 @@ class AuthCubit extends Cubit<AuthState> {
       'city': city ?? HiveUtils.getCityName(),
       'state': state ?? HiveUtils.getStateName(),
       'country': country ?? HiveUtils.getCountryName(),
+      'facebook_id': facebook ?? '',
+      'twiiter_id': twitter ?? '',
+      'instagram_id': instagram ?? '',
+      'youtube_id': youtube ?? '',
     };
     if (fileUserimg != null) {
       parameters['profile'] = await MultipartFile.fromFile(fileUserimg.path);
@@ -98,12 +106,12 @@ class AuthCubit extends Cubit<AuthState> {
       parameter: parameters,
     );
 
-    if (!response[Api.error]) {
-      await HiveUtils.setUserData(response['data']);
-      checkIsAuthenticated();
-    } else {
+    if (response[Api.error] as bool) {
       throw CustomException(response[Api.message]);
     }
+    await HiveUtils.setUserData(response['data'] as Map<String, dynamic>);
+    checkIsAuthenticated();
+
     return response;
   }
 
@@ -133,15 +141,13 @@ class AuthCubit extends Cubit<AuthState> {
       },
     );
 
-    final getdata = json.decode(response);
+    final getdata = json.decode(response.toString());
 
     if (getdata != null) {
-      if (!getdata[Api.error]) {
-        // Constant.session.setUserData(getdata['data'], "");
-        checkIsAuthenticated();
-      } else {
+      if (getdata[Api.error] as bool) {
         throw CustomException(getdata[Api.message]);
       }
+      checkIsAuthenticated();
     } else {
       Future.delayed(
         Duration.zero,

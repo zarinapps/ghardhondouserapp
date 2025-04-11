@@ -104,7 +104,7 @@ class _SellRentScreenState extends State<SellRentScreen>
                 );
               }
               return SingleChildScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
+                physics: Constant.scrollPhysics,
                 child: const SomethingWentWrong(),
               );
             }
@@ -112,10 +112,8 @@ class _SellRentScreenState extends State<SellRentScreen>
             if (state is FetchMyPropertiesSuccess) {
               if (state.myProperty.isEmpty) {
                 return SingleChildScrollView(
-                  physics: AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  child: Container(
+                  physics: Constant.scrollPhysics,
+                  child: SizedBox(
                     height: MediaQuery.of(context).size.height * 0.6,
                     child: NoDataFound(
                       title: 'noPropertyAdded'.translate(context),
@@ -132,9 +130,7 @@ class _SellRentScreenState extends State<SellRentScreen>
                 );
               }
               return ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
+                physics: Constant.scrollPhysics,
                 controller: controller,
                 padding:
                     const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
@@ -180,7 +176,7 @@ class _SellRentScreenState extends State<SellRentScreen>
   Widget buildMyPropertyShimmer() {
     return ListView.separated(
       shrinkWrap: true,
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: Constant.scrollPhysics,
       padding: const EdgeInsets.symmetric(
         vertical: 10 + defaultPadding,
         horizontal: defaultPadding,
@@ -202,7 +198,6 @@ class _SellRentScreenState extends State<SellRentScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const ClipRRect(
-                clipBehavior: Clip.antiAliasWithSaveLayer,
                 borderRadius: BorderRadius.all(Radius.circular(15)),
                 child: CustomShimmer(height: 90, width: 90),
               ),

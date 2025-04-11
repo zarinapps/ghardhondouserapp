@@ -13,12 +13,12 @@ class PropertiesList extends StatefulWidget {
 
   @override
   PropertiesListState createState() => PropertiesListState();
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map?;
     return BlurredRouter(
       builder: (_) => PropertiesList(
         categoryId: arguments?['catID'].toString(),
-        categoryName: arguments?['catName'] ?? '',
+        categoryName: arguments?['catName'].toString() ?? '',
       ),
     );
   }
@@ -47,7 +47,7 @@ class PropertiesListState extends State<PropertiesList> {
         );
 
     Future.delayed(Duration.zero, () {
-      selectedcategoryId = widget.categoryId!.toString();
+      selectedcategoryId = widget.categoryId!;
       selectedcategoryName = widget.categoryName!;
       searchbody[Api.categoryId] = widget.categoryId;
       setState(() {});
@@ -178,7 +178,7 @@ class PropertiesListState extends State<PropertiesList> {
                         vertical: 3,
                       ),
                       itemCount: state.propertymodel.length,
-                      physics: const BouncingScrollPhysics(),
+                      physics: Constant.scrollPhysics,
                       itemBuilder: (context, index) {
                         final dynamic property = state.propertymodel[index];
                         if (property is PropertyModel) {
@@ -186,7 +186,7 @@ class PropertiesListState extends State<PropertiesList> {
                             property: property,
                           );
                         } else {
-                          return property;
+                          return const SizedBox.shrink();
                         }
                       },
                     ),

@@ -17,6 +17,7 @@ class HomePageDataModel implements NativeAdWidgetContainer {
     required this.articleSection,
     required this.agentsList,
     required this.nearByProperties,
+    required this.featuredProjectSection,
   });
 
   HomePageDataModel.fromJson(Map<String, dynamic> json)
@@ -55,7 +56,12 @@ class HomePageDataModel implements NativeAdWidgetContainer {
         nearByProperties = (json['nearby_properties'] as List? ?? [])
             .cast<Map<String, dynamic>>()
             .map(PropertyModel.fromMap)
-            .toList();
+            .toList(),
+        featuredProjectSection =
+            (json['project_featured_section'] as List? ?? [])
+                .cast<Map<String, dynamic>>()
+                .map(ProjectModel.fromMap)
+                .toList();
 
   final List<PropertyModel> featuredSection;
   final List<PropertyModel> mostLikedProperties;
@@ -66,6 +72,7 @@ class HomePageDataModel implements NativeAdWidgetContainer {
   final List<ArticleModel> articleSection;
   final List<AgentModel> agentsList;
   final List<PropertyModel> nearByProperties;
+  final List<ProjectModel> featuredProjectSection;
 
   HomePageDataModel copyWith({
     List<PropertyModel>? featuredSection,
@@ -77,6 +84,7 @@ class HomePageDataModel implements NativeAdWidgetContainer {
     List<ArticleModel>? articleSection,
     List<AgentModel>? agentsList,
     List<PropertyModel>? nearByProperties,
+    List<ProjectModel>? featuredProjectSection,
   }) {
     return HomePageDataModel(
       projectSection: projectSection ?? this.projectSection,
@@ -88,6 +96,8 @@ class HomePageDataModel implements NativeAdWidgetContainer {
       articleSection: articleSection ?? this.articleSection,
       agentsList: agentsList ?? this.agentsList,
       nearByProperties: nearByProperties ?? this.nearByProperties,
+      featuredProjectSection:
+          featuredProjectSection ?? this.featuredProjectSection,
     );
   }
 }

@@ -19,13 +19,16 @@ class AgentsRepository {
     );
     final modelList = (response['data'] as List)
         .map<AgentModel>(
-          (e) => AgentModel.fromJson(Map.from(e)),
+          (e) => AgentModel.fromJson(Map.from(e as Map? ?? {})),
         )
         .toList();
-    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
+    return DataOutput(
+        total: int.parse(response['total']?.toString() ?? '0'),
+        modelList: modelList);
   }
 
-  Future<({int total, AgentsProperty agentsProperty})> fetchAgentProperties({
+  Future<({int total, AgentPropertyProjectModel agentsProperty})>
+      fetchAgentProperties({
     required int offset,
     required int agentId,
     required bool isAdmin,
@@ -43,7 +46,7 @@ class AgentsRepository {
     );
     final data = result['data'] as Map<String, dynamic>;
 
-    final agentsProperty = AgentsProperty.fromJson(data);
+    final agentsProperty = AgentPropertyProjectModel.fromJson(data);
     final total = result['total'] as int? ?? 0;
 
     return (
@@ -52,7 +55,8 @@ class AgentsRepository {
     );
   }
 
-  Future<({int total, AgentsProperty agentsProperty})> fetchAgentProjects({
+  Future<({int total, AgentPropertyProjectModel agentsProperty})>
+      fetchAgentProjects({
     required int agentId,
     required int offset,
     required int isProjects,
@@ -75,7 +79,7 @@ class AgentsRepository {
 
     return (
       total: total,
-      agentsProperty: AgentsProperty.fromJson(data),
+      agentsProperty: AgentPropertyProjectModel.fromJson(data),
     );
   }
 
@@ -128,12 +132,10 @@ class AgentsRepository {
     }
   }
 
-  Future createAgentVerification({
+  Future<Map<String, dynamic>> createAgentVerification({
     required Map<String, dynamic> parameters,
   }) async {
     final api = Api.apiGetApplyAgentVerification;
-
-    print(parameters);
 
     return Api.post(url: api, parameter: parameters, useAuthToken: true);
   }

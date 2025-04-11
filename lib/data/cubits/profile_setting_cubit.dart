@@ -81,34 +81,29 @@ class ProfileSettingCubit extends Cubit<ProfileSettingState> {
         useAuthToken: false,
       );
 
-      if (!response[Api.error]) {
-        if (title == Api.currencySymbol) {
-          // Constant.currencySymbol = getdata['data'].toString();
-        } else if (title == Api.maintenanceMode) {
-          Constant.maintenanceMode = response['data'].toString();
-        } else {
-          final Map data = response['data'];
-
-          if (title == Api.termsAndConditions) {
-            profileSettingData = data['terms_conditions'];
-            // .where((element) => element['type'] == "terms_conditions")
-            // .first['data'];
-          }
-
-          if (title == Api.privacyPolicy) {
-            profileSettingData = data['privacy_policy'];
-            // .where((element) => element['type'] == "privacy_policy")
-            // .first['data'];
-          }
-
-          if (title == Api.aboutApp) {
-            profileSettingData = data['about_us'];
-            // .where((element) => element['type'] == "about_us")
-            // .first['data'];
-          }
-        }
-      } else {
+      if (response[Api.error] as bool) {
         throw CustomException(response[Api.message]);
+      }
+      if (title == Api.currencySymbol) {
+        // Constant.currencySymbol = getdata['data'].toString();
+      } else if (title == Api.maintenanceMode) {
+        Constant.maintenanceMode = response['data'].toString();
+      } else {
+        final data = response['data'] as Map<String, dynamic>;
+
+        if (title == Api.termsAndConditions) {
+          profileSettingData = data['terms_conditions'].toString();
+          // .where((element) => element['type'] == "terms_conditions")
+          // .first['data'];
+        }
+
+        if (title == Api.privacyPolicy) {
+          profileSettingData = data['privacy_policy'].toString();
+        }
+
+        if (title == Api.aboutApp) {
+          profileSettingData = data['about_us'].toString();
+        }
       }
 
       return profileSettingData;

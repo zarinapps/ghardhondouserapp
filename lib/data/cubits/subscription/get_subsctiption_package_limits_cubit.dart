@@ -1,3 +1,4 @@
+import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/data/repositories/subscription_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -34,26 +35,42 @@ class GetSubsctiptionPackageLimitsCubit
   final SubscriptionRepository _subscriptionRepository =
       SubscriptionRepository();
 
-  Future<void> getLimits({required String type}) async {
+  Future<void> getLimits({required String packageType}) async {
     try {
       emit(GetSubscriptionPackageLimitsInProgress());
       final subscriptionPackageLimit =
           await _subscriptionRepository.getPackageLimit(
-        limitType: type,
+        limitType: packageType,
       );
-      print(subscriptionPackageLimit);
       if (subscriptionPackageLimit['error'] == true) {
         emit(
           GetSubsctiptionPackageLimitsFailure(
-            subscriptionPackageLimit['message'],
+            subscriptionPackageLimit['message']?.toString() ?? '',
           ),
         );
       } else {
+        final data =
+            subscriptionPackageLimit['data'] as Map<String, dynamic>? ?? {};
+        final isPackageAvailable = data['package_available'] as bool? ?? false;
+        final isFeatureAvailable = data['feature_available'] as bool? ?? false;
+        final isLimitAvailable = data['limit_available'] as bool? ?? false;
+        final pT = PackageType.values.firstWhere(
+          (element) => element.value == packageType,
+        );
+        bool? hasSubscription;
+
+        if (pT.checkLimit) {
+          hasSubscription = isPackageAvailable && isLimitAvailable;
+        } else if (pT.checkFeature) {
+          hasSubscription = isPackageAvailable && isFeatureAvailable;
+        } else {
+          hasSubscription = isPackageAvailable;
+        }
         emit(
           GetSubscriptionPackageLimitsSuccess(
-            error: subscriptionPackageLimit['error'],
-            message: subscriptionPackageLimit['message'],
-            hasSubscription: subscriptionPackageLimit['subscription'],
+            error: subscriptionPackageLimit['error'] as bool? ?? false,
+            message: subscriptionPackageLimit['message']?.toString() ?? '',
+            hasSubscription: hasSubscription,
           ),
         );
       }

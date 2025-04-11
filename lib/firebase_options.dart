@@ -48,11 +48,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBrRJxhlgvrH-I6RH3WUcgbLbu7su277WY',
-    appId: '1:783912667881:android:15b292b078ab907d907e78',
-    messagingSenderId: '783912667881',
-    projectId: 'ghardhondo-8899f',
-    storageBucket: 'ghardhondo-8899f.firebasestorage.app',
+    apiKey: 'AIzaSyCwIJO3sTsgLVEE4bpHJty0osx_PT9cVS8',
+    appId: '1:63168540332:android:8b13b90751cb235f623909',
+    messagingSenderId: '63168540332',
+    projectId: 'ebroker-wrteam',
+    storageBucket: 'ebroker-wrteam.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -65,6 +65,6 @@ class DefaultFirebaseOptions {
         '63168540332-bf5kqt19bbbq0ub3quibe67tfi7hjc1v.apps.googleusercontent.com',
     iosClientId:
         '63168540332-b8snl3ggfeaosrq8acqc11npalhouus5.apps.googleusercontent.com',
-    iosBundleId: 'ghardhondo.zarin.solutions',
+    iosBundleId: 'com.ebroker.wrteam',
   );
 }

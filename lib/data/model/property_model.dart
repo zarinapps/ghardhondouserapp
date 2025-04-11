@@ -63,7 +63,113 @@ class PropertyModel implements NativeAdWidgetContainer {
     this.advertisementType,
     this.isBlockedByUser,
     this.isBlockedByMe,
+    this.rejectReason,
   });
+
+  factory PropertyModel.fromMap(Map<String, dynamic> rawjson) {
+    try {
+      final list =
+          (rawjson['parameters'] as List).map((e) => e['image']).toList();
+      HelperUtils.precacheSVG(List.from(list));
+    } catch (e) {
+      log('Error is $e');
+    }
+    return PropertyModel(
+      id: rawjson['id'] as int,
+      allPropData: rawjson,
+      slugId: rawjson['slug_id']?.toString(),
+      rentduration: rawjson['rentduration']?.toString(),
+      customerEmail: rawjson['email']?.toString(),
+      customerProfile: rawjson['profile']?.toString(),
+      customerNumber: rawjson['mobile']?.toString(),
+      customerName: rawjson['customer_name']?.toString(),
+      video: rawjson['video_link']?.toString(),
+      threeDImage: rawjson['three_d_image']?.toString(),
+      latitude: rawjson['latitude']?.toString(),
+      longitude: rawjson['longitude']?.toString(),
+      title: rawjson['title']?.toString(),
+      price: rawjson['price']?.toString(),
+      category: rawjson['category'] == null
+          ? null
+          : Categorys.fromMap(rawjson['category'] as Map<String, dynamic>),
+      builtUpArea: rawjson['built_up_area'],
+      plotArea: rawjson['plot_area'],
+      hectaArea: rawjson['hecta_area'],
+      acre: rawjson['acre'],
+      houseType: rawjson['house_type'],
+      furnished: rawjson['furnished'],
+      advertisment: rawjson['advertisement'],
+      unitType: rawjson['unit_type'] == null
+          ? null
+          : UnitType.fromMap(rawjson['unit_type'] as Map<String, dynamic>),
+      description: rawjson['description']?.toString(),
+      address: rawjson['address']?.toString(),
+      clientAddress: rawjson['client_address']?.toString(),
+      properyType: rawjson['property_type']?.toString(),
+      titleImage: rawjson['title_image']?.toString(),
+      postCreated: rawjson['post_created']?.toString(),
+      gallery: List<Gallery>.from(
+        (rawjson['gallery'] as List).map(
+          (x) => Gallery.fromMap(
+            (x is String ? json.decode(x) : x) as Map<String, dynamic>,
+          ),
+        ),
+      ),
+      documents: List<PropertyDocuments>.from(
+        (rawjson['documents'] as List).map(
+          (x) => PropertyDocuments.fromMap(
+            (x is String ? json.decode(x) : x) as Map<String, dynamic>,
+          ),
+        ),
+      ),
+      totalView: Adapter.forceInt(rawjson['total_view'] as dynamic),
+      status: Adapter.forceInt(rawjson['status']),
+      requestStatus: rawjson['request_status']?.toString(),
+      state: rawjson['state']?.toString(),
+      city: rawjson['city']?.toString(),
+      country: rawjson['country']?.toString(),
+      addedBy: Adapter.forceInt(rawjson['added_by'] as dynamic),
+      inquiry: rawjson['inquiry'] as bool? ?? false,
+      promoted: rawjson['promoted'] as bool? ?? false,
+      isFavourite: Adapter.forceInt(rawjson['is_favourite']),
+      isInterested: Adapter.forceInt(rawjson['is_interested']),
+      favouriteUsers: (rawjson['favourite_users'] as List<dynamic>?)
+              ?.map((x) => x)
+              .toList() ??
+          [],
+      interestedUsers: (rawjson['interested_users'] as List<dynamic>?)
+              ?.map((x) => x)
+              .toList() ??
+          [],
+      totalInterestedUsers: Adapter.forceInt(rawjson['total_interested_users']),
+      totalFavouriteUsers: Adapter.forceInt(rawjson['total_favourite_users']),
+      parameters: rawjson['parameters'] == null
+          ? []
+          : List<Parameter>.from(
+              (rawjson['parameters'] as List).map((x) {
+                return Parameter.fromMap(x as Map<String, dynamic>);
+              }),
+            ),
+      assignedOutdoorFacility: rawjson['assign_facilities'] == null
+          ? []
+          : List<AssignedOutdoorFacility>.from(
+              (rawjson['assign_facilities'] as List).map((x) {
+                return AssignedOutdoorFacility.fromJson(
+                  x as Map<String, dynamic>,
+                );
+              }),
+            ),
+      titleimagehash: rawjson['title_image_hash']?.toString(),
+      isVerified: rawjson['is_verified'] as bool? ?? false,
+      isFeatureAvailable: rawjson['is_feature_available'] as bool? ?? false,
+      advertisementId: rawjson['advertisement_id'] as int?,
+      advertisementStatus: rawjson['advertisement_status'] as int?,
+      advertisementType: rawjson['advertisement_type']?.toString(),
+      isBlockedByUser: rawjson['is_blocked_by_user'] as bool? ?? false,
+      isBlockedByMe: rawjson['is_blocked_by_me'] as bool? ?? false,
+      rejectReason: rawjson['reject_reason']?.toString() ?? '',
+    );
+  }
 
   final int? id;
   final String? title;
@@ -121,6 +227,7 @@ class PropertyModel implements NativeAdWidgetContainer {
   final String? advertisementType;
   final bool? isBlockedByUser;
   final bool? isBlockedByMe;
+  final String? rejectReason;
 
   PropertyModel copyWith({
     int? id,
@@ -173,6 +280,7 @@ class PropertyModel implements NativeAdWidgetContainer {
     String? advertisementType,
     bool? isBlockedByUser,
     bool? isBlockedByMe,
+    String? rejectReason,
   }) =>
       PropertyModel(
         id: id ?? this.id,
@@ -226,102 +334,8 @@ class PropertyModel implements NativeAdWidgetContainer {
         advertisementType: advertisementType ?? this.advertisementType,
         isBlockedByUser: isBlockedByUser ?? this.isBlockedByUser,
         isBlockedByMe: isBlockedByMe ?? this.isBlockedByMe,
+        rejectReason: rejectReason ?? this.rejectReason,
       );
-
-  factory PropertyModel.fromMap(Map<String, dynamic> rawjson) {
-    try {
-      final list =
-          (rawjson['parameters'] as List).map((e) => e['image']).toList();
-      HelperUtils.precacheSVG(List.from(list));
-    } catch (e) {
-      log('Error is $e');
-    }
-    return PropertyModel(
-      id: rawjson['id'],
-      allPropData: rawjson,
-      slugId: rawjson['slug_id'],
-      rentduration: rawjson['rentduration'],
-      customerEmail: rawjson['email'],
-      customerProfile: rawjson['profile'],
-      customerNumber: rawjson['mobile'],
-      customerName: rawjson['customer_name'],
-      video: rawjson['video_link'],
-      threeDImage: rawjson['three_d_image'].toString(),
-      latitude: rawjson['latitude'].toString(),
-      longitude: rawjson['longitude'].toString(),
-      title: rawjson['title'].toString(),
-      price: rawjson['price'].toString(),
-      category: rawjson['category'] == null
-          ? null
-          : Categorys.fromMap(rawjson['category']),
-      builtUpArea: rawjson['built_up_area'],
-      plotArea: rawjson['plot_area'],
-      hectaArea: rawjson['hecta_area'],
-      acre: rawjson['acre'],
-      houseType: rawjson['house_type'],
-      furnished: rawjson['furnished'],
-      advertisment: rawjson['advertisement'],
-      unitType: rawjson['unit_type'] == null
-          ? null
-          : UnitType.fromMap(rawjson['unit_type']),
-      description: rawjson['description'],
-      address: rawjson['address'],
-      clientAddress: rawjson['client_address'],
-      properyType: rawjson['property_type'].toString(),
-      titleImage: rawjson['title_image'],
-      postCreated: rawjson['post_created'],
-      gallery: List<Gallery>.from(
-        (rawjson['gallery'] as List)
-            .map((x) => Gallery.fromMap(x is String ? json.decode(x) : x)),
-      ),
-      documents: List<PropertyDocuments>.from(
-        (rawjson['documents'] as List).map(
-          (x) => PropertyDocuments.fromMap(x is String ? json.decode(x) : x),
-        ),
-      ),
-      totalView: Adapter.forceInt(rawjson['total_view'] as dynamic),
-      status: Adapter.forceInt(rawjson['status']),
-      requestStatus: rawjson['request_status'],
-      state: rawjson['state'],
-      city: rawjson['city'],
-      country: rawjson['country'],
-      addedBy: Adapter.forceInt(rawjson['added_by'] as dynamic),
-      inquiry: rawjson['inquiry'],
-      promoted: rawjson['promoted'],
-      isFavourite: Adapter.forceInt(rawjson['is_favourite']),
-      isInterested: Adapter.forceInt(rawjson['is_interested']),
-      favouriteUsers: rawjson['favourite_users'] == null
-          ? null
-          : List<dynamic>.from(rawjson['favourite_users'].map((x) => x)),
-      interestedUsers: rawjson['interested_users'] == null
-          ? null
-          : List<dynamic>.from(rawjson['interested_users'].map((x) => x)),
-      totalInterestedUsers: Adapter.forceInt(rawjson['total_interested_users']),
-      totalFavouriteUsers: Adapter.forceInt(rawjson['total_favourite_users']),
-      parameters: rawjson['parameters'] == null
-          ? []
-          : List<Parameter>.from(
-              (rawjson['parameters'] as List).map((x) {
-                return Parameter.fromMap(x);
-              }),
-            ),
-      assignedOutdoorFacility: rawjson['assign_facilities'] == null
-          ? []
-          : List<AssignedOutdoorFacility>.from(
-              (rawjson['assign_facilities'] as List).map((x) {
-                return AssignedOutdoorFacility.fromJson(x);
-              }),
-            ),
-      titleimagehash: rawjson['title_image_hash'],
-      isVerified: rawjson['is_verified'],
-      isFeatureAvailable: rawjson['is_feature_available'],
-      advertisementId: rawjson['advertisement_id'],
-      advertisementStatus: rawjson['advertisement_status'],
-      advertisementType: rawjson['advertisement_type'],
-      isBlockedByUser: rawjson['is_blocked_by_user'],
-      isBlockedByMe: rawjson['is_blocked_by_me'],
-    );
-  }
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -390,11 +404,12 @@ class PropertyModel implements NativeAdWidgetContainer {
         'advertisement_type': advertisementType,
         'is_blocked_by_user': isBlockedByUser,
         'is_blocked_by_me': isBlockedByMe,
+        'reject_reason': rejectReason,
       };
 
   @override
   String toString() {
-    return 'PropertyModel(id: $id,rentduration:$rentduration , title: $title,assigned_facilities:[$assignedOutdoorFacility]  advertisment:$advertisment, price: $price, category: $category,, builtUpArea: $builtUpArea, plotArea: $plotArea, hectaArea: $hectaArea, acre: $acre, houseType: $houseType, furnished: $furnished, unitType: $unitType, description: $description, address: $address, clientAddress: $clientAddress, properyType: $properyType, titleImage: $titleImage, title_image_hash: $titleimagehash, postCreated: $postCreated, gallery: $gallery, documents: $documents, totalView: $totalView, status: $status,requestStatus: $requestStatus, state: $state, city: $city, country: $country, addedBy: $addedBy, inquiry: $inquiry, promoted: $promoted, isFavourite: $isFavourite, isInterested: $isInterested, favouriteUsers: $favouriteUsers, interestedUsers: $interestedUsers, totalInterestedUsers: $totalInterestedUsers, totalFavouriteUsers: $totalFavouriteUsers, parameters: $parameters, latitude: $latitude, longitude: $longitude, threeDImage: $threeDImage, video: $video, isVerified: $isVerified)';
+    return 'PropertyModel(id: $id,rentduration:$rentduration , title: $title,assigned_facilities:[$assignedOutdoorFacility]  advertisment:$advertisment, price: $price, category: $category,, builtUpArea: $builtUpArea, plotArea: $plotArea, hectaArea: $hectaArea, acre: $acre, houseType: $houseType, furnished: $furnished, unitType: $unitType, description: $description, address: $address, clientAddress: $clientAddress, properyType: $properyType, titleImage: $titleImage, title_image_hash: $titleimagehash, postCreated: $postCreated, gallery: $gallery, documents: $documents, totalView: $totalView, status: $status,requestStatus: $requestStatus, state: $state, city: $city, country: $country, addedBy: $addedBy, inquiry: $inquiry, promoted: $promoted, isFavourite: $isFavourite, isInterested: $isInterested, favouriteUsers: $favouriteUsers, interestedUsers: $interestedUsers, totalInterestedUsers: $totalInterestedUsers, totalFavouriteUsers: $totalFavouriteUsers, parameters: $parameters, latitude: $latitude, longitude: $longitude, threeDImage: $threeDImage, video: $video, isVerified: $isVerified, rejectReason: $rejectReason)';
   }
 }
 
@@ -404,6 +419,15 @@ class Categorys {
     this.category,
     this.image,
   });
+
+  factory Categorys.fromJson(String str) =>
+      Categorys.fromMap(json.decode(str) as Map<String, dynamic>);
+
+  factory Categorys.fromMap(Map<String, dynamic> json) => Categorys(
+        id: json['id'] as int?,
+        category: json['category']?.toString(),
+        image: json['image']?.toString(),
+      );
 
   final int? id;
   final String? category;
@@ -420,15 +444,7 @@ class Categorys {
         image: image ?? this.image,
       );
 
-  factory Categorys.fromJson(String str) => Categorys.fromMap(json.decode(str));
-
   String toJson() => json.encode(toMap());
-
-  factory Categorys.fromMap(Map<String, dynamic> json) => Categorys(
-        id: json['id'],
-        category: json['category'],
-        image: json['image'],
-      );
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -447,6 +463,18 @@ class Parameter {
     this.value,
     this.isRequired,
   });
+
+  factory Parameter.fromMap(Map<String, dynamic> json) {
+    return Parameter(
+      id: json['id'] as int,
+      name: json['name']?.toString(),
+      typeOfParameter: json['type_of_parameter']?.toString(),
+      typeValues: json['type_values'],
+      image: json['image']?.toString(),
+      value: ifListConvertToString(json['value']),
+      isRequired: json['is_required'] as int?,
+    );
+  }
 
   final int? id;
   final String? name;
@@ -483,18 +511,6 @@ class Parameter {
     return value;
   }
 
-  factory Parameter.fromMap(Map<String, dynamic> json) {
-    return Parameter(
-      id: json['id'],
-      name: json['name'],
-      typeOfParameter: json['type_of_parameter'],
-      typeValues: json['type_values'],
-      image: json['image'],
-      value: ifListConvertToString(json['value']),
-      isRequired: json['is_required'],
-    );
-  }
-
   Map<String, dynamic> toMap() => {
         'id': id,
         'name': name,
@@ -517,6 +533,14 @@ class UnitType {
     this.measurement,
   });
 
+  factory UnitType.fromJson(String str) =>
+      UnitType.fromMap(json.decode(str) as Map<String, dynamic>);
+
+  factory UnitType.fromMap(Map<String, dynamic> json) => UnitType(
+        id: json['id'] as int?,
+        measurement: json['measurement']?.toString(),
+      );
+
   final int? id;
   final String? measurement;
 
@@ -529,14 +553,7 @@ class UnitType {
         measurement: measurement ?? this.measurement,
       );
 
-  factory UnitType.fromJson(String str) => UnitType.fromMap(json.decode(str));
-
   String toJson() => json.encode(toMap());
-
-  factory UnitType.fromMap(Map<String, dynamic> json) => UnitType(
-        id: json['id'],
-        measurement: json['measurement'],
-      );
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -545,17 +562,27 @@ class UnitType {
 }
 
 class Gallery {
-  final int id;
-  final String image;
-  final String imageUrl;
-  final bool? isVideo;
-
   Gallery({
     required this.id,
     required this.image,
     required this.imageUrl,
     this.isVideo,
   });
+
+  factory Gallery.fromMap(Map<String, dynamic> map) {
+    return Gallery(
+      id: map['id'] as int,
+      image: map['image'] as String,
+      imageUrl: map['image_url']?.toString() ?? '',
+    );
+  }
+
+  factory Gallery.fromJson(String source) =>
+      Gallery.fromMap(json.decode(source) as Map<String, dynamic>);
+  final int id;
+  final String image;
+  final String imageUrl;
+  final bool? isVideo;
 
   Gallery copyWith({
     int? id,
@@ -577,18 +604,7 @@ class Gallery {
     };
   }
 
-  factory Gallery.fromMap(Map<String, dynamic> map) {
-    return Gallery(
-      id: map['id'] as int,
-      image: map['image'] as String,
-      imageUrl: map['image_url'] ?? '',
-    );
-  }
-
   String toJson() => json.encode(toMap());
-
-  factory Gallery.fromJson(String source) =>
-      Gallery.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() => 'Gallery(id: $id, image: $image, imageUrl: $imageUrl)';
@@ -605,15 +621,6 @@ class Gallery {
 }
 
 class AssignedOutdoorFacility {
-  int? id;
-  int? propertyId;
-  int? facilityId;
-  String? distance;
-  String? image;
-  String? name;
-  String? createdAt;
-  String? updatedAt;
-
   AssignedOutdoorFacility({
     this.id,
     this.propertyId,
@@ -626,15 +633,23 @@ class AssignedOutdoorFacility {
   });
 
   AssignedOutdoorFacility.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
+    id = json['id'] as int;
     propertyId = Adapter.forceInt(json['property_id']);
     facilityId = Adapter.forceInt(json['facility_id']);
     distance = json['distance'].toString();
-    createdAt = json['created_at'];
-    image = json['image'];
-    name = json['name'];
-    updatedAt = json['updated_at'];
+    createdAt = json['created_at']?.toString();
+    image = json['image']?.toString();
+    name = json['name']?.toString();
+    updatedAt = json['updated_at']?.toString();
   }
+  int? id;
+  int? propertyId;
+  int? facilityId;
+  String? distance;
+  String? image;
+  String? name;
+  String? createdAt;
+  String? updatedAt;
 
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{};
@@ -666,16 +681,16 @@ class PropertyDocuments {
 
   factory PropertyDocuments.fromMap(Map<String, dynamic> json) {
     return PropertyDocuments(
-      id: json['id'],
-      name: json['file_name'],
-      type: json['type'],
-      file: json['file'],
-      propertyId: json['property_id'],
+      id: json['id'] as int?,
+      name: json['file_name']?.toString() ?? '',
+      type: json['type']?.toString(),
+      file: json['file']?.toString(),
+      propertyId: json['property_id'] as int?,
     );
   }
 
   factory PropertyDocuments.fromJson(String source) =>
-      PropertyDocuments.fromMap(json.decode(source));
+      PropertyDocuments.fromMap(json.decode(source) as Map<String, dynamic>);
 
   int? id;
   String name;

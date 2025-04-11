@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 extension Sizing on num {
   ///Responsive height
-  double rh(context) {
+  double rh(BuildContext context) {
     //!Don't change [812]
     const aspectedScreenHeight = 812;
 
@@ -16,7 +16,7 @@ extension Sizing on num {
   }
 
   ///Responsive width
-  double rw(context) {
+  double rw(BuildContext context) {
     //!Don't change  [375]
     const aspectedScreenWidth = 375;
 
@@ -26,7 +26,7 @@ extension Sizing on num {
   }
 
   ///Responsive font
-  double rf(context) {
+  double rf(BuildContext context) {
     const aspectedScreenHeight = 812;
     return (this / aspectedScreenHeight) * MediaQuery.of(context).size.height;
   }

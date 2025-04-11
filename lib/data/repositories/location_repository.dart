@@ -41,19 +41,23 @@ class GooglePlaceRepository {
     ///loop throuh predictions list,
     ///this will create List of GooglePlaceModel
     try {
-      final List<dynamic> predictions = apiResponse['predictions'];
+      final predictions = apiResponse['predictions'] as List<dynamic>;
       final filteredResult = predictions.map((prediction) {
-        final String description = prediction['description'];
-        final String placeId = prediction['place_id'];
+        final description = prediction['description']?.toString() ?? '';
+        final placeId = prediction['place_id']?.toString() ?? '';
 
-        final List<dynamic> terms = prediction['terms'];
-        final String city = terms.firstWhere(
-              (term) => term['value'] != null,
-              orElse: () => {},
-            )['value'] ??
+        final terms = prediction['terms'] as List<dynamic>;
+        final city = terms
+                .firstWhere(
+                  (term) => term['value'] != null,
+                  orElse: () => <dynamic, dynamic>{},
+                )['value']
+                ?.toString() ??
             '';
-        final String state = terms.length > 1 ? terms[1]['value'] : '';
-        final String country = terms.length > 2 ? terms[2]['value'] : '';
+        final state =
+            terms.length > 1 ? terms[1]['value']?.toString() ?? '' : '';
+        final country =
+            terms.length > 2 ? terms[2]['value']?.toString() ?? '' : '';
 
         return GooglePlaceModel(
           city: city,
@@ -72,11 +76,12 @@ class GooglePlaceRepository {
     }
   }
 
-  String getLocationComponent(Map details, String component) {
+  String getLocationComponent(Map<dynamic, dynamic> details, String component) {
     final index = (details['types'] as List)
         .indexWhere((element) => element == component);
     if ((details['terms'] as List).length > index) {
-      return (details['terms'] as List).elementAt(index)['value'];
+      return (details['terms'] as List).elementAt(index)['value']?.toString() ??
+          '';
     } else {
       return '';
     }

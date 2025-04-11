@@ -14,7 +14,7 @@ class GalleryImages {
         type = json['type']?.toString() ?? '',
         createdAt = json['created_at']?.toString() ?? '',
         updatedAt = json['updated_at']?.toString() ?? '',
-        projectId = json['project_id'] ?? 0;
+        projectId = json['project_id'] as int? ?? 0;
 
   final int id;
   final String name;

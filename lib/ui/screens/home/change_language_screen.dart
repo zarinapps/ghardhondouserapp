@@ -62,7 +62,7 @@ class LanguagesListScreen extends StatelessWidget {
           }
         },
         child: ListView.builder(
-          physics: const BouncingScrollPhysics(),
+          physics: Constant.scrollPhysics,
           itemCount: setting.length,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           itemBuilder: (context, index) {
@@ -79,18 +79,19 @@ class LanguagesListScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ListTile(
-                    onTap: () {
-                      context.read<FetchLanguageCubit>().getLanguage(
-                            setting[index]['code'],
-                          );
-                    },
-                    title: CustomText(
-                      setting[index]['name'],
-                      fontWeight: FontWeight.bold,
-                      color: language.languageCode == setting[index]['code']
-                          ? context.color.buttonColor
-                          : context.color.textColorDark,
-                    )),
+                  onTap: () {
+                    context.read<FetchLanguageCubit>().getLanguage(
+                          setting[index]['code']?.toString() ?? '',
+                        );
+                  },
+                  title: CustomText(
+                    setting[index]['name']?.toString() ?? '',
+                    fontWeight: FontWeight.bold,
+                    color: language.languageCode == setting[index]['code']
+                        ? context.color.buttonColor
+                        : context.color.textColorDark,
+                  ),
+                ),
               ),
             );
           },

@@ -42,7 +42,7 @@ class PropertyFilterModel {
       city: city ?? this.city,
       state: state ?? this.state,
       country: country ?? this.country,
-      facilities: facilities ?? this.facilities,
+      facilities: facilities ?? facilities,
     );
   }
 
@@ -88,7 +88,7 @@ class PropertyFilterModel {
       minPrice: map['min_price'].toString(),
       categoryId: map['category_id'].toString(),
       postedSince: map['posted_since'].toString(),
-      facilities: map['facilities'].cast<int>(),
+      facilities: (map['facilities'] as List? ?? []).cast<int>(),
     );
   }
 

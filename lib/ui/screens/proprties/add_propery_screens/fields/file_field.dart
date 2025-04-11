@@ -79,7 +79,7 @@ class CustomFileField extends CustomField {
                 width: 24,
                 child: FittedBox(
                   child: UiUtils.imageType(
-                    data['image'],
+                    data['image']?.toString() ?? '',
                     color: Constant.adaptThemeColorSvg
                         ? context.color.tertiaryColor
                         : null,
@@ -92,7 +92,7 @@ class CustomFileField extends CustomField {
             ),
             SizedBox(width: 10.rw(context)),
             CustomText(
-              data['name'],
+              data['name']?.toString() ?? '',
               fontWeight: FontWeight.w500,
               fontSize: context.font.large,
               color: context.color.textColorDark,
@@ -141,8 +141,9 @@ class CustomFileField extends CustomField {
             children: [
               Expanded(
                 child: CustomText(
-                    'File Name: ${_pickedFilePath!.split('/').last}',
-                    color: context.color.textColorDark),
+                  'File Name: ${_pickedFilePath!.split('/').last}',
+                  color: context.color.textColorDark,
+                ),
               ),
               // if (_isFileSelected)
               //   IconButton(

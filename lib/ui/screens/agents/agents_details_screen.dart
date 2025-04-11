@@ -1,4 +1,5 @@
 import 'package:ebroker/data/cubits/agents/fetch_project_by_agents_cubit.dart';
+import 'package:ebroker/data/cubits/agents/fetch_projects_cubit.dart';
 import 'package:ebroker/data/cubits/agents/fetch_property_by_agent_cubit.dart';
 import 'package:ebroker/data/cubits/agents/fetch_property_cubit.dart';
 import 'package:ebroker/data/model/agent/agents_properties_models/customer_data.dart';
@@ -17,7 +18,7 @@ class AgentDetailsScreen extends StatefulWidget {
   final bool isAdmin;
   final CustomerData agent;
 
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final argument = routeSettings.arguments! as Map;
 
     return BlurredRouter(
@@ -32,25 +33,65 @@ class AgentDetailsScreen extends StatefulWidget {
   State<AgentDetailsScreen> createState() => _AgentDetailsScreenState();
 }
 
-class _AgentDetailsScreenState extends State<AgentDetailsScreen> {
+class _AgentDetailsScreenState extends State<AgentDetailsScreen>
+    with SingleTickerProviderStateMixin {
   bool isPremiumProperty = true;
   bool isPremiumUser = false;
+  bool showProjects = false;
+  bool isProjectListEmpty = false;
+  TabController? _tabController;
 
   @override
   void initState() {
     super.initState();
-    context.read<FetchAgentsPropertyCubit>().fetchAgentsProperty(
+    getAgentProjectsAndProperties();
+  }
+
+  Future<void> getAgentProjectsAndProperties() async {
+    await context.read<FetchAgentsProjectCubit>().fetchAgentsProject(
+          forceRefresh: true,
+          agentId: widget.agent.id,
+          isAdmin: widget.isAdmin,
+        );
+    await context.read<FetchAgentsPropertyCubit>().fetchAgentsProperty(
           agentId: widget.agent.id,
           forceRefresh: true,
           isAdmin: widget.isAdmin,
         );
+
+    isProjectListEmpty = (context.read<FetchAgentsProjectCubit>().state
+            as FetchAgentsProjectSuccess)
+        .agentsProperty
+        .projectData
+        .isEmpty;
+    showProjects = (context.read<FetchAgentsProjectCubit>().state
+                as FetchAgentsProjectSuccess)
+            .agentsProperty
+            .customerData
+            .projectCount !=
+        0;
+    _tabController = TabController(length: showProjects ? 3 : 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return buildAgentDetails(
-      context,
-      widget.agent,
+    return Scaffold(
+      backgroundColor: context.color.backgroundColor,
+      appBar: UiUtils.buildAppBar(
+        context,
+        title: UiUtils.translate(context, 'agentDetails'),
+        showBackButton: true,
+      ),
+      body: buildAgentDetails(
+        context,
+        widget.agent,
+      ),
     );
   }
 
@@ -58,260 +99,434 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen> {
     BuildContext context,
     CustomerData agent,
   ) {
-    return Scaffold(
-      backgroundColor: context.color.backgroundColor,
-      appBar: UiUtils.buildAppBar(
-        bottomHeight: -4,
-        context,
-        title: UiUtils.translate(context, 'agentDetails'),
-        showBackButton: true,
-      ),
-      body: BlocConsumer<FetchProjectByAgentCubit, FetchProjectByAgentState>(
-        listener: (context, state) {
-          if (state is FetchProjectByAgentSuccess) {
-            HelperUtils.goToNextPage(
-              Routes.projectDetailsScreen,
-              context,
-              false,
-              args: {
-                'project': state.project,
-              },
-            );
-          }
-        },
-        builder: (context, state) {
-          return BlocConsumer<FetchPropertyByAgentCubit,
-              FetchPropertyByAgentState>(
-            listener: (context, state) {
-              if (state is FetchPropertyByAgentSuccess) {
-                HelperUtils.goToNextPage(
-                  Routes.propertyDetails,
-                  context,
-                  false,
-                  args: {
-                    'propertyData': state.property,
-                  },
-                );
-              }
+    return BlocConsumer<FetchProjectByAgentCubit, FetchProjectByAgentState>(
+      listener: (context, state) {
+        if (state is FetchProjectByAgentSuccess) {
+          HelperUtils.goToNextPage(
+            Routes.projectDetailsScreen,
+            context,
+            false,
+            args: {
+              'project': state.project,
             },
-            builder: (context, state) {
-              return Stack(
-                children: [
-                  Column(
+          );
+        }
+      },
+      builder: (context, state) {
+        return BlocConsumer<FetchPropertyByAgentCubit,
+            FetchPropertyByAgentState>(
+          listener: (context, state) {
+            if (state is FetchPropertyByAgentSuccess) {
+              HelperUtils.goToNextPage(
+                Routes.propertyDetails,
+                context,
+                false,
+                args: {
+                  'propertyData': state.property,
+                },
+              );
+            }
+          },
+          builder: (context, state) {
+            return Column(
+              children: [
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.15,
+                  margin: const EdgeInsets.only(
+                    left: 18,
+                    right: 18,
+                    top: 18,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.color.secondaryColor,
+                    border: Border.all(
+                      color: context.color.borderColor,
+                      width: 1.5,
+                    ),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(8),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        height: MediaQuery.of(context).size.height * 0.15,
-                        margin: const EdgeInsets.only(
-                          left: 18,
-                          right: 18,
-                          top: 18,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.color.secondaryColor,
-                          border: Border.all(
-                            color: context.color.borderColor,
-                            width: 1.5,
-                          ),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: UiUtils.getImage(
+                            agent.profile,
+                            width: MediaQuery.of(context).size.width * 0.30,
+                            height: double.infinity,
+                            fit: BoxFit.fitHeight,
                           ),
                         ),
-                        child: Row(
+                      ),
+                      Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: UiUtils.getImage(
-                                  width:
-                                      MediaQuery.of(context).size.width * 0.30,
-                                  height: double.infinity,
-                                  agent.profile,
-                                  fit: BoxFit.fitHeight,
-                                ),
-                              ),
+                            const SizedBox(
+                              height: 8,
                             ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: CustomText(
+                                    agent.name.firstUpperCase(),
+                                    maxLines: 2,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: context.font.normal,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 2,
+                                ),
+                                if (agent.isVerified ?? false)
+                                  UiUtils.getSvg(
+                                    AppIcons.agentBadge,
+                                    height: 24,
+                                    width: 24,
+                                    color: context.color.tertiaryColor,
+                                  ),
+                                const SizedBox(
+                                  width: 8,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(
+                              height: 4,
+                            ),
+                            CustomText(
+                              agent.email,
+                              fontSize: context.font.small,
+                            ),
+                            if (agent.facebookId != '' ||
+                                agent.twitterId != '' ||
+                                agent.instagramId != '' ||
+                                agent.youtubeId != '') ...[
+                              const SizedBox(
+                                height: 4,
+                              ),
+                              Row(
                                 children: [
-                                  const SizedBox(
-                                    height: 8,
-                                  ),
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                          child: CustomText(
-                                        agent.name.firstUpperCase(),
-                                        maxLines: 2,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: context.font.normal,
-                                      )),
-                                      const SizedBox(
-                                        width: 2,
-                                      ),
-                                      if (agent.isVerified ?? false)
-                                        UiUtils.getSvg(
-                                          AppIcons.agentBadge,
-                                          height: 24,
-                                          width: 24,
-                                          color: context.color.tertiaryColor,
-                                        ),
-                                      const SizedBox(
-                                        width: 8,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 4,
-                                  ),
                                   CustomText(
-                                    agent.email,
+                                    'followMe'.translate(context),
                                     fontSize: context.font.small,
                                   ),
-                                  Expanded(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        callButton(context),
-                                        const SizedBox(
-                                          width: 8,
-                                        ),
-                                        emailButton(context),
-                                        const SizedBox(
-                                          width: 8,
-                                        ),
-                                      ],
+                                  if (agent.facebookId != null &&
+                                      agent.facebookId != '')
+                                    socialButton(
+                                      context: context,
+                                      name: 'facebook',
+                                      url: agent.facebookId ?? '',
                                     ),
-                                  ),
+                                  if (agent.twitterId != null &&
+                                      agent.twitterId != '')
+                                    socialButton(
+                                      context: context,
+                                      name: 'twitter',
+                                      url: agent.twitterId ?? '',
+                                    ),
+                                  if (agent.instagramId != null &&
+                                      agent.instagramId != '')
+                                    socialButton(
+                                      context: context,
+                                      name: 'instagram',
+                                      url: agent.instagramId ?? '',
+                                    ),
+                                  if (agent.youtubeId != null &&
+                                      agent.youtubeId != '')
+                                    socialButton(
+                                      context: context,
+                                      name: 'youtube',
+                                      url: agent.youtubeId ?? '',
+                                    ),
+                                ],
+                              ),
+                            ],
+                            Expanded(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  callButton(context),
                                   const SizedBox(
-                                    height: 4,
+                                    width: 8,
+                                  ),
+                                  emailButton(context),
+                                  const SizedBox(
+                                    width: 8,
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(
+                              height: 4,
+                            ),
                           ],
                         ),
                       ),
-                      BlocBuilder<FetchAgentsPropertyCubit,
-                          FetchAgentsPropertyState>(
-                        builder: (context, state) {
-                          if (state is FetchAgentsPropertyFailure) {
-                            return Container(
-                              margin: EdgeInsets.only(
-                                top: MediaQuery.of(context).size.height * 0.1,
-                              ),
-                              child: const SomethingWentWrong(),
-                            );
-                          }
-                          if (state is FetchAgentsPropertyLoading) {
-                            Center(child: UiUtils.progress());
-                          }
-                          if (state is FetchAgentsPropertySuccess) {
-                            return Container(
-                              color: Colors.transparent,
-                              height: MediaQuery.of(context).size.height * 0.71,
-                              width: MediaQuery.of(context).size.width,
-                              child: DefaultTabController(
-                                length: 3,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      height:
-                                          MediaQuery.of(context).size.height *
-                                              0.05,
-                                      width: double.infinity,
-                                      margin: const EdgeInsets.only(
-                                        left: 18,
-                                        right: 18,
-                                        top: 15,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: context.color.secondaryColor,
-                                        border: Border.all(
-                                          color: context.color.borderColor,
-                                          width: 1.5,
-                                        ),
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(8),
-                                        ),
-                                      ),
-                                      child: TabBar(
-                                        indicatorPadding: const EdgeInsets.only(
-                                          left: 10,
-                                          right: 10,
-                                        ),
-                                        indicatorColor:
-                                            context.color.tertiaryColor,
-                                        labelColor: context.color.tertiaryColor,
-                                        unselectedLabelColor:
-                                            context.color.inverseSurface,
-                                        tabs: [
-                                          Tab(
-                                            text: UiUtils.translate(
-                                              context,
-                                              'details',
-                                            ),
-                                          ),
-                                          Tab(
-                                            text: UiUtils.translate(
-                                              context,
-                                              'properties',
-                                            ),
-                                          ),
-                                          Tab(
-                                            text: UiUtils.translate(
-                                              context,
-                                              'projects',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: TabBarView(
-                                        physics: AlwaysScrollableScrollPhysics(
-                                          parent: BouncingScrollPhysics(),
-                                        ),
-                                        children: [
-                                          detailsTab(
-                                            context,
-                                            state.agentsProperty.customerData,
-                                          ),
-                                          AgentProperties(
-                                            agentId: state
-                                                .agentsProperty.customerData.id,
-                                            isAdmin: widget.isAdmin,
-                                          ),
-                                          AgentProjects(
-                                            agentId: state
-                                                .agentsProperty.customerData.id,
-                                            isAdmin: widget.isAdmin,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
                     ],
                   ),
-                  if (state is FetchPropertyByAgentInProgress)
-                    Center(child: UiUtils.progress()),
-                ],
+                ),
+                BlocBuilder<FetchAgentsPropertyCubit, FetchAgentsPropertyState>(
+                  builder: (context, state) {
+                    if (state is FetchAgentsPropertyFailure) {
+                      return Container(
+                        margin: EdgeInsets.only(
+                          top: MediaQuery.of(context).size.height * 0.1,
+                        ),
+                        child: const SomethingWentWrong(),
+                      );
+                    }
+                    if (state is FetchAgentsPropertyLoading) {
+                      return Expanded(
+                        child: Container(
+                          color: Colors.transparent,
+                          width: MediaQuery.of(context).size.width,
+                          child: const CustomShimmer(
+                            margin: EdgeInsets.all(15),
+                            borderRadius: 8,
+                          ),
+                        ),
+                      );
+                    }
+                    if (state is FetchAgentsPropertySuccess) {
+                      return Expanded(
+                        child: Container(
+                          color: Colors.transparent,
+                          width: MediaQuery.of(context).size.width,
+                          child: DefaultTabController(
+                            length: showProjects ? 3 : 2,
+                            child: Column(
+                              children: [
+                                Container(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.05,
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(
+                                    left: 18,
+                                    right: 18,
+                                    top: 15,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: context.color.secondaryColor,
+                                    border: Border.all(
+                                      color: context.color.borderColor,
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(8),
+                                    ),
+                                  ),
+                                  child: TabBar(
+                                    controller:
+                                        _tabController, // Use the controller here
+                                    indicatorPadding: const EdgeInsets.only(
+                                      left: 10,
+                                      right: 10,
+                                    ),
+                                    indicatorColor: context.color.tertiaryColor,
+                                    labelColor: context.color.tertiaryColor,
+                                    unselectedLabelColor:
+                                        context.color.inverseSurface,
+                                    tabs: [
+                                      Tab(
+                                        text: UiUtils.translate(
+                                          context,
+                                          'details',
+                                        ),
+                                      ),
+                                      Tab(
+                                        text: UiUtils.translate(
+                                          context,
+                                          'properties',
+                                        ),
+                                      ),
+                                      if (showProjects)
+                                        Tab(
+                                          text: UiUtils.translate(
+                                            context,
+                                            'projects',
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TabBarView(
+                                    controller:
+                                        _tabController, // Use the controller here
+
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    children: [
+                                      detailsTab(
+                                        context,
+                                        state.agentsProperty.customerData,
+                                      ),
+                                      AgentProperties(
+                                        agentId: state
+                                            .agentsProperty.customerData.id,
+                                        isAdmin: widget.isAdmin,
+                                      ),
+                                      if (showProjects && !isProjectListEmpty)
+                                        AgentProjects(
+                                          agentId: state
+                                              .agentsProperty.customerData.id,
+                                          isAdmin: widget.isAdmin,
+                                        ),
+                                      if (showProjects && isProjectListEmpty)
+                                        Builder(
+                                          builder: (context) {
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                              UiUtils.showBlurredDialoge(
+                                                context,
+                                                dialoge:
+                                                    const BlurredSubscriptionDialogBox(
+                                                  packageType:
+                                                      SubscriptionPackageType
+                                                          .projectAccess,
+                                                  isAcceptContainesPush: true,
+                                                ),
+                                              );
+                                            });
+                                            Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 300,
+                                                ), () {
+                                              _tabController!.index = 1;
+                                            });
+                                            return Container();
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (state.agentsProperty.premiumPropertyCount !=
+                                        0 &&
+                                    state.agentsProperty.isPackageAvailable ==
+                                        false &&
+                                    state.agentsProperty.isFeatureAvailable ==
+                                        false)
+                                  bottomButton(
+                                    projectOrPropertyCount: state
+                                        .agentsProperty.premiumPropertyCount,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget socialButton({
+    required BuildContext context,
+    required String name,
+    required String url,
+  }) {
+    final String iconName;
+    switch (name) {
+      case 'facebook':
+        iconName = AppIcons.facebook;
+      case 'twitter':
+        iconName = AppIcons.twitter;
+      case 'instagram':
+        iconName = AppIcons.instagram;
+      case 'youtube':
+        iconName = AppIcons.youtube;
+      default:
+        iconName = '';
+    }
+    if (iconName == '') {
+      return const SizedBox.shrink();
+    }
+    final uri = Uri.parse(url);
+    return GestureDetector(
+      onTap: () {
+        _launchUrl(uri);
+      },
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: 2),
+        child: UiUtils.getSvg(
+          iconName,
+          height: 18,
+          width: 18,
+          color: context.color.tertiaryColor,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(Uri url) async {
+    if (!await launchUrl(url)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Widget bottomButton({required int projectOrPropertyCount}) {
+    return Container(
+      color: context.color.secondaryColor,
+      padding: const EdgeInsetsDirectional.only(
+        start: 18,
+        end: 18,
+        bottom: 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.only(
+              end: 12,
+              bottom: 8,
+              top: 8,
+            ),
+            child: Row(
+              children: [
+                UiUtils.getSvg(
+                  AppIcons.info,
+                  height: 20,
+                  width: 20,
+                ),
+                const SizedBox(
+                  width: 4,
+                ),
+                CustomText(
+                  '${'unlock'.translate(context)} $projectOrPropertyCount ${'premiumProperties'.translate(context)}',
+                  fontSize: context.font.normal,
+                  textAlign: TextAlign.start,
+                ),
+              ],
+            ),
+          ),
+          UiUtils.buildButton(
+            context,
+            onPressed: () async {
+              await Navigator.pushNamed(
+                context,
+                Routes.subscriptionPackageListRoute,
+                arguments: {'from': 'agentDetails'},
               );
             },
-          );
-        },
+            height: 48.rh(context),
+            fontSize: context.font.large,
+            buttonTitle: UiUtils.translate(context, 'unlockPremium'),
+          ),
+        ],
       ),
     );
   }
@@ -339,9 +554,7 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen> {
         ),
       ),
       child: SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: Constant.scrollPhysics,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,15 +583,18 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen> {
               Row(
                 children: [
                   Flexible(
-                    child: CustomText('${'location'.translate(context)}: ',
-                        fontWeight: FontWeight.w600),
+                    child: CustomText(
+                      '${'location'.translate(context)}: ',
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   CustomText(
-                      locationName(context: context, customerData: customerData)
-                          .join(''),
-                      fontWeight: FontWeight.w500),
+                    locationName(context: context, customerData: customerData)
+                        .join(),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ],
-              )
+              ),
             ],
             if (customerData.address!.isNotEmpty &&
                 customerData.address != null &&
@@ -410,11 +626,11 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen> {
     required BuildContext context,
     required CustomerData customerData,
   }) {
-    List<String> location = [
+    final location = <String>[
       if (customerData.city!.isNotEmpty) '${customerData.city}',
       if (customerData.state!.isNotEmpty) ...[
         if (customerData.city!.isNotEmpty) ', ',
-        '${customerData.state}'
+        '${customerData.state}',
       ],
       if (customerData.country!.isNotEmpty) ...[
         if (customerData.state!.isNotEmpty || customerData.city!.isNotEmpty)
@@ -451,13 +667,17 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen> {
   }
 
   Future<void> _onTapCall() async {
-    final contactNumber = widget.agent.mobile;
-    final url = Uri.parse('tel: +$contactNumber'); //{contactNumber.data}
-    try {
-      await launchUrl(url);
-    } catch (e) {
-      throw Exception('Error calling $e');
-    }
+    GuestChecker.check(
+      onNotGuest: () async {
+        final contactNumber = widget.agent.mobile;
+        final url = Uri.parse('tel: +$contactNumber'); //{contactNumber.data}
+        try {
+          await launchUrl(url);
+        } catch (e) {
+          throw Exception('Error calling $e');
+        }
+      },
+    );
   }
 
   Widget emailButton(BuildContext context) {
@@ -467,30 +687,33 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen> {
       textColor: context.color.tertiaryColor,
       buttonTitle: UiUtils.translate(context, 'Email'),
       buttonColor: context.color.backgroundColor,
-      border: BorderSide(width: 1.5, color: context.color.tertiaryColor),
+      border: BorderSide(color: context.color.tertiaryColor),
       radius: 5,
       width: MediaQuery.of(context).size.width * 0.25,
       height: MediaQuery.of(context).size.height * 0.038,
       onPressed: _onTapEmail,
       prefixWidget: Container(
-        height: 16,
-        width: 16,
-        margin: const EdgeInsetsDirectional.only(bottom: 8, end: 12),
-        child: Icon(
-          Icons.mail_outline,
-          color: context.color.tertiaryColor,
+        margin: const EdgeInsetsDirectional.only(end: 6),
+        child: UiUtils.getSvg(
+          AppIcons.email,
+          height: 16,
+          width: 16,
         ),
       ),
     );
   }
 
   Future<void> _onTapEmail() async {
-    final email = widget.agent.email;
-    final url = Uri.parse('mailto: +$email');
-    try {
-      await launchUrl(url);
-    } catch (e) {
-      throw Exception('Error mail $e');
-    }
+    GuestChecker.check(
+      onNotGuest: () async {
+        final email = widget.agent.email;
+        final url = Uri.parse('mailto: +$email');
+        try {
+          await launchUrl(url);
+        } catch (e) {
+          throw Exception('Error mail $e');
+        }
+      },
+    );
   }
 }

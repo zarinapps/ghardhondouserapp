@@ -57,9 +57,7 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
         },
         child: SingleChildScrollView(
           controller: _controller,
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
+          physics: Constant.scrollPhysics,
           child:
               BlocBuilder<FetchMyProjectsListCubit, FetchMyProjectsListState>(
             builder: (context, state) {

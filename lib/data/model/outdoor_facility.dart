@@ -9,12 +9,12 @@ class OutdoorFacility {
   });
 
   OutdoorFacility.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    name = json['name'];
-    image = json['image'];
-    createdAt = json['created_at'];
-    updatedAt = json['updated_at'];
-    distance = json['distance'].toString();
+    id = json['id'] as int?;
+    name = json['name']?.toString() ?? '';
+    image = json['image']?.toString() ?? '';
+    createdAt = json['created_at']?.toString() ?? '';
+    updatedAt = json['updated_at']?.toString() ?? '';
+    distance = json['distance']?.toString() ?? '';
   }
   int? id;
   String? name;

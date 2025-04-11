@@ -1,16 +1,23 @@
 import 'package:ebroker/data/cubits/property/create_advertisement_cubit.dart';
+import 'package:ebroker/data/model/project_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/home/Widgets/property_card_big.dart';
+import 'package:ebroker/ui/screens/home/widgets/project_card_horizontal.dart';
+import 'package:ebroker/ui/screens/project/view/project_card_big.dart';
 import 'package:ebroker/utils/imagePicker.dart';
 import 'package:flutter/material.dart';
 
 class CreateAdvertisementPopup extends StatefulWidget {
   const CreateAdvertisementPopup({
     required this.property,
+    required this.isProject,
+    required this.project,
     super.key,
   });
   final PropertyModel property;
-  static Route route(RouteSettings routeSettings) {
+  final bool isProject;
+  final ProjectModel project;
+  static Route<dynamic> route(RouteSettings routeSettings) {
     try {
       final arguments = routeSettings.arguments as Map?;
       return BlurredRouter(
@@ -22,7 +29,11 @@ class CreateAdvertisementPopup extends StatefulWidget {
             ),
           ],
           child: CreateAdvertisementPopup(
-            property: arguments?['propertyData'],
+            property:
+                arguments?['propertyData'] as PropertyModel? ?? PropertyModel(),
+            isProject: arguments?['isProject'] as bool? ?? false,
+            project:
+                arguments?['projectData'] as ProjectModel? ?? ProjectModel(),
           ),
         ),
       );
@@ -56,7 +67,7 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
     });
     Future.delayed(Duration.zero, () {
       context.read<GetSubsctiptionPackageLimitsCubit>().getLimits(
-            type: 'advertisement',
+            packageType: 'property_feature',
           );
     });
   }
@@ -74,24 +85,32 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
       margin: index == 0
           ? EdgeInsets.zero
           : const EdgeInsets.symmetric(horizontal: 24),
-      child: index == 0
+      child: index == 0 && widget.isProject != true
           ? PropertyCardBig(
               showLikeButton: false,
               property: widget.property,
             )
-          : PropertyHorizontalCard(
-              showLikeButton: false,
-              disableTap: true,
-              property: widget.property,
-            ),
+          : index != 0 && widget.isProject != true
+              ? PropertyHorizontalCard(
+                  showLikeButton: false,
+                  disableTap: true,
+                  property: widget.property,
+                )
+              : index == 0 && widget.isProject == true
+                  ? ProjectCardBig(
+                      project: widget.project,
+                    )
+                  : ProjectHorizontalCard(
+                      project: widget.project,
+                    ),
     );
   }
 
   Future<void> _createAdvertisement() async {
     await context.read<CreateAdvertisementCubit>().create(
-          type: advertisementType,
+          featureFor: widget.isProject == true ? 'project' : 'property',
+          projectId: widget.project.id.toString(),
           propertyId: widget.property.id.toString(),
-          image: _pickImage.pickedFile,
         );
   }
 
@@ -166,23 +185,21 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
                       }
                       if (state is CreateAdvertisementFailure) {
                         Widgets.hideLoder(context);
+                        Navigator.pop(context);
                         HelperUtils.showSnackBarMessage(
                           context,
-                          UiUtils.translate(context, 'somethingWentWrng'),
-                          type: MessageType.error,
+                          UiUtils.translate(context, state.errorMessage),
+                          type: MessageType.warning,
                         );
                       }
                       if (state is CreateAdvertisementSuccess) {
                         Widgets.hideLoder(context);
-                        context
-                            .read<FetchMyPropertiesCubit>()
-                            .update(state.property);
+                        Navigator.pop(context);
                         HelperUtils.showSnackBarMessage(
                           context,
-                          UiUtils.translate(context, 'success'),
+                          state.message,
                           type: MessageType.success,
                         );
-                        Navigator.pop(context);
                       }
                     },
                     builder: (context, state) {
@@ -194,7 +211,7 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
                             Expanded(
                               child: PageView.builder(
                                 itemCount: 2,
-                                physics: const BouncingScrollPhysics(),
+                                physics: Constant.scrollPhysics,
                                 controller: _pageController,
                                 onPageChanged: (index) {
                                   setState(() {
