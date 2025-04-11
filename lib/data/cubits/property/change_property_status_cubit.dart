@@ -8,10 +8,10 @@ class ChangePropertyStatusInitial extends ChangePropertyStatusState {}
 class ChangePropertyStatusInProgress extends ChangePropertyStatusState {}
 
 class ChangePropertyStatusSuccess extends ChangePropertyStatusState {
+  final String? message;
   ChangePropertyStatusSuccess({
     this.message,
   });
-  final String? message;
 
   ChangePropertyStatusSuccess copyWith({
     String? message,
@@ -23,8 +23,8 @@ class ChangePropertyStatusSuccess extends ChangePropertyStatusState {
 }
 
 class ChangePropertyStatusFailure extends ChangePropertyStatusState {
-  ChangePropertyStatusFailure(this.error);
   final String error;
+  ChangePropertyStatusFailure(this.error);
 }
 
 class ChangePropertyStatusCubit extends Cubit<ChangePropertyStatusState> {
@@ -43,10 +43,29 @@ class ChangePropertyStatusCubit extends Cubit<ChangePropertyStatusState> {
         status: status,
       );
       if (result['error'] == true) {
-        emit(ChangePropertyStatusFailure(result['message']?.toString() ?? ''));
+        emit(ChangePropertyStatusFailure(result['message']));
       } else {
-        emit(ChangePropertyStatusSuccess(
-            message: result['message']?.toString() ?? ''));
+        emit(ChangePropertyStatusSuccess(message: result['message']));
+      }
+    } catch (e) {
+      emit(ChangePropertyStatusFailure(e.toString()));
+    }
+  }
+
+  Future<void> disableProperty({
+    required int propertyId,
+    required int status,
+  }) async {
+    try {
+      emit(ChangePropertyStatusInProgress());
+      final result = await _propertyRepository.changePropertyStatus(
+        propertyId: propertyId,
+        status: status,
+      );
+      if (result['error'] == true) {
+        emit(ChangePropertyStatusFailure(result['message']));
+      } else {
+        emit(ChangePropertyStatusSuccess(message: result['message']));
       }
     } catch (e) {
       emit(ChangePropertyStatusFailure(e.toString()));

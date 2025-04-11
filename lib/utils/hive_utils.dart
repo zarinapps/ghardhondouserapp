@@ -25,10 +25,7 @@ class HiveUtils {
   }
 
   static String? getJWT() {
-    return Hive.box(HiveKeys.userDetailsBox)
-            .get(HiveKeys.jwtToken)
-            ?.toString() ??
-        '';
+    return Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.jwtToken);
   }
 
   static void dontShowChooseLocationDialoge() {
@@ -36,7 +33,7 @@ class HiveUtils {
   }
 
   static bool isGuest() {
-    return Hive.box(HiveKeys.userDetailsBox).get('isGuest') as bool? ?? true;
+    return Hive.box(HiveKeys.userDetailsBox).get('isGuest') ?? true;
   }
 
   static void setAppThemeSetting(Map<String, dynamic> data) {
@@ -232,17 +229,15 @@ class HiveUtils {
   static bool isUserAuthenticated() {
     //log(Hive.box(HiveKeys.authBox).toMap().toString());
     log('Auth box ${Hive.box(HiveKeys.authBox).toMap()}');
-    return Hive.box(HiveKeys.authBox).get(HiveKeys.isAuthenticated) as bool? ??
-        false;
+    return Hive.box(HiveKeys.authBox).get(HiveKeys.isAuthenticated) ?? false;
   }
 
   static bool isUserFirstTime() {
-    return Hive.box(HiveKeys.authBox).get(HiveKeys.isUserFirstTime) as bool? ??
-        true;
+    return Hive.box(HiveKeys.authBox).get(HiveKeys.isUserFirstTime) ?? true;
   }
 
   static Future<void> logoutUser(
-    BuildContext context, {
+    context, {
     required VoidCallback onLogout,
     bool? isRedirect,
   }) async {

@@ -23,7 +23,7 @@ class ArticlesRepository {
         .toList();
 
     return DataOutput<ArticleModel>(
-      total: int.parse(result['total']?.toString() ?? '0'),
+      total: result['total'] ?? 0,
       modelList: modelList,
     );
   }

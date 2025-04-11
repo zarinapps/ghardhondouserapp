@@ -41,23 +41,19 @@ class GooglePlaceRepository {
     ///loop throuh predictions list,
     ///this will create List of GooglePlaceModel
     try {
-      final predictions = apiResponse['predictions'] as List<dynamic>;
+      final List<dynamic> predictions = apiResponse['predictions'];
       final filteredResult = predictions.map((prediction) {
-        final description = prediction['description']?.toString() ?? '';
-        final placeId = prediction['place_id']?.toString() ?? '';
+        final String description = prediction['description'];
+        final String placeId = prediction['place_id'];
 
-        final terms = prediction['terms'] as List<dynamic>;
-        final city = terms
-                .firstWhere(
-                  (term) => term['value'] != null,
-                  orElse: () => <dynamic, dynamic>{},
-                )['value']
-                ?.toString() ??
+        final List<dynamic> terms = prediction['terms'];
+        final String city = terms.firstWhere(
+              (term) => term['value'] != null,
+              orElse: () => {},
+            )['value'] ??
             '';
-        final state =
-            terms.length > 1 ? terms[1]['value']?.toString() ?? '' : '';
-        final country =
-            terms.length > 2 ? terms[2]['value']?.toString() ?? '' : '';
+        final String state = terms.length > 1 ? terms[1]['value'] : '';
+        final String country = terms.length > 2 ? terms[2]['value'] : '';
 
         return GooglePlaceModel(
           city: city,
@@ -76,12 +72,11 @@ class GooglePlaceRepository {
     }
   }
 
-  String getLocationComponent(Map<dynamic, dynamic> details, String component) {
+  String getLocationComponent(Map details, String component) {
     final index = (details['types'] as List)
         .indexWhere((element) => element == component);
     if ((details['terms'] as List).length > index) {
-      return (details['terms'] as List).elementAt(index)['value']?.toString() ??
-          '';
+      return (details['terms'] as List).elementAt(index)['value'];
     } else {
       return '';
     }

@@ -5,10 +5,10 @@ class ArticleModel {
 
   ArticleModel.fromJson(Map<String, dynamic> json) {
     id = Adapter.forceInt(json['id']);
-    image = json['image']?.toString() ?? '';
-    title = json['title']?.toString() ?? '';
-    description = json['description']?.toString() ?? '';
-    date = json['created_at']?.toString() ?? '';
+    image = json['image'];
+    title = json['title'];
+    description = json['description'];
+    date = json['created_at'];
   }
   int? id;
   String? image;

@@ -12,15 +12,15 @@ class ChatMessageModal {
   });
 
   ChatMessageModal.fromJson(Map<String, dynamic> json) {
-    id = json['id'] as int?;
-    senderId = json['sender_ id'] as int?;
-    receiverId = json['receiver_id'] as int?;
-    propertyId = json['property_id'] as int?;
-    message = json['message']?.toString() ?? '';
-    file = json['file']?.toString() ?? '';
-    audio = json['audio']?.toString() ?? '';
-    createdAt = json['created_at']?.toString() ?? '';
-    updatedAt = json['updated_at']?.toString() ?? '';
+    id = json['id'];
+    senderId = json['sender_id'];
+    receiverId = json['receiver_id'];
+    propertyId = json['property_id'];
+    message = json['message'];
+    file = json['file'];
+    audio = json['audio'];
+    createdAt = json['created_at'];
+    updatedAt = json['updated_at'];
   }
   int? id;
   int? senderId;

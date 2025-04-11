@@ -18,10 +18,6 @@ class UserModel {
   String? profile;
   String? token;
   String? updatedAt;
-  String? instagram;
-  String? facebook;
-  String? youtube;
-  String? twitter;
 
   UserModel({
     this.address,
@@ -40,35 +36,27 @@ class UserModel {
     this.profile,
     this.token,
     this.updatedAt,
-    this.instagram,
-    this.facebook,
-    this.youtube,
-    this.twitter,
   });
 
   UserModel.fromJson(Map<String, dynamic> json) {
-    address = json['address']?.toString() ?? '';
-    createdAt = json['created_at']?.toString() ?? '';
-    customertotalpost = Adapter.forceInt(json['customertotalpost'] as int?);
-    email = json['email']?.toString() ?? '';
-    fcmId = json['fcm_id']?.toString() ?? '';
-    authId = json['auth_id']?.toString() ?? '';
-    id = json['id'] as int?;
+    address = json['address'];
+    createdAt = json['created_at'];
+    customertotalpost = Adapter.forceInt(json['customertotalpost']);
+    email = json['email'];
+    fcmId = json['fcm_id'];
+    authId = json['auth_id'];
+    id = json['id'];
     isActive = Adapter.forceInt(json['isActive']);
-    isProfileCompleted = json['isProfileCompleted'] as bool?;
-    logintype = json['logintype']?.toString() ?? '';
-    mobile = json['mobile']?.toString() ?? '';
-    name = json['name']?.toString() ?? '';
+    isProfileCompleted = json['isProfileCompleted'];
+    logintype = json['logintype'];
+    mobile = json['mobile'];
+    name = json['name'];
     notification = (json['notification'] is int)
-        ? json['notification'] as int?
-        : int.parse(json['notification']?.toString() ?? '0');
-    profile = json['profile']?.toString() ?? '';
-    token = json['token']?.toString() ?? '';
-    updatedAt = json['updated_at']?.toString() ?? '';
-    instagram = json['instagram_id']?.toString() ?? '';
-    facebook = json['facebook_id']?.toString() ?? '';
-    youtube = json['youtube_id']?.toString() ?? '';
-    twitter = json['twitter_id']?.toString() ?? '';
+        ? json['notification']
+        : int.parse(json['notification'] ?? '0');
+    profile = json['profile'];
+    token = json['token'];
+    updatedAt = json['updated_at'];
   }
 
   Map<String, dynamic> toJson() {
@@ -89,15 +77,11 @@ class UserModel {
     data['profile'] = profile;
     data['token'] = token;
     data['updated_at'] = updatedAt;
-    data['instagram_id'] = instagram;
-    data['facebook_id'] = facebook;
-    data['youtube_id'] = youtube;
-    data['twitter_id'] = twitter;
     return data;
   }
 
   @override
   String toString() {
-    return 'UserModel(address: $address, createdAt: $createdAt, customertotalpost: $customertotalpost, email: $email, fcmId: $fcmId, authId: $authId, id: $id, isActive: $isActive, isProfileCompleted: $isProfileCompleted, logintype: $logintype, mobile: $mobile, name: $name, notification: $notification, profile: $profile, token: $token, updatedAt: $updatedAt, instagram: $instagram, facebook: $facebook, youtube: $youtube, twitter: $twitter)';
+    return 'UserModel(address: $address, createdAt: $createdAt, customertotalpost: $customertotalpost, email: $email, fcmId: $fcmId, authId: $authId, id: $id, isActive: $isActive, isProfileCompleted: $isProfileCompleted, logintype: $logintype, mobile: $mobile, name: $name, notification: $notification, profile: $profile, token: $token, updatedAt: $updatedAt)';
   }
 }

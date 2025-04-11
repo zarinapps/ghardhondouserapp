@@ -18,7 +18,6 @@ class CitiesRepository {
         .cast<Map<String, dynamic>>()
         .map<City>(City.fromMap)
         .toList();
-    return DataOutput(
-        total: response['total'] as int? ?? 0, modelList: modelList);
+    return DataOutput(total: response['total'], modelList: modelList);
   }
 }

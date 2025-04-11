@@ -9,8 +9,8 @@ class SelectOutdoorFacility extends StatefulWidget {
 
   final Map<String, dynamic>? apiParameters;
 
-  static Route<dynamic> route(RouteSettings settings) {
-    final apiParameters = settings.arguments as Map<String, dynamic>? ?? {};
+  static Route route(RouteSettings settings) {
+    final apiParameters = settings.arguments! as Map<String, dynamic>;
     return BlurredRouter(
       builder: (context) {
         return SelectOutdoorFacility(
@@ -32,10 +32,14 @@ class _SelectOutdoorFacilityState extends State<SelectOutdoorFacility>
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   void initState() {
     var facilities = <AssignedOutdoorFacility>[];
-    facilities = (widget.apiParameters?['assign_facilities'] as List? ?? [])
-        .cast<AssignedOutdoorFacility>();
+    facilities = widget.apiParameters?['assign_facilities'] ?? [];
 
     // context.read<FetchOutdoorFacilityListCubit>().fetchIfFailed();
     facilityList = context.read<FetchOutdoorFacilityListCubit>().getList();
@@ -44,7 +48,7 @@ class _SelectOutdoorFacilityState extends State<SelectOutdoorFacility>
     _selectedIdsList.addListener(() {
       for (final element in _selectedIdsList.value) {
         if (!distanceFieldList.keys.contains(element)) {
-          if (widget.apiParameters?['isUpdate'] as bool? ?? false) {
+          if (widget.apiParameters?['isUpdate'] ?? false) {
             final match =
                 facilities.where((x) => x.facilityId == element).toList();
 
@@ -62,7 +66,7 @@ class _SelectOutdoorFacilityState extends State<SelectOutdoorFacility>
       setState(() {});
     });
 
-    if (widget.apiParameters?['isUpdate'] as bool? ?? false) {
+    if (widget.apiParameters?['isUpdate'] ?? false) {
       for (final element in facilities) {
         if (!_selectedIdsList.value.contains(element)) {
           _selectedIdsList.value.add(element.facilityId!);
@@ -76,8 +80,7 @@ class _SelectOutdoorFacilityState extends State<SelectOutdoorFacility>
   Map<String, dynamic> assembleOutdoorFacility() {
     final facilitymap = <String, dynamic>{};
     for (var i = 0; i < distanceFieldList.entries.length; i++) {
-      final element =
-          distanceFieldList.entries.elementAt(i) as MapEntry<dynamic, dynamic>;
+      final MapEntry element = distanceFieldList.entries.elementAt(i);
 
       facilitymap.addAll({
         'facilities[$i][facility_id]': element.key,
@@ -170,7 +173,7 @@ class _SelectOutdoorFacilityState extends State<SelectOutdoorFacility>
               );
             }
             return SingleChildScrollView(
-              physics: Constant.scrollPhysics,
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -486,7 +489,7 @@ class OutdoorFacilityTable extends StatefulWidget {
 class _OutdoorFacilityTableState extends State<OutdoorFacilityTable> {
   final PageController _pageController = PageController();
   int rowCount = 3;
-  Map<dynamic, dynamic>? sizeMap = {};
+  Map? sizeMap = {};
   int colCount = 3;
   late int totalData = widget.length;
   int itemsPerPage = 9;
@@ -498,17 +501,15 @@ class _OutdoorFacilityTableState extends State<OutdoorFacilityTable> {
       children: [
         SizedBox(
           height: (sizeMap?.isEmpty ?? true)
-              ? 290.0
-              : (sizeMap?[Key(selectedPage.toString())]?.height ?? 290.0)
-                      as double? ??
-                  290.0,
+              ? 290
+              : (sizeMap?[Key(selectedPage.toString())]?.height ?? 290),
           child: PageView.builder(
             controller: _pageController,
             onPageChanged: (value) {
               selectedPage = value;
               setState(() {});
             },
-            physics: Constant.scrollPhysics,
+            physics: const BouncingScrollPhysics(),
             itemCount: (totalData / itemsPerPage).ceil(),
             itemBuilder: (context, pageIndex) {
               final startIndex = pageIndex * itemsPerPage;
@@ -527,7 +528,7 @@ class _OutdoorFacilityTableState extends State<OutdoorFacilityTable> {
               return GridView.builder(
                 shrinkWrap: true,
                 key: pageKey,
-                physics: Constant.scrollPhysics,
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 gridDelegate:
                     SliverGridDelegateWithFixedCrossAxisCountAndFixedHeight(

@@ -11,7 +11,7 @@ class ArticleDetails extends StatelessWidget {
     return BlurredRouter(
       builder: (context) {
         return ArticleDetails(
-          article: arguments['model'] as ArticleModel? ?? ArticleModel(),
+          article: arguments['model'],
         );
       },
     );
@@ -26,7 +26,7 @@ class ArticleDetails extends StatelessWidget {
         showBackButton: true,
       ),
       body: SingleChildScrollView(
-        physics: Constant.scrollPhysics,
+        physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.all(
             20,

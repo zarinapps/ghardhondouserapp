@@ -73,7 +73,9 @@ class _MostLikedPropertiesScreenState extends State<MostLikedPropertiesScreen> {
               children: [
                 Expanded(
                   child: ListView.builder(
-                    physics: Constant.scrollPhysics,
+                    physics: AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     controller: _pageScollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: state.properties.length,

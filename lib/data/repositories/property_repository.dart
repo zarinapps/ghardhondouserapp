@@ -1,12 +1,12 @@
 import 'dart:developer';
 
+import 'package:ebroker/data/cubits/property/fetch_my_promoted_propertys_cubit.dart';
 import 'package:ebroker/data/helper/filter.dart';
-import 'package:ebroker/data/model/advertisement_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 
 class PropertyRepository {
   ///This method will add property
-  Future<dynamic> createProperty({
+  Future createProperty({
     required Map<String, dynamic> parameters,
   }) async {
     var api = Api.apiPostProperty;
@@ -34,6 +34,28 @@ class PropertyRepository {
     }
 
     return Api.post(url: api, parameter: parameters);
+  }
+
+  Future<DataOutput<PropertyModel>> fetchRecentProperties({
+    required int offset,
+  }) async {
+    final parameters = <String, dynamic>{
+      Api.offset: offset,
+      Api.limit: Constant.loadLimit,
+      'current_user': HiveUtils.getUserId(),
+    };
+
+    final response = await Api.get(
+      url: Api.apiGetPropertyList,
+      queryParameters: parameters,
+    );
+
+    final modelList = (response['data'] as List)
+        .cast<Map<String, dynamic>>()
+        .map<PropertyModel>(PropertyModel.fromMap)
+        .toList();
+
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 
   Future<PropertyModel> fetchPropertyFromPropertyId({
@@ -94,10 +116,7 @@ class PropertyRepository {
         .map<PropertyModel>(PropertyModel.fromMap)
         .toList();
 
-    return DataOutput(
-      total: int.parse(response['total']?.toString() ?? '0'),
-      modelList: modelList,
-    );
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 
   ///fetch most viewed properties
@@ -120,10 +139,7 @@ class PropertyRepository {
           .cast<Map<String, dynamic>>()
           .map<PropertyModel>(PropertyModel.fromMap)
           .toList();
-      return DataOutput(
-        total: int.parse(response['total']?.toString() ?? '0'),
-        modelList: modelList,
-      );
+      return DataOutput(total: response['total'] ?? 0, modelList: modelList);
     } catch (e) {
       rethrow;
     }
@@ -153,7 +169,7 @@ class PropertyRepository {
         .toList();
 
     return DataOutput(
-      total: int.parse(response['total']?.toString() ?? '0'),
+      total: response['total'] ?? 0,
       modelList: modelList,
     );
   }
@@ -183,13 +199,11 @@ class PropertyRepository {
       );
 
       final dataList = (result['data'] as List).map((e) {
-        final data = e as Map<String, dynamic>?;
-
-        return PropertyModel.fromMap(data ?? {});
+        return PropertyModel.fromMap(e);
       }).toList();
 
       return DataOutput<PropertyModel>(
-        total: int.parse(result['total']?.toString() ?? '0'),
+        total: result['total'] ?? 0,
         modelList: dataList,
       );
     } catch (e) {
@@ -214,42 +228,31 @@ class PropertyRepository {
     );
 
     final modelList = (response['data'] as List).map((e) {
-      final data = e as Map<String, dynamic>?;
-      return PropertyModel.fromMap(data ?? {});
+      return PropertyModel.fromMap(e);
     }).toList();
-    return DataOutput(
-      total: int.parse(response['total']?.toString() ?? '0'),
-      modelList: modelList,
-    );
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 
-  Future<DataOutput<AdvertisementProperty>> fetchMyPromotedProeprties({
+  Future<DataOutput<Advertisement>> fetchMyPromotedProeprties({
     required int offset,
   }) async {
-    try {
-      final parameters = <String, dynamic>{
-        Api.offset: offset,
-        Api.limit: Constant.loadLimit,
-        Api.type: 'property',
-        // "current_user": HiveUtils.getUserId()
-      };
+    final parameters = <String, dynamic>{
+      'is_promoted': 1,
+      Api.offset: offset,
+      Api.limit: Constant.loadLimit,
+      // "current_user": HiveUtils.getUserId()
+    };
 
-      final response = await Api.get(
-        url: Api.getFeaturedData,
-        queryParameters: parameters,
-      );
-      final modelList = (response['data'] as List)
-          .cast<Map<String, dynamic>>()
-          .map<AdvertisementProperty>(AdvertisementProperty.fromJson)
-          .toList();
+    final response = await Api.get(
+      url: Api.getAddedProperties,
+      queryParameters: parameters,
+    );
+    final modelList = (response['data'] as List)
+        .cast<Map<String, dynamic>>()
+        .map<Advertisement>(Advertisement.fromMap)
+        .toList();
 
-      return DataOutput(
-        total: int.parse(response['total']?.toString() ?? '0'),
-        modelList: modelList,
-      );
-    } catch (e) {
-      rethrow;
-    }
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 
   ///Search property
@@ -263,7 +266,7 @@ class PropertyRepository {
       Api.offset: offset,
       Api.limit: Constant.loadLimit,
       'current_user': HiveUtils.getUserId(),
-      ...filter?.getFilter().cast<String, dynamic>() ?? <String, dynamic>{},
+      ...filter?.getFilter() ?? {},
     };
 
     final response = await Api.get(
@@ -276,10 +279,7 @@ class PropertyRepository {
         .map<PropertyModel>(PropertyModel.fromMap)
         .toList();
 
-    return DataOutput(
-      total: int.parse(response['total']?.toString() ?? '0'),
-      modelList: modelList,
-    );
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 
   ///to get my properties which i had added to sell or rent
@@ -313,15 +313,10 @@ class PropertyRepository {
           .map<PropertyModel>(PropertyModel.fromMap)
           .toList();
 
-      return DataOutput(
-        total: int.parse(response['total']?.toString() ?? '0'),
-        modelList: modelList,
-      );
-    } catch (e, st) {
-      log('Error in my properties $e');
-      log('$st');
+      return DataOutput(total: response['total'] ?? 0, modelList: modelList);
+    } catch (e) {
+      rethrow;
     }
-    return DataOutput(total: 0, modelList: []);
   }
 
   String? _findPropertyType(String type) {
@@ -348,7 +343,7 @@ class PropertyRepository {
       Api.offset: offset,
       Api.limit: Constant.loadLimit,
       'current_user': HiveUtils.getUserId(),
-      ...filter?.getFilter().cast<String, dynamic>() ?? <String, dynamic>{},
+      ...filter?.getFilter() ?? {},
     };
 
     final response = await Api.get(
@@ -360,10 +355,7 @@ class PropertyRepository {
         .cast<Map<String, dynamic>>()
         .map<PropertyModel>(PropertyModel.fromMap)
         .toList();
-    return DataOutput(
-      total: int.parse(response['total']?.toString() ?? '0'),
-      modelList: modelList,
-    );
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 
   Future<void> setProeprtyView(String propertyId) async {
@@ -373,7 +365,7 @@ class PropertyRepository {
     );
   }
 
-  Future<dynamic> updatePropertyStatus({
+  Future updatePropertyStatus({
     required dynamic propertyId,
     required dynamic status,
   }) async {
@@ -401,10 +393,7 @@ class PropertyRepository {
         .cast<Map<String, dynamic>>()
         .map<PropertyModel>(PropertyModel.fromMap)
         .toList();
-    return DataOutput(
-      total: int.parse(response['total']?.toString() ?? '0'),
-      modelList: modelList,
-    );
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 
   Future<DataOutput<PropertyModel>> fetchAllProperties({
@@ -423,10 +412,7 @@ class PropertyRepository {
           .cast<Map<String, dynamic>>()
           .map<PropertyModel>(PropertyModel.fromMap)
           .toList();
-      return DataOutput(
-        total: int.parse(response['total']?.toString() ?? '0'),
-        modelList: modelList,
-      );
+      return DataOutput(total: response['total'] ?? 0, modelList: modelList);
     } catch (e) {
       log('Error is $e');
     }
@@ -446,25 +432,5 @@ class PropertyRepository {
       parameter: parameters,
     );
     return response;
-  }
-
-  Future<PropertyModel> fetchBySlug(String slug) async {
-    final apiUrl = Api.apiGetPropertyDetails;
-    final result = await Api.get(
-      url: apiUrl,
-      queryParameters: {'slug_id': slug},
-    );
-
-    // Ensure 'data' is a List and safely extract the first item
-    final data = result['data'];
-    if (data is List && data.isNotEmpty) {
-      final firstItem = data.first;
-      if (firstItem is Map<String, dynamic>) {
-        return PropertyModel.fromMap(firstItem);
-      }
-    }
-
-    // Handle cases where data is null or in an unexpected format
-    throw Exception("Invalid data format received");
   }
 }

@@ -39,10 +39,12 @@ class PropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rentPrice = agentPropertiesData.price.priceFormat(
-      // disabled: Constant.isNumberWithSuffix == false,
-      context: context,
-    );
+    final rentPrice = agentPropertiesData.price
+        .priceFormat(
+          // disabled: Constant.isNumberWithSuffix == false,
+          context: context,
+        )
+        .formatAmount(prefix: true);
 
     return BlocProvider(
       create: (context) => AddToFavoriteCubitCubit(),
@@ -53,10 +55,7 @@ class PropertyCard extends StatelessWidget {
           child: GestureDetector(
             onLongPress: () {
               HelperUtils.share(
-                context,
-                agentPropertiesData.id,
-                agentPropertiesData.slugId,
-              );
+                  context, agentPropertiesData.id, agentPropertiesData.slugId);
             },
             onTap: onTap,
             child: Container(
@@ -193,15 +192,13 @@ class PropertyCard extends StatelessWidget {
                                           width: 5,
                                         ),
                                         Expanded(
-                                          child: CustomText(
-                                            agentPropertiesData
-                                                .category.category,
-                                            maxLines: 1,
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: context.font.small,
-                                            color: context.color.textLightColor,
-                                          ),
-                                        ),
+                                            child: CustomText(
+                                          agentPropertiesData.category.category,
+                                          maxLines: 1,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: context.font.small,
+                                          color: context.color.textLightColor,
+                                        )),
                                         if (showLikeButton ?? true)
                                           Container(
                                             width: 32,
@@ -246,18 +243,22 @@ class PropertyCard extends StatelessWidget {
                                         fontWeight: FontWeight.w700,
                                         fontSize: context.font.large,
                                         color: context.color.tertiaryColor,
-                                      ),
+                                      )
                                     ] else ...[
                                       if (SystemSetting.numberWithSuffix
                                               .toString() ==
                                           '0')
                                         CustomText(
-                                          agentPropertiesData.price.priceFormat(
-                                            enabled:
-                                                Constant.isNumberWithSuffix ==
+                                          agentPropertiesData.price
+                                              .priceFormat(
+                                                enabled: Constant
+                                                        .isNumberWithSuffix ==
                                                     true,
-                                            context: context,
-                                          ),
+                                                context: context,
+                                              )
+                                              .formatAmount(
+                                                prefix: true,
+                                              ),
                                           maxLines: 1,
                                           fontSize: context.font.large,
                                           fontWeight: FontWeight.w700,
@@ -265,17 +266,19 @@ class PropertyCard extends StatelessWidget {
                                         )
                                       else
                                         CustomText(
-                                          agentPropertiesData.price.priceFormat(
-                                            enabled:
-                                                Constant.isNumberWithSuffix ==
+                                          agentPropertiesData.price
+                                              .priceFormat(
+                                                enabled: Constant
+                                                        .isNumberWithSuffix ==
                                                     true,
-                                            context: context,
-                                          ),
+                                                context: context,
+                                              )
+                                              .formatAmount(),
                                           maxLines: 1,
                                           fontWeight: FontWeight.w700,
                                           color: context.color.tertiaryColor,
                                           fontSize: context.font.large,
-                                        ),
+                                        )
                                     ],
                                     CustomText(
                                       agentPropertiesData.title

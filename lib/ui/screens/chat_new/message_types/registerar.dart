@@ -130,7 +130,7 @@ class ChatMessageHandler {
 
 ///This class is using for render changes and
 class RenderMessage extends StatefulWidget {
-  const RenderMessage({required this.message, super.key});
+  const RenderMessage({required this.message, key}) : super(key: key);
   final Message message;
 
   @override
@@ -196,8 +196,7 @@ class _RenderMessageState extends MessageRenderState<RenderMessage>
                   ContextMenuController.removeAny();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: CustomText('Text copied to clipboard'),
-                    ),
+                        content: CustomText('Text copied to clipboard')),
                   );
                 },
                 child: Container(
@@ -206,9 +205,8 @@ class _RenderMessageState extends MessageRenderState<RenderMessage>
                       : Colors.black,
                   padding: const EdgeInsets.all(8),
                   child: CustomText(
-                    'Copy${widget.message.type == "file_and_text" ? " Text" : ""}',
-                    color: context.color.inverseSurface,
-                  ),
+                      'Copy${widget.message.type == "file_and_text" ? " Text" : ""}',
+                      color: context.color.inverseSurface),
                 ),
               ),
             if (widget.message.isSentByMe)

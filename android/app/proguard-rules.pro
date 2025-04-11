@@ -5,5 +5,9 @@
 -dontwarn com.stripe.android.pushProvisioning.PushProvisioningEphemeralKeyProvider
 -dontwarn proguard.annotation.Keep
 -dontwarn proguard.annotation.KeepClassMembers
+-dontwarn j$.util.concurrent.ConcurrentHashMap$**
+-dontwarn j$.util.IntSummaryStatistics
+-dontwarn j$.util.LongSummaryStatistics
+-dontwarn j$.util.DoubleSummaryStatistics
 -keep class com.google.common.reflect.TypeToken
 -keep class * extends com.google.common.reflect.TypeToken

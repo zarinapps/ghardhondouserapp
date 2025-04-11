@@ -11,6 +11,7 @@ class Widgets {
     isLoaderShowing = true;
     await showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (BuildContext context) {
         return SafeArea(
           child: PopScope(

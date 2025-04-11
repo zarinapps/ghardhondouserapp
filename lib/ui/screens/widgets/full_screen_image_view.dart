@@ -131,7 +131,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
             ],
             backgroundColor: Colors.transparent,
             leading: Container(
-              margin: const EdgeInsetsDirectional.only(start: 8),
+              margin: EdgeInsetsDirectional.only(start: 8),
               decoration: BoxDecoration(
                 color: context.color.secondaryColor,
                 shape: BoxShape.circle,

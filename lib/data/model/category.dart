@@ -7,21 +7,21 @@ class Category {
   int? id;
   String? category;
   String? image;
-  List<dynamic>? parameterTypes;
+  List? parameterTypes;
   Category({this.id, this.category, this.image, this.parameterTypes});
 
   Category.fromJson(Map<String, dynamic> json) {
-    id = json[Api.id] as int?;
-    category = json[Api.category]?.toString() ?? '';
-    image = json[Api.image]?.toString() ?? '';
+    id = json[Api.id];
+    category = json[Api.category];
+    image = json[Api.image] ?? '';
     parameterTypes = json[Api.parameterTypes] is Map
-        ? json[Api.parameterTypes]['parameters'] as List? ?? []
-        : ((json[Api.parameterTypes] as List?) ?? []);
+        ? json[Api.parameterTypes]['parameters']
+        : (json[Api.parameterTypes] ?? []);
   }
 
   Category.fromProperty(Map<String, dynamic> json) {
-    id = json[Api.id] as int?;
-    category = json[Api.category]?.toString() ?? '';
+    id = json[Api.id];
+    category = json[Api.category];
   }
 
   Map<String, dynamic> toMap() {
@@ -35,10 +35,10 @@ class Category {
 
   factory Category.fromMap(Map<String, dynamic> map) {
     return Category(
-      id: map['id'] as int?,
+      id: map['id'],
       category: map['category'] != null ? map['category'] as String : null,
       image: map['image'] != null ? map['image'] as String : null,
-      parameterTypes: map['parameterTypes'] as List? ?? [],
+      parameterTypes: map['parameterTypes'] ?? [],
     );
   }
 
@@ -58,6 +58,6 @@ class Type {
 
   Type.fromJson(Map<String, dynamic> json) {
     id = json[Api.id].toString();
-    type = json[Api.type]?.toString() ?? '';
+    type = json[Api.type];
   }
 }

@@ -39,8 +39,8 @@ class PersonalizedFeedRepository {
     );
 
     try {
-      personalizedInterestSettings = PersonalizedInterestSettings.fromMap(
-          result['data'] as Map<String, dynamic>? ?? {});
+      personalizedInterestSettings =
+          PersonalizedInterestSettings.fromMap(result['data']);
     } catch (e) {
       // TODO(R): handle error
     }
@@ -77,7 +77,7 @@ class PersonalizedFeedRepository {
       );
 
       return PersonalizedInterestSettings.fromMap(
-        userPersonalization['data'] as Map<String, dynamic>? ?? {},
+        userPersonalization['data'],
       );
     } catch (e) {
       if (kDebugMode) {
@@ -102,7 +102,6 @@ class PersonalizedFeedRepository {
         .cast<Map<String, dynamic>>()
         .map<PropertyModel>(PropertyModel.fromMap)
         .toList();
-    return DataOutput(
-        total: response['total'] as int? ?? 0, modelList: modelList);
+    return DataOutput(total: response['total'] ?? 0, modelList: modelList);
   }
 }

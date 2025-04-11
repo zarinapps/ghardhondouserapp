@@ -64,7 +64,7 @@ class _AreaCalculatorState extends State<AreaCalculator> {
                   height: 15.rh(context),
                 ),
                 CustomText(
-                  "${UiUtils.translate(context, "convert")} ${_placeSpaceBeforeCapital(_from.value?.toString() ?? '')} to  ${_placeSpaceBeforeCapital(_to.value?.toString() ?? '')}",
+                  "${UiUtils.translate(context, "convert")} ${_placeSpaceBeforeCapital(_from.value)} to  ${_placeSpaceBeforeCapital(_to.value)}",
                   fontSize: context.font.large,
                   color: context.color.textColorDark,
                 ),
@@ -128,14 +128,14 @@ class _AreaCalculatorState extends State<AreaCalculator> {
 
                     final convert = AreaConverter().convert(
                       num.parse(_fromTextController.text),
-                      from: getEnum(_from.value?.toString() ?? ''),
-                      to: getEnum(_to.value?.toString() ?? ''),
+                      from: getEnum(_from.value),
+                      to: getEnum(_to.value),
                     );
 
                     _toTextController.text = convert.toString();
 
                     _resultController.text =
-                        '${_fromTextController.text} ${_placeSpaceBeforeCapital(_from.value?.toString() ?? '')} = $convert ${_placeSpaceBeforeCapital(_to.value?.toString() ?? '')}';
+                        '${_fromTextController.text} ${_placeSpaceBeforeCapital(_from.value)} = $convert ${_placeSpaceBeforeCapital(_to.value)}';
                   },
                   buttonTitle: UiUtils.translate(context, 'convert'),
                 ),
@@ -210,7 +210,7 @@ class _AreaCalculatorState extends State<AreaCalculator> {
         ),
         Expanded(
           child: DropdownButton<String>(
-            value: value?.toString() ?? '',
+            value: value,
             isExpanded: true,
             underline: const SizedBox.shrink(),
             items: List.generate(values.length, (index) {

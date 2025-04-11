@@ -64,7 +64,7 @@ class EnquiryCubit extends Cubit<EnquiryState> {
       context,
       passUserid: false,
     );
-    final getdata = json.decode(response?.toString() ?? '') as Map?;
+    final getdata = json.decode(response);
     if (getdata != null) {
     } else {
       Future.delayed(
@@ -74,6 +74,6 @@ class EnquiryCubit extends Cubit<EnquiryState> {
         },
       );
     }
-    return getdata?[Api.message]?.toString() ?? '';
+    return getdata[Api.message];
   }
 }

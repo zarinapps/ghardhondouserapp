@@ -17,7 +17,7 @@ class LottieEditor {
   Future<void> openAndLoad(String path) async {
     try {
       final data = await rootBundle.loadString(path);
-      final lottieJson = json.decode(data) as Map<String, dynamic>;
+      final Map<String, dynamic> lottieJson = json.decode(data);
       _updateLottieJson(lottieJson);
     } catch (e) {
       _handleError('Error opening and loading Lottie file', e);
@@ -58,7 +58,7 @@ class LottieEditor {
     Map<String, dynamic> json,
     Color targetColor,
   ) {
-    final layers = (json['layers'] as List<dynamic>?) ?? [];
+    final List<dynamic> layers = json['layers'] ?? [];
 
     for (final dynamic layer in layers) {
       _modifyLayerColors(layer, targetColor);
@@ -72,7 +72,7 @@ class LottieEditor {
     List<String> shapeNames,
     Color targetColor,
   ) {
-    final layers = (json['layers'] as List<dynamic>?) ?? [];
+    final List<dynamic> layers = json['layers'] ?? [];
     for (final dynamic layer in layers) {
       _modifyLayerColorsByShapeNames(layer, shapeNames, targetColor);
     }
@@ -80,22 +80,30 @@ class LottieEditor {
   }
 
   // Private method to modify colors within a layer
-  void _modifyLayerColors(layer, Color targetColor) {
-    final shapes = (layer['shapes'] as List<dynamic>?) ?? [];
+  void _modifyLayerColors(dynamic layer, Color targetColor) {
+    final List<dynamic> shapes = layer['shapes'] ?? [];
     for (final dynamic shape in shapes) {
-      _loopShapes(shape as Map<String, dynamic>, targetColor);
+      _loopShapes(shape, targetColor);
+      // log("SHAPE NAMEEE $shape");
+      // if (shape['ty'] == 'fl' || shape['ty'] == 'st') {
+      //   log("HEHE COLOR ISS $shape");
+      //   shape['c'] = _flutterColorToLottie(targetColor);
+      // } else if (shape['ty'] == 'gr') {
+      //   log("COLORS GG");
+      //   _modifyLayerColors(shape['it'], targetColor);
+      // }
     }
   }
 
-  void _loopShapes(Map<dynamic, dynamic> shape, targetColor) {
-    final shapes = (shape['it'] as List?) ?? [];
+  void _loopShapes(Map shape, targetColor) {
+    final List shapes = shape['it'] ?? [];
     for (final element in shapes) {
       if (element['ty'] == 'fl') {
-        element['c'] = _flutterColorToLottie(targetColor as Color);
+        element['c'] = _flutterColorToLottie(targetColor);
       } else if (element['ty'] == 'gr') {
-        _loopShapes(element as Map<dynamic, dynamic>, targetColor);
+        _loopShapes(element, targetColor);
       } else if (element['ty'] == 'st') {
-        element['c'] = _flutterColorToLottie(targetColor as Color);
+        element['c'] = _flutterColorToLottie(targetColor);
       }
     }
   }
@@ -106,10 +114,10 @@ class LottieEditor {
     List<String> shapeNames,
     Color targetColor,
   ) {
-    final shapes = (layer['shapes'] as List<dynamic>?) ?? [];
+    final List<dynamic> shapes = layer['shapes'] ?? [];
     for (final dynamic shape in shapes) {
       if (shape['ty'] == 'fl' || shape['ty'] == 'st') {
-        final shapeName = shape['nm']?.toString() ?? '';
+        final String shapeName = shape['nm'];
 
         if (shapeNames.contains(shapeName)) {
           shape['c'] = _flutterColorToLottie(targetColor);

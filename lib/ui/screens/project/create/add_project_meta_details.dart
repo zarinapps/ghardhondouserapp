@@ -21,12 +21,11 @@ class ProjectMetaDetails extends StatefulWidget {
 }
 
 class _ProjectMetaDetailsState extends CloudState<ProjectMetaDetails> {
-  late Map<String, dynamic> projectDetails = Map<String, dynamic>.from(
-    getCloudData('add_project_details') as Map? ?? {},
-  );
+  late Map<String, dynamic> projectDetails =
+      Map<String, dynamic>.from(getCloudData('add_project_details'));
   late ProjectModel? project = projectDetails['project'] == null
       ? null
-      : projectDetails['project'] as ProjectModel;
+      : ProjectModel.fromMap(projectDetails['project']);
   final GlobalKey<FormState> _formKey = GlobalKey();
   late final TextEditingController _metaTitleController =
       TextEditingController(text: project?.metaTitle);
@@ -57,53 +56,51 @@ class _ProjectMetaDetailsState extends CloudState<ProjectMetaDetails> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
           child: MaterialButton(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            color: context.color.tertiaryColor,
-            onPressed: () {
-              final data = <String, dynamic>{};
-              final metaDetails = <String, dynamic>{
-                'meta_title': _metaTitleController.text,
-                'meta_description': _metaDescriptionController.text,
-                'meta_keywords': _metaKeywordsController.text,
-              };
-              final metaImageData = metaImage?.value != metaImageUrl &&
-                      metaImage?.value != '' &&
-                      metaImage != null
-                  ? <String, dynamic>{
-                      'meta_image': metaImage,
-                    }
-                  : null;
-              data
-                ..addAll(projectDetails)
-                ..addAll(metaDetails)
-                ..addAll(metaImageData ?? {})
-                ..addAll(
-                  Map<String, dynamic>.from(
-                    getCloudData('floor_plans') as Map? ?? {},
-                  ),
-                );
-
-              if (!projectDetails.containsKey('category_id')) {
-                data.addAll({
-                  'category_id':
-                      (Constant.addProperty['category'] as c.Category).id,
-                });
-              }
-              data.remove('project');
-              context.read<ManageProjectCubit>().manage(
-                    type: ManageProjectType.create,
-                    data: data,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              color: context.color.tertiaryColor,
+              onPressed: () {
+                final data = <String, dynamic>{};
+                final metaDetails = <String, dynamic>{
+                  'meta_title': _metaTitleController.text,
+                  'meta_description': _metaDescriptionController.text,
+                  'meta_keywords': _metaKeywordsController.text,
+                };
+                final metaImageData = metaImage?.value != metaImageUrl &&
+                        metaImage?.value != '' &&
+                        metaImage != null
+                    ? <String, dynamic>{
+                        'meta_image': metaImage,
+                      }
+                    : null;
+                data
+                  ..addAll(projectDetails)
+                  ..addAll(metaDetails)
+                  ..addAll(metaImageData ?? {})
+                  ..addAll(
+                    Map<String, dynamic>.from(
+                      getCloudData('floor_plans'),
+                    ),
                   );
-              // Navigator.pushNamed(context, Routes.projectMetaDataScreens);
-            },
-            height: 50,
-            child: CustomText(
-              'continue'.translate(context),
-              color: context.color.secondaryColor,
-            ),
-          ),
+
+                if (!projectDetails.containsKey('category_id')) {
+                  data.addAll({
+                    'category_id':
+                        (Constant.addProperty['category'] as c.Category).id,
+                  });
+                }
+                data.remove('project');
+                context.read<ManageProjectCubit>().manage(
+                      type: ManageProjectType.create,
+                      data: data,
+                    );
+                // Navigator.pushNamed(context, Routes.projectMetaDataScreens);
+              },
+              height: 50,
+              child: CustomText(
+                'continue'.translate(context),
+                color: context.color.secondaryColor,
+              )),
         ),
       ),
       body: BlocListener<ManageProjectCubit, ManageProjectState>(
@@ -125,7 +122,7 @@ class _ProjectMetaDetailsState extends CloudState<ProjectMetaDetails> {
               ..pop();
           }
           if (state is ManageProjectInFail) {
-            throw state.error?.toString() ?? '';
+            throw state.error;
           }
         },
         child: Padding(

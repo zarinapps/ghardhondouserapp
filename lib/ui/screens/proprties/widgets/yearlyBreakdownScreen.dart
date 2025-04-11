@@ -28,7 +28,9 @@ class _YearlyBreakdownScreenState extends State<YearlyBreakdownScreen>
               title: 'yearlyBreakdown'.translate(context),
             ),
             body: SingleChildScrollView(
-              physics: Constant.scrollPhysics,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [

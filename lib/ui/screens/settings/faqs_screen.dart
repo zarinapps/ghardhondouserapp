@@ -61,7 +61,9 @@ class _FaqsScreenState extends State<FaqsScreen> {
               );
         },
         child: SingleChildScrollView(
-          physics: Constant.scrollPhysics,
+          physics: AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           controller: faqsListScreenController,
           child: Column(
             children: <Widget>[
@@ -82,12 +84,12 @@ class _FaqsScreenState extends State<FaqsScreen> {
                       ),
                       itemCount: 25,
                       itemBuilder: (context, index) {
-                        return const Column(
+                        return Column(
                           children: [
                             CustomShimmer(
                               height: 48,
                             ),
-                            SizedBox(
+                            const SizedBox(
                               height: 16,
                             ),
                           ],

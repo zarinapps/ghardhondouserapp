@@ -79,7 +79,7 @@ class AudioMessage extends Message {
     super.init();
   }
 
-  Future<void> togglePlayPause() async {
+  void togglePlayPause() async {
     if (isPlaying.value) {
       await audioPlayer.pause();
     } else {
@@ -90,7 +90,7 @@ class AudioMessage extends Message {
       if (audioPlayer.state == PlayerState.completed) {
         position = 0;
         durationChanged = 0;
-        await audioPlayer.seek(Duration.zero);
+        audioPlayer.seek(Duration.zero);
         duration.value = Duration.zero;
         progressValue.value = 0;
         await audioPlayer.setSourceUrl(message!.audio!);
@@ -113,7 +113,7 @@ class AudioMessage extends Message {
   }
 
   @override
-  Future<void> dispose() async {
+  void dispose() async {
     super.dispose();
     await audioPlayer.stop();
   }
@@ -146,7 +146,9 @@ class AudioMessage extends Message {
                         child: Row(
                           children: [
                             CustomInkWell(
-                              onTap: togglePlayPause,
+                              onTap: () {
+                                togglePlayPause();
+                              },
                               color: isSentByMe
                                   ? getSentByMeDecoration(context)
                                       .color!

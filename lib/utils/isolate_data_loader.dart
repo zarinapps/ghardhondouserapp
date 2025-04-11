@@ -26,7 +26,7 @@ class IsolateDataLoader<T> {
         receivePort.close();
         isolate.kill();
       } else {
-        completer.completeError(message as Object);
+        completer.completeError(message);
         receivePort.close();
         isolate.kill();
       }

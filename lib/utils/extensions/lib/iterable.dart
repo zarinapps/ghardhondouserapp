@@ -4,7 +4,7 @@ extension MapIndexed on Iterable {
     return map<U>((it) {
       final t = i;
       i++;
-      return f(it as T, t);
+      return f(it, t);
     });
   }
 }

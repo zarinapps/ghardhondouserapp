@@ -16,25 +16,24 @@ class ChatedUser {
 
   ChatedUser.fromJson(Map<String, dynamic> json, {BuildContext? context}) {
     if (context != null && json['profile'] != null && json['profile'] != '') {
-      precacheImage(NetworkImage(json['profile']?.toString() ?? ''), context);
+      precacheImage(NetworkImage(json['profile']), context);
     }
     if (context != null &&
         json['title_image'] != null &&
         json['title_image'] != '') {
-      precacheImage(
-          NetworkImage(json['title_image']?.toString() ?? ''), context);
+      precacheImage(NetworkImage(json['title_image']), context);
     }
-    propertyId = json['property_id'] as int?;
-    title = json['title']?.toString() ?? '';
-    titleImage = json['title_image']?.toString() ?? '';
-    userId = json['user_id'] as int?;
+    propertyId = json['property_id'];
+    title = json['title'];
+    titleImage = json['title_image'];
+    userId = json['user_id'];
 
-    name = json['name']?.toString() ?? '';
-    profile = json['profile']?.toString() ?? '';
-    firebaseId = json['firebase_id']?.toString() ?? '';
-    fcmId = json['fcm_id']?.toString() ?? '';
-    isBlockedByMe = json['is_blocked_by_me'] as bool? ?? false;
-    isBlockedByUser = json['is_blocked_by_user'] as bool? ?? false;
+    name = json['name'];
+    profile = json['profile'];
+    firebaseId = json['firebase_id'];
+    fcmId = json['fcm_id'];
+    isBlockedByMe = json['is_blocked_by_me'];
+    isBlockedByUser = json['is_blocked_by_user'];
   }
   int? propertyId;
   String? title;

@@ -42,25 +42,7 @@ class NoDataFound extends StatelessWidget {
             description ?? 'sorryLookingFor'.translate(context),
             textAlign: TextAlign.center,
             fontSize: context.font.large,
-          ),
-          const SizedBox(
-            height: 14,
-          ),
-          if (onTap != null)
-            GestureDetector(
-              onTap: onTap,
-              child: SizedBox(
-                height: height ?? 50,
-                child: Center(
-                  child: CustomText(
-                    'retry'.translate(context),
-                    fontWeight: FontWeight.bold,
-                    fontSize: context.font.normal,
-                    color: context.color.buttonColor,
-                  ),
-                ),
-              ),
-            )
+          )
         ],
       ),
     );

@@ -4,9 +4,9 @@ import 'package:ebroker/ui/screens/chat/chat_audio/globals.dart';
 import 'package:ebroker/ui/screens/chat_new/message_types/registerar.dart';
 import 'package:flutter/material.dart';
 
-//////////////////
-//// V-1.2.2 ////
-////////////////
+//////////////
+///V-1.2.2///
+////////////
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

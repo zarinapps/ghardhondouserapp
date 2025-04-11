@@ -45,13 +45,12 @@ class AnalyticsScreen extends StatelessWidget {
                       fontSize: context.font.larger,
                     ),
                     Center(
-                      child: CustomText(
-                        interestUserCount,
-                        fontStyle: FontStyle.italic,
-                        color: context.color.textColorDark,
-                        fontSize: context.font.extraLarge,
-                      ),
-                    ),
+                        child: CustomText(
+                      interestUserCount,
+                      fontStyle: FontStyle.italic,
+                      color: context.color.textColorDark,
+                      fontSize: context.font.extraLarge,
+                    )),
                   ],
                 ),
               ),

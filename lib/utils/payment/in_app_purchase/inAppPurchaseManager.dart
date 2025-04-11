@@ -46,7 +46,7 @@ class InAppPurchaseManager {
   }
 
   Future<void> onRestoredPurchase(PurchaseDetails purchase) async {}
-  Future<void> completePending(List<PurchaseDetails> event) async {
+  Future completePending(event) async {
     for (final _purchaseDetails in event) {
       if (_purchaseDetails.purchaseID != null &&
           _purchaseDetails.pendingCompletePurchase) {

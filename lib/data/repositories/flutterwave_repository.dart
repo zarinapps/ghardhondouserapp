@@ -11,11 +11,10 @@ class FlutterwaveRepository {
       );
 
       if (response['error'] == false && response['data'] != null) {
-        return response['data']['data']['link']?.toString() ?? '';
+        return response['data']['data']['link'];
       } else {
         throw Exception(
-          response['message'] ?? 'Failed to fetch flutterwave link',
-        );
+            response['message'] ?? 'Failed to fetch flutterwave link');
       }
     } catch (e) {
       throw Exception('Failed to get flutterwave url: $e');

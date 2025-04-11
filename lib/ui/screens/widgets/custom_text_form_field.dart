@@ -61,10 +61,7 @@ class CustomTextFormField extends StatelessWidget {
       textInputAction: action,
       keyboardAppearance: Brightness.light,
       readOnly: isReadOnly ?? false,
-      style: TextStyle(
-        fontSize: context.font.large,
-        color: context.color.textColorDark,
-      ),
+      style: TextStyle(fontSize: context.font.large),
       minLines: minLine ?? 1,
       maxLines: maxLine ?? 1,
       onChanged: onChange,

@@ -11,9 +11,9 @@ import 'package:ebroker/data/cubits/system/app_theme_cubit.dart';
 import 'package:ebroker/ui/screens/chat/chat_screen.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
+import 'package:ebroker/utils/notification/chat_message_handler.dart';
 import 'package:ebroker/utils/helper_utils.dart';
 import 'package:ebroker/utils/hive_utils.dart';
-import 'package:ebroker/utils/notification/chat_message_handler.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -51,17 +51,17 @@ class ChatMessage extends StatefulWidget {
 
   factory ChatMessage.fromMap(Map json) {
     final chat = ChatMessage(
-      key: json['key'] as Key?,
-      message: json['message']?.toString() ?? '',
-      isSentByMe: json['isSentByMe'] as bool? ?? false,
-      isChatAudio: json['isChatAudio'] as bool? ?? false,
-      senderId: json['senderId']?.toString() ?? '',
+      key: json['key'],
+      message: json['message'],
+      isSentByMe: json['isSentByMe'],
+      isChatAudio: json['isChatAudio'],
+      senderId: json['senderId'],
       audioFile: json['audioFile'],
       attachment: json['attachment'],
-      time: json['time']?.toString() ?? '',
-      hasAttachment: json['hasAttachment'] as bool? ?? false,
-      propertyId: json['propertyId']?.toString() ?? '',
-      reciverId: json['reciverId']?.toString() ?? '',
+      time: json['time'],
+      hasAttachment: json['hasAttachment'],
+      propertyId: json['propertyId'],
+      reciverId: json['reciverId'],
     );
     return chat;
   }
@@ -81,7 +81,7 @@ class ChatMessage extends StatefulWidget {
   @override
   State<ChatMessage> createState() => ChatMessageState();
 
-  Map<dynamic, dynamic> toMap() {
+  Map toMap() {
     final data = {};
     data['key'] = key;
     data['message'] = message;
@@ -105,7 +105,7 @@ class ChatMessageState extends State<ChatMessage>
   bool selectedMessage = false;
   static bool isMounted = false;
   String? link;
-  final ValueNotifier<dynamic> _linkAddNotifier = ValueNotifier('');
+  final ValueNotifier _linkAddNotifier = ValueNotifier('');
   @override
   void initState() {
     ///isSentNow is for check if we are not appending messages multiple time
@@ -119,7 +119,7 @@ class ChatMessageState extends State<ChatMessage>
               attachment: widget.attachment,
               message: widget.message,
               proeprtyId: widget.propertyId,
-              audio: widget.audioFile?.toString() ?? '',
+              audio: widget.audioFile,
             );
       }
       sentMessages.add(widget.key);
@@ -198,7 +198,7 @@ class ChatMessageState extends State<ChatMessage>
 
     return GestureDetector(
       onLongPress: () {
-        selectedMessageid.value = (widget.key! as ValueKey).value as int;
+        selectedMessageid.value = (widget.key! as ValueKey).value;
         selectedRecieverId.value = int.parse(widget.reciverId);
         showDeletebutton.value = true;
       },
@@ -255,7 +255,7 @@ class ChatMessageState extends State<ChatMessage>
                       child: Container(
                         child: widget.isChatAudio
                             ? RecordMessage(
-                                url: widget.audioFile?.toString() ?? '',
+                                url: widget.audioFile ?? '',
                                 isSentByMe: widget.isSentByMe,
                               )
                             : Column(
@@ -264,7 +264,7 @@ class ChatMessageState extends State<ChatMessage>
                                 children: [
                                   if (widget.hasAttachment)
                                     AttachmentMessage(
-                                      url: widget.attachment?.toString() ?? '',
+                                      url: widget.attachment,
                                       isSentByMe: widget.isSentByMe,
                                     ),
 
@@ -279,19 +279,18 @@ class ChatMessageState extends State<ChatMessage>
                                       ),
                                       children: _replaceLink().map((data) {
                                         //This will add link to msg
-                                        if (_isLink(data?.toString() ?? '')) {
+                                        if (_isLink(data)) {
                                           //This will notify priview object that it has link
                                           _linkAddNotifier
                                             ..value = data
                                             ..notifyListeners();
 
                                           return TextSpan(
-                                            text: data?.toString() ?? '',
+                                            text: data,
                                             recognizer: TapGestureRecognizer()
                                               ..onTap = () async {
                                                 await launchUrl(
-                                                  Uri.parse(
-                                                      data?.toString() ?? ''),
+                                                  Uri.parse(data),
                                                 );
                                               },
                                             style: TextStyle(
@@ -304,9 +303,8 @@ class ChatMessageState extends State<ChatMessage>
                                         //This will make text bold
                                         return TextSpan(
                                           text: '',
-                                          children: _matchAstric(
-                                                  data?.toString() ?? '')
-                                              .map((text) {
+                                          children:
+                                              _matchAstric(data).map((text) {
                                             if (text.startsWith('*') &&
                                                 text.endsWith('*')) {
                                               return TextSpan(
@@ -362,7 +360,7 @@ class ChatMessageState extends State<ChatMessage>
                             ////We were added local id so whenit completed we will replace it with server message id
 
                             ChatMessageHandlerOLD.updateMessageId(
-                              uniqueIdentifier.value?.toString() ?? '',
+                              uniqueIdentifier.value,
                               state.messageId,
                             );
 

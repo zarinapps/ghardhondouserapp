@@ -129,9 +129,7 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
           );
         } catch (e) {
           await HelperUtils.showSnackBarMessage(
-            context,
-            '$e'.translate(context),
-          );
+              context, '$e'.translate(context));
         }
       } else {}
 
@@ -211,9 +209,8 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
             await loopMarker(pointList);
             setState(() {});
             await fetchProperty(
-              id: element.propertyId,
-              isMyProperty: element.addedBy == HiveUtils.getUserId(),
-            );
+                id: element.propertyId,
+                isMyProperty: element.addedBy == HiveUtils.getUserId());
           },
           position: LatLng(
             double.parse(element.latitude),
@@ -225,10 +222,8 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     setState(() {});
   }
 
-  Future<void> fetchProperty({
-    required int id,
-    required bool isMyProperty,
-  }) async {
+  Future<void> fetchProperty(
+      {required int id, required bool isMyProperty}) async {
     try {
       isLoadingProperty.value = true;
       final result = await PropertyRepository().fetchPropertyFromPropertyId(
@@ -251,8 +246,7 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     // var rawCityLatLong = await GooglePlaceRepository()
     //     .getPlaceDetailsFromPlaceId(cities?.elementAt(index).placeId ?? "");
 
-    final latLng =
-        await getCityLatLong(cities?.elementAt(index as int).placeId ?? '');
+    final latLng = await getCityLatLong(cities?.elementAt(index).placeId ?? '');
     return latLng;
   }
 
@@ -262,8 +256,7 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
       placeId,
     );
 
-    final citylatLong = LatLng(
-        rawCityLatLong['lat'] as double, rawCityLatLong['lng'] as double);
+    final citylatLong = LatLng(rawCityLatLong['lat'], rawCityLatLong['lng']);
     return citylatLong;
   }
 
@@ -343,10 +336,6 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
                         //OutlineInputBorder()
                         fillColor: Theme.of(context).colorScheme.secondaryColor,
                         hintText: UiUtils.translate(context, 'searchHintLbl'),
-                        hintStyle: TextStyle(
-                          color: context.color.inverseSurface
-                              .withValues(alpha: 0.5),
-                        ),
                         prefixIcon: cities != null
                             ? buildCloseIcon()
                             : buildSearchIcon(),

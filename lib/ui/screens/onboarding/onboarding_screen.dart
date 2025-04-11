@@ -7,7 +7,6 @@ import 'package:ebroker/utils/extensions/lib/custom_text.dart';
 import 'package:ebroker/utils/hive_keys.dart';
 import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/ui_utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -65,8 +64,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color accentColor = Colors.red;
-    print(accentColor.r);
+    final Color accentColor = Colors.red;
+    print(accentColor.r.toString());
     final slidersList = [
       {
         'lottie': onBoardingOneData,
@@ -100,10 +99,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               height: 300,
               child: (slidersList[currentPageIndex]['lottie'] != null)
                   ? Lottie.memory(
-                      Uint8List.fromList(
-                        slidersList[currentPageIndex]['lottie'] as List<int>? ??
-                            [],
-                      ),
+                      slidersList[currentPageIndex]['lottie'],
                       delegates: const LottieDelegates(
                         values: [],
                       ),
@@ -135,14 +131,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       stream: Hive.box(HiveKeys.languageBox)
                           .watch(key: HiveKeys.currentLanguageKey),
                       builder: (context, AsyncSnapshot<BoxEvent> value) {
-                        final language = context
-                            .watch<FetchSystemSettingsCubit>()
-                            .getSetting(SystemSetting.language)
-                            .toString()
-                            .firstUpperCase();
-
                         if (value.data?.value == null) {
-                          if (language == 'null') {
+                          if (context
+                                  .watch<FetchSystemSettingsCubit>()
+                                  .getSetting(SystemSetting.language)
+                                  .toString() ==
+                              'null') {
                             return const CustomText('');
                           }
                           return CustomText(
@@ -244,20 +238,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.all(15),
-                        child: CustomText(
-                          slidersList[currentPageIndex]['title']?.toString() ??
-                              '',
-                          key: const Key('onboarding_title'),
-                          fontWeight: FontWeight.w600,
-                          fontSize: context.font.extraLarge.rf(context),
-                          color: context.color.tertiaryColor,
-                        ),
-                      ),
+                          padding: const EdgeInsets.all(15),
+                          child: CustomText(
+                            slidersList[currentPageIndex]['title'],
+                            key: const Key('onboarding_title'),
+                            fontWeight: FontWeight.w600,
+                            fontSize: context.font.extraLarge.rf(context),
+                            color: context.color.tertiaryColor,
+                          )),
                       CustomText(
-                        slidersList[currentPageIndex]['description']
-                                ?.toString() ??
-                            '',
+                        slidersList[currentPageIndex]['description'],
                         maxLines: 3,
                         textAlign: TextAlign.center,
                         fontSize: context.font.larger.rf(context),

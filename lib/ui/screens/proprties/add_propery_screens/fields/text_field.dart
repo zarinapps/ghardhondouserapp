@@ -13,7 +13,7 @@ class CustomTextField extends CustomField {
   @override
   void init() {
     id = data['id'];
-    controller = TextEditingController(text: data['value']?.toString() ?? '');
+    controller = TextEditingController(text: data['value']);
     super.init();
   }
 
@@ -41,7 +41,7 @@ class CustomTextField extends CustomField {
                 width: 24,
                 child: FittedBox(
                   child: UiUtils.imageType(
-                    data['image']?.toString() ?? '',
+                    data['image'],
                     color: Constant.adaptThemeColorSvg
                         ? context.color.tertiaryColor
                         : null,
@@ -56,7 +56,7 @@ class CustomTextField extends CustomField {
               width: 10.rw(context),
             ),
             CustomText(
-              data['name']?.toString() ?? '',
+              data['name'],
               fontWeight: FontWeight.w500,
               fontSize: context.font.large,
               color: context.color.textColorDark,

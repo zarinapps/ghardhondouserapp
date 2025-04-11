@@ -69,22 +69,21 @@ class SendOtpCubit extends Cubit<SendOtpState> {
         email: email,
       );
       if (result['error'] == true) {
-        emit(SendOtpFailure(result['message']?.toString() ?? ''));
+        emit(SendOtpFailure(result['message']));
       } else {
-        emit(SendOtpSuccess(message: result['message']?.toString() ?? ''));
+        emit(SendOtpSuccess(message: result['message']));
       }
     } catch (e) {
       emit(SendOtpFailure(e.toString()));
     }
   }
 
-  Future<void> sendEmailOTP({
-    required String email,
-    required String name,
-    required String phoneNumber,
-    required String password,
-    required String confirmPassword,
-  }) async {
+  Future<void> sendEmailOTP(
+      {required String email,
+      required String name,
+      required String phoneNumber,
+      required String password,
+      required String confirmPassword}) async {
     emit(SendOtpInProgress());
     try {
       final result = await _authRepository.sendEmailOTP(
@@ -96,7 +95,7 @@ class SendOtpCubit extends Cubit<SendOtpState> {
       );
       print(result);
       if (result['error'] == true) {
-        emit(SendOtpFailure(result['message']?.toString() ?? ''));
+        emit(SendOtpFailure(result['message']));
       } else {
         emit(SendOtpSuccess());
       }
@@ -116,7 +115,7 @@ class SendOtpCubit extends Cubit<SendOtpState> {
         password: password,
       );
       if (result['error'] == true) {
-        emit(SendOtpFailure(result['message']?.toString() ?? ''));
+        emit(SendOtpFailure(result['message']));
       } else {
         emit(SendOtpSuccess());
       }

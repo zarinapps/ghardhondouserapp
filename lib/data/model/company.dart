@@ -9,12 +9,12 @@ class Company {
   });
 
   Company.fromJson(Map<String, dynamic> json) {
-    companyName = json['company_name']?.toString() ?? '';
-    companyWebsite = json['company_website']?.toString() ?? '';
-    companyEmail = json['company_email']?.toString() ?? '';
-    companyAddress = json['company_address']?.toString() ?? '';
-    companyTel1 = json['company_tel1']?.toString() ?? '';
-    companyTel2 = json['company_tel2']?.toString() ?? '';
+    companyName = json['company_name'];
+    companyWebsite = json['company_website'];
+    companyEmail = json['company_email'];
+    companyAddress = json['company_address'];
+    companyTel1 = json['company_tel1'];
+    companyTel2 = json['company_tel2'];
   }
   String? companyName;
   String? companyWebsite;

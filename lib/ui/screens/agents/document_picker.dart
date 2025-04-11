@@ -44,7 +44,7 @@ class _DocumentPickerWidgetState extends State<DocumentPickerWidget> {
         _buildPickerUI(),
         if (selectedDocument?.isExisting ?? false)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: 8.0),
             child: DownloadableDocuments(url: selectedDocument!.name),
           ),
       ],
@@ -150,7 +150,7 @@ class _DocumentPickerWidgetState extends State<DocumentPickerWidget> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: CustomText('${'defaultErrorMsg'.translate(context)}: $e'),),
+            content: CustomText('${'defaultErrorMsg'.translate(context)}: $e')),
       );
     } finally {
       setState(() => _isSelecting = false);

@@ -2,9 +2,9 @@ class FaqsModel {
   FaqsModel({this.id, this.question, this.answer});
 
   FaqsModel.fromJson(Map<String, dynamic> json) {
-    id = json['id'] as int?;
-    question = json['question']?.toString() ?? '';
-    answer = json['answer']?.toString() ?? '';
+    id = json['id'];
+    question = json['question'];
+    answer = json['answer'];
   }
   int? id;
   String? question;

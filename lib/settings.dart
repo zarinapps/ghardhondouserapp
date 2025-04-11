@@ -8,12 +8,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AppSettings {
   ///Basic Settings
-  static const String applicationName = 'Ghar Dhondho';
-  static const String androidPackageName = 'com.ebroker.wrteam';
+  static const String applicationName = 'Ghar Dhondo';
+  static const String androidPackageName = 'ghardhondo.zarin.solutions';
 
   ///API Setting
-  static const String hostUrl = 'https://ghardhondo.zarin.solutions/';
-  // ghardhondo.zarin.solutions
+  static const String hostUrl = 'http://ghardhondo.zarin.solutions';
+  // ebroker.wrteam.me
   static const int apiDataLoadLimit = 10;
   static const int maxCategoryShowLengthInHomeScreen = 5;
 
@@ -57,18 +57,18 @@ it will call API in background without showing the process and when data availab
 
   static List<HomeScreenSections> sections = [
     //[Note: We Recommend default setting you can make arrangement by your choice or you can hide any section if you do not want]
-    HomeScreenSections.search,
-    HomeScreenSections.slider,
-    HomeScreenSections.category,
-    HomeScreenSections.nearbyProperties,
-    HomeScreenSections.featuredProperties,
-    HomeScreenSections.personalizedFeed,
-    HomeScreenSections.featuredProjects,
-    HomeScreenSections.mostLikedProperties,
-    HomeScreenSections.agents,
+    HomeScreenSections.Search,
+    HomeScreenSections.Slider,
+    HomeScreenSections.Category,
+    HomeScreenSections.NearbyProperties,
+    HomeScreenSections.FeaturedProperties,
+    HomeScreenSections.PersonalizedFeed,
     HomeScreenSections.project,
-    HomeScreenSections.mostViewed,
-    HomeScreenSections.popularCities,
+    HomeScreenSections.RecentlyAdded,
+    HomeScreenSections.MostLikedProperties,
+    HomeScreenSections.Agents,
+    HomeScreenSections.MostViewed,
+    HomeScreenSections.PopularCities,
   ]; //[Note: We Recommend default setting you can make arrangement by your choice or you can hide any section if you do not want]
   static const String shareAppText = 'Share this App';
 
@@ -110,25 +110,21 @@ it will call API in background without showing the process and when data availab
   static String appstoreURLios = '';
 
   static bool isVerificationRequired = false;
-
-  // static String currencyName = '';
-  static String currencyCode = '';
-  static String currencySymbol = '';
 }
 
 enum HomeScreenSections {
-  search,
-  slider,
-  personalizedFeed,
-  nearbyProperties,
-  featuredProperties,
-  mostLikedProperties,
-  popularCities,
-  agents,
-  mostViewed,
-  category,
-  project,
-  featuredProjects,
+  Search,
+  Slider,
+  PersonalizedFeed,
+  NearbyProperties,
+  FeaturedProperties,
+  RecentlyAdded,
+  MostLikedProperties,
+  PopularCities,
+  Agents,
+  MostViewed,
+  Category,
+  project
 }
 
 enum DeepLinkType { firebase, native }

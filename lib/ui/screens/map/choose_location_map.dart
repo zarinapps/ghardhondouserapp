@@ -13,8 +13,8 @@ class ChooseLocationMap extends StatefulWidget {
     return BlurredRouter(
       builder: (context) {
         return ChooseLocationMap(
-          latitude: arguments?['latitude'] as num? ?? 0,
-          longitude: arguments?['longitude'] as num? ?? 0,
+          latitude: arguments?['latitude'],
+          longitude: arguments?['longitude'],
         );
       },
     );
@@ -119,7 +119,7 @@ class _ChooseLocationMapState extends State<ChooseLocationMap> {
   @override
   void initState() {
     _searchController.addListener(searchDelayTimer);
-    if (widget.latitude != 0 && widget.longitude != 0) {
+    if (widget.latitude != null && widget.longitude != null) {
       marker = Marker(markerId: const MarkerId('9999999'), position: assigned);
       setState(() {});
     } else {
@@ -170,11 +170,10 @@ class _ChooseLocationMapState extends State<ChooseLocationMap> {
   Future<LatLng?>? getCityLatLong(index) async {
     final rawCityLatLong =
         await GooglePlaceRepository().getPlaceDetailsFromPlaceId(
-      cities?.elementAt(index as int).placeId ?? '',
+      cities?.elementAt(index).placeId ?? '',
     );
 
-    final citylatLong = LatLng(
-        rawCityLatLong['lat'] as double, rawCityLatLong['lng'] as double);
+    final citylatLong = LatLng(rawCityLatLong['lat'], rawCityLatLong['lng']);
     return citylatLong;
   }
 
@@ -193,12 +192,9 @@ class _ChooseLocationMapState extends State<ChooseLocationMap> {
   String? getComponent(List data, dynamic dm) {
     // log("CALLED");
     try {
-      return data
-          .where((element) {
-            return (element['types'] as List).contains(dm);
-          })
-          .first['long_name']
-          ?.toString();
+      return data.where((element) {
+        return (element['types'] as List).contains(dm);
+      }).first['long_name'];
     } catch (e) {
       return null;
     }
@@ -252,12 +248,10 @@ class _ChooseLocationMapState extends State<ChooseLocationMap> {
 
                         if ((response.data as Map)
                             .containsKey('error_message')) {
-                          throw response.data?.toString() ?? '';
+                          throw response.data;
                         }
                         final component = List.from(
-                          response.data['results'][0]['address_components']
-                                  as List? ??
-                              [],
+                          response.data['results'][0]['address_components'],
                         );
 
                         city = getComponent(
@@ -308,7 +302,7 @@ class _ChooseLocationMapState extends State<ChooseLocationMap> {
                           if (e.containsKey('error_message')) {
                             await HelperUtils.showSnackBarMessage(
                               context,
-                              e['error_message']?.toString() ?? '',
+                              e['error_message'],
                               messageDuration: 5,
                             );
                           }
@@ -393,8 +387,9 @@ class _ChooseLocationMapState extends State<ChooseLocationMap> {
                     ),
                   ),
             title: Container(
+              width: 270.rw(context),
+              height: 50.rh(context),
               alignment: Alignment.center,
-              margin: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 border: Border.all(
                   width: 1.5,
@@ -407,12 +402,6 @@ class _ChooseLocationMapState extends State<ChooseLocationMap> {
                 focusNode: _searchFocus,
                 controller: _searchController,
                 decoration: InputDecoration(
-                  labelStyle: TextStyle(
-                    color: context.color.textColorDark,
-                  ),
-                  hintStyle: TextStyle(
-                    color: context.color.textColorDark.withValues(alpha: 0.7),
-                  ),
                   border: InputBorder.none, //OutlineInputBorder()
                   fillColor: Theme.of(context).colorScheme.secondaryColor,
                   hintText: UiUtils.translate(context, 'searhCity'),

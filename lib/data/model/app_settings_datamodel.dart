@@ -14,16 +14,15 @@ class AppSettingsDataModel {
   });
 
   AppSettingsDataModel.fromJson(Map<String, dynamic> json)
-      : lightTertiary = _colorFromHex(json['light_tertiary']?.toString() ?? ''),
-        placeholderLogo = json['placeholder_logo']?.toString() ?? '',
-        lightSecondary =
-            _colorFromHex(json['light_secondary']?.toString() ?? ''),
-        lightPrimary = _colorFromHex(json['light_primary']?.toString() ?? ''),
-        darkTertiary = _colorFromHex(json['dark_tertiary']?.toString() ?? ''),
-        darkSecondary = _colorFromHex(json['dark_secondary']?.toString() ?? ''),
-        darkPrimary = _colorFromHex(json['dark_primary']?.toString() ?? ''),
-        isUserActive = json['is_active'] as bool? ?? true,
-        appHomeScreen = json['app_home_screen']?.toString() ?? '';
+      : lightTertiary = _colorFromHex(json['light_tertiary']),
+        placeholderLogo = json['placeholder_logo'],
+        lightSecondary = _colorFromHex(json['light_secondary']),
+        lightPrimary = _colorFromHex(json['light_primary']),
+        darkTertiary = _colorFromHex(json['dark_tertiary']),
+        darkSecondary = _colorFromHex(json['dark_secondary']),
+        darkPrimary = _colorFromHex(json['dark_primary']),
+        isUserActive = json['is_active'] ?? true,
+        appHomeScreen = json['app_home_screen'];
   Color lightTertiary;
   String? placeholderLogo;
   Color lightSecondary;

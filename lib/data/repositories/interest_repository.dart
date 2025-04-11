@@ -38,7 +38,7 @@ class InterestRepository {
           .toList();
 
       return DataOutput(
-        total: response['total'] as int? ?? 0,
+        total: response['total'] ?? 0,
         modelList: interestedUserList,
       );
     } catch (e) {

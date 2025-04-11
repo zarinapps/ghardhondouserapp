@@ -13,8 +13,7 @@ class SelectPropertyType extends StatefulWidget {
     return BlurredRouter(
       builder: (context) {
         return SelectPropertyType(
-          type: arguments?['type'] as PropertyAddType? ??
-              PropertyAddType.property,
+          type: arguments?['type'],
         );
       },
     );
@@ -37,7 +36,7 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
       const Duration(seconds: 2),
       () {
         context.read<GetSubsctiptionPackageLimitsCubit>().getLimits(
-              packageType: 'property_list',
+              type: 'property',
             );
       },
     );
@@ -52,7 +51,7 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
     ).then((value) {
       // Navigator.pop(context);
       context.read<GetSubsctiptionPackageLimitsCubit>().getLimits(
-            packageType: 'property_list',
+            type: 'property',
           );
 
       // Navigator.pop(context);
@@ -162,7 +161,7 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
           }
         },
         child: SingleChildScrollView(
-          physics: Constant.scrollPhysics,
+          physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -259,14 +258,12 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
             ),
             Padding(
               padding: const EdgeInsets.all(8),
-              child: CustomText(
-                category.category!,
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                color: selectedIndex == index
-                    ? context.color.secondaryColor
-                    : context.color.tertiaryColor,
-              ),
+              child: CustomText(category.category!,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  color: selectedIndex == index
+                      ? context.color.secondaryColor
+                      : context.color.tertiaryColor),
             ),
           ],
         ),

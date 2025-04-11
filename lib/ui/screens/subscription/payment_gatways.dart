@@ -1,16 +1,18 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'package:ebroker/data/model/subscription_pacakage_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/payment/gatways/flutterwave.dart';
 import 'package:ebroker/utils/payment/gatways/paypal.dart';
 import 'package:ebroker/utils/payment/gatways/stripe_service.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_paystack/flutter_paystack.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class PaymentGatways {
-  static openEnabled(
-      BuildContext context, price, SubscriptionPackageModel package) {
+  static PaystackPlugin paystackPlugin = PaystackPlugin();
+
+  static openEnabled(BuildContext context, dynamic price, dynamic package) {
     if (AppSettings.enabledPaymentGatway == 'paystack') {
+      paystack(context, price, package.id);
     } else if (AppSettings.enabledPaymentGatway == 'paypal') {
       paypal(context, package);
     } else if (AppSettings.enabledPaymentGatway == 'razorpay') {
@@ -38,14 +40,21 @@ class PaymentGatways {
     return reference;
   }
 
+  static void initPaystack() {
+    if (AppSettings.enabledPaymentGatway == 'paystack') {
+      if (!paystackPlugin.sdkInitialized) {
+        paystackPlugin.initialize(publicKey: Constant.paystackKey);
+      }
+    }
+  }
+
   static void stripe(
     BuildContext context, {
     required double price,
-    required packageId,
+    required dynamic packageId,
   }) {
     openStripePaymentGateway(
       amount: price,
-      awaitedOrderID: packageId.toString(),
       onError: (message) {},
       onSuccess: () {
         _purchase(context);
@@ -54,7 +63,54 @@ class PaymentGatways {
     );
   }
 
-  static void paypal(BuildContext context, SubscriptionPackageModel package) {
+  static Future<void> paystack(
+    BuildContext context,
+    dynamic price,
+    dynamic packageId,
+  ) async {
+    final paystackCharge = Charge()
+      ..amount = (price! * 100).toInt()
+      ..email = HiveUtils.getUserDetails().email
+      ..currency = Constant.paystackCurrency
+      ..reference = generateReference(HiveUtils.getUserDetails().email!)
+      ..putMetaData('username', HiveUtils.getUserDetails().name)
+      ..putMetaData('package_id', packageId)
+      ..putMetaData('user_id', HiveUtils.getUserId());
+
+    final checkoutResponse = await paystackPlugin.checkout(
+      context,
+      logo: SizedBox(
+        height: 50,
+        width: 50,
+        child: UiUtils.progress(),
+      ),
+      charge: paystackCharge,
+      method: CheckoutMethod.card,
+    );
+
+    if (checkoutResponse.status) {
+      if (checkoutResponse.verify) {
+        Future.delayed(
+          Duration.zero,
+          () async {
+            await _purchase(context);
+          },
+        );
+      }
+    } else {
+      Future.delayed(
+        Duration.zero,
+        () {
+          HelperUtils.showSnackBarMessage(
+            context,
+            UiUtils.translate(context, 'purchaseFailed'),
+          );
+        },
+      );
+    }
+  }
+
+  static void paypal(BuildContext context, dynamic package) {
     Navigator.push<dynamic>(
       context,
       BlurredRouter(
@@ -70,7 +126,7 @@ class PaymentGatways {
           );
         },
       ),
-    ).then((value) {
+    ).then((dynamic value) {
       //push and show dialog box about paypal success or failed, after that we call purchase method it will refresh API and check if package is purchased or not
       if (value != null) {
         Future.delayed(
@@ -94,7 +150,7 @@ class PaymentGatways {
                   }
                 },
                 isAcceptContainesPush: true,
-                content: CustomText(value['msg']?.toString() ?? ''),
+                content: CustomText(value['msg']),
               ),
             );
           },
@@ -103,8 +159,7 @@ class PaymentGatways {
     });
   }
 
-  static void flutterwave(
-      BuildContext context, SubscriptionPackageModel package) {
+  static void flutterwave(BuildContext context, dynamic package) {
     Navigator.push<dynamic>(
       context,
       BlurredRouter(
@@ -120,7 +175,7 @@ class PaymentGatways {
           );
         },
       ),
-    ).then((value) {
+    ).then((dynamic value) {
       //push and show dialog box about paypal success or failed, after that we call purchase method it will refresh API and check if package is purchased or not
       if (value != null) {
         Future.delayed(
@@ -144,7 +199,7 @@ class PaymentGatways {
                   }
                 },
                 isAcceptContainesPush: true,
-                content: CustomText(value['msg']?.toString() ?? ''),
+                content: CustomText(value['msg']),
               ),
             );
           },

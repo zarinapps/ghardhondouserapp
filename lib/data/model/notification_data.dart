@@ -16,15 +16,15 @@ class NotificationData {
 
   NotificationData.fromJson(Map<String, dynamic> json) {
     id = json['id'].toString();
-    title = json['title']?.toString() ?? '';
-    message = json['message']?.toString() ?? '';
-    image = json['notification_image']?.toString() ?? '';
-    type = json['type']?.toString() ?? '';
+    title = json['title'];
+    message = json['message'];
+    image = json['notification_image'];
+    type = json['type'].toString();
     sendType = Adapter.forceInt(json['send_type']);
-    customersId = json['customers_id']?.toString() ?? '';
-    propertysId = json['propertys_id']?.toString() ?? '';
-    createdAt = json['created_at']?.toString() ?? '';
-    created = json['created']?.toString() ?? '';
+    customersId = json['customers_id'];
+    propertysId = json['propertys_id'].toString();
+    createdAt = json['created_at'];
+    created = json['created'];
   }
   String? id;
   String? title;

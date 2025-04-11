@@ -20,8 +20,7 @@ class PersonalizedPropertyScreen extends StatefulWidget {
     final args = settings.arguments as Map?;
     return BlurredRouter(
       builder: (context) => PersonalizedPropertyScreen(
-        type: args?['type'] as PersonalizedVisitType? ??
-            PersonalizedVisitType.Normal,
+        type: args?['type'],
       ),
     );
   }

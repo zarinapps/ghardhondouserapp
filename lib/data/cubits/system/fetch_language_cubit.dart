@@ -62,17 +62,16 @@ class FetchLanguageCubit extends Cubit<FetchLanguageState> {
       );
       log("LANG_RESP ${response['data']}");
 
-      final responseData = response['data'] as Map<String, dynamic>? ?? {};
       emit(
         FetchLanguageSuccess(
-          isRTL: responseData['rtl'] == 1,
-          code: responseData['code']?.toString() ?? '',
-          data: responseData['file_name'] as Map<dynamic, dynamic>? ?? {},
-          name: responseData['name']?.toString() ?? '',
+          isRTL: response['data']['rtl'] == 1,
+          code: response['data']['code'],
+          data: response['data']['file_name'],
+          name: response['data']['name'],
         ),
       );
     } catch (e) {
-      emit(FetchLanguageFailure('Error fetching languages$e'));
+      emit(FetchLanguageFailure('Error fetching languages${e.toString()}'));
     }
   }
 }

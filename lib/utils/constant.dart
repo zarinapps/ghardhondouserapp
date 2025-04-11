@@ -14,10 +14,6 @@ abstract class Constant {
   static String appstoreURLios = AppSettings.appstoreURLios;
   static const String shareappText = AppSettings.shareAppText;
 
-  static ScrollPhysics scrollPhysics = const BouncingScrollPhysics(
-    parent: AlwaysScrollableScrollPhysics(),
-  );
-
   //backend url
   static String baseUrl = AppSettings.baseUrl;
 
@@ -107,14 +103,7 @@ abstract class Constant {
   static String? subscriptionPackageId;
   static PropertyFilterModel? propertyFilter;
   static List<int>? filterFacilities;
-  static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(
-    debugLabel: 'navigatorKey from constants',
-  );
-
-  static void navigateTo(String routeName, {Object? arguments}) {
-    navigatorKey.currentState?.pushNamed(routeName, arguments: arguments);
-  }
-
+  static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   static String typeRent = 'rent';
   static String generalNotification = '0';
   static String enquiryNotification = '1';

@@ -6,7 +6,6 @@ import 'package:ebroker/ui/screens/widgets/errors/something_went_wrong.dart';
 import 'package:ebroker/ui/screens/widgets/shimmerLoadingContainer.dart';
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
-import 'package:ebroker/utils/constant.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
@@ -42,13 +41,14 @@ class MyPropertyState extends State<PropertiesScreen>
   void initState() {
     tempSelectedType = selectedType;
     tempSelectedStatus = selectedStatus;
-    if (context.read<FetchMyPropertiesCubit>().state
-        is! FetchMyPropertiesSuccess) {
-      fetchMyProperties();
-    }
-
+    fetchMyProperties();
     addScrollListener();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   addScrollListener() {
@@ -56,9 +56,8 @@ class MyPropertyState extends State<PropertiesScreen>
       if (controller.position.pixels == controller.position.maxScrollExtent) {
         if (context.read<FetchMyPropertiesCubit>().hasMoreData()) {
           context.read<FetchMyPropertiesCubit>().fetchMoreProperties(
-                type: selectedType.toLowerCase(),
-                status: selectedStatus.toLowerCase(),
-              );
+              type: selectedType.toLowerCase(),
+              status: selectedStatus.toLowerCase());
         }
       }
     });
@@ -109,14 +108,13 @@ class MyPropertyState extends State<PropertiesScreen>
           GestureDetector(
             onTap: show,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: UiUtils.getSvg(
-                AppIcons.filter,
-                width: 24,
-                height: 24,
-              ),
-            ),
-          ),
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: UiUtils.getSvg(
+                  AppIcons.filter,
+                  width: 24,
+                  height: 24,
+                )),
+          )
         ],
       ),
       body: RefreshIndicator(
@@ -138,7 +136,10 @@ class MyPropertyState extends State<PropertiesScreen>
             if (state is FetchMyPropertiesSuccess &&
                 state.myProperty.isNotEmpty) {
               return ListView.separated(
-                physics: Constant.scrollPhysics,
+                shrinkWrap: true,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
                 controller: controller,
                 padding:
                     const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
@@ -150,14 +151,6 @@ class MyPropertyState extends State<PropertiesScreen>
                   );
                 },
                 itemBuilder: (context, index) {
-                  if (index >= state.myProperty.length) {
-                    if (state.isLoadingMore) {
-                      return Center(
-                        child: UiUtils.progress(),
-                      );
-                    }
-                    return const SizedBox();
-                  }
                   final property = state.myProperty[index];
                   final status = property.requestStatus.toString() == 'approved'
                       ? property.status.toString()
@@ -178,7 +171,7 @@ class MyPropertyState extends State<PropertiesScreen>
                 },
               );
             }
-            return const SomethingWentWrong();
+            return SomethingWentWrong();
           },
         ),
       ),
@@ -189,121 +182,82 @@ class MyPropertyState extends State<PropertiesScreen>
     // Reset temporary selections to current values when opening filter
     tempSelectedType = selectedType;
     tempSelectedStatus = selectedStatus;
-    showModalBottomSheet<dynamic>(
-      context: context,
-      showDragHandle: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      backgroundColor: context.color.secondaryColor,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              padding: const EdgeInsets.only(left: 18, right: 18, bottom: 18),
-              color: context.color.secondaryColor,
-              width: MediaQuery.of(context).size.width,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CustomText(
-                    'Filter',
-                    color: context.color.inverseSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomText(
-                    'Status',
-                    color: context.color.inverseSurface,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    runSpacing: 8,
-                    children: [
-                      buildFilterCheckbox(
-                        'All',
-                        tempSelectedStatus,
-                        '',
-                        FilterType.status,
-                        setModalState,
+
+    showModalBottomSheet(
+        context: context,
+        showDragHandle: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        backgroundColor: context.color.secondaryColor,
+        isScrollControlled: false,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setModalState) {
+              return Container(
+                padding: const EdgeInsets.only(left: 18, right: 18, bottom: 18),
+                color: context.color.secondaryColor,
+                width: MediaQuery.of(context).size.width,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText(
+                      'Filter',
+                      color: context.color.inverseSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomText(
+                      'Status',
+                      color: context.color.inverseSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          buildFilterCheckbox('All', tempSelectedStatus, '',
+                              FilterType.status, setModalState),
+                          buildFilterCheckbox('Approved', tempSelectedStatus,
+                              'approved', FilterType.status, setModalState),
+                          buildFilterCheckbox('Rejected', tempSelectedStatus,
+                              'rejected', FilterType.status, setModalState),
+                          buildFilterCheckbox('Pending', tempSelectedStatus,
+                              'pending', FilterType.status, setModalState),
+                        ],
                       ),
-                      buildFilterCheckbox(
-                        'Approved',
-                        tempSelectedStatus,
-                        'approved',
-                        FilterType.status,
-                        setModalState,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomText(
+                      'Type',
+                      color: context.color.inverseSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          buildFilterCheckbox('All', tempSelectedType, '',
+                              FilterType.propertyType, setModalState),
+                          buildFilterCheckbox('Sell', tempSelectedType, 'sell',
+                              FilterType.propertyType, setModalState),
+                          buildFilterCheckbox('Rent', tempSelectedType, 'rent',
+                              FilterType.propertyType, setModalState),
+                          buildFilterCheckbox('Sold', tempSelectedType, 'sold',
+                              FilterType.propertyType, setModalState),
+                          buildFilterCheckbox('Rented', tempSelectedType,
+                              'rented', FilterType.propertyType, setModalState),
+                        ],
                       ),
-                      buildFilterCheckbox(
-                        'Rejected',
-                        tempSelectedStatus,
-                        'rejected',
-                        FilterType.status,
-                        setModalState,
-                      ),
-                      buildFilterCheckbox(
-                        'Pending',
-                        tempSelectedStatus,
-                        'pending',
-                        FilterType.status,
-                        setModalState,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  CustomText(
-                    'Type',
-                    color: context.color.inverseSurface,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    runSpacing: 8,
-                    children: [
-                      buildFilterCheckbox(
-                        'All',
-                        tempSelectedType,
-                        '',
-                        FilterType.propertyType,
-                        setModalState,
-                      ),
-                      buildFilterCheckbox(
-                        'Sell',
-                        tempSelectedType,
-                        'sell',
-                        FilterType.propertyType,
-                        setModalState,
-                      ),
-                      buildFilterCheckbox(
-                        'Rent',
-                        tempSelectedType,
-                        'rent',
-                        FilterType.propertyType,
-                        setModalState,
-                      ),
-                      buildFilterCheckbox(
-                        'Sold',
-                        tempSelectedType,
-                        'sold',
-                        FilterType.propertyType,
-                        setModalState,
-                      ),
-                      buildFilterCheckbox(
-                        'Rented',
-                        tempSelectedType,
-                        'rented',
-                        FilterType.propertyType,
-                        setModalState,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  UiUtils.buildButton(
-                    context,
-                    onPressed: () async {
+                    ),
+                    const SizedBox(height: 16),
+                    UiUtils.buildButton(context, onPressed: () async {
                       // Apply the temporary selections
                       setState(() {
                         selectedType = tempSelectedType;
@@ -316,26 +270,19 @@ class MyPropertyState extends State<PropertiesScreen>
                       // Fetch properties with new filters
                       await fetchMyProperties();
                     },
-                    height: 50,
-                    buttonTitle: 'applyFilter'.translate(context),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+                        height: 50,
+                        buttonTitle: 'applyFilter'.translate(context))
+                  ],
+                ),
+              );
+            },
+          );
+        });
   }
 
-  Widget buildFilterCheckbox(
-    String title,
-    String currentValue,
-    String optionValue,
-    FilterType filterType,
-    StateSetter setModalState,
-  ) {
-    final isSelected = currentValue.toLowerCase() == optionValue.toLowerCase();
+  Widget buildFilterCheckbox(String title, String currentValue,
+      String optionValue, FilterType filterType, StateSetter setModalState) {
+    bool isSelected = currentValue.toLowerCase() == optionValue.toLowerCase();
 
     return GestureDetector(
       onTap: () {
@@ -399,6 +346,7 @@ class MyPropertyState extends State<PropertiesScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const ClipRRect(
+                clipBehavior: Clip.antiAliasWithSaveLayer,
                 borderRadius: BorderRadius.all(Radius.circular(15)),
                 child: CustomShimmer(height: 90, width: 90),
               ),

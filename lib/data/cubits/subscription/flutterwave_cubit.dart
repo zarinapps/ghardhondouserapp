@@ -30,7 +30,7 @@ class FlutterwaveCubit extends Cubit<FlutterwaveState> {
       );
       emit(FlutterwaveSuccess(
         response,
-      ),);
+      ));
     } catch (e) {
       emit(FlutterwaveFail(e.toString()));
     }

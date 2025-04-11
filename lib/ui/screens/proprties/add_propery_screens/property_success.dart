@@ -96,15 +96,13 @@ class PropertyAddSuccess extends StatelessWidget {
                     'previewProperty'.translate(context),
                     color: context.color.tertiaryColor,
                     fontSize: context.font.larger,
-                  ),),
+                  )),
               const SizedBox(
                 height: 15,
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                      Routes.main, (route) => false,
-                      arguments: {'from': 'propertySuccess'},);
+                  Navigator.popUntil(context, (Route route) => route.isFirst);
                 },
                 child: CustomText(
                   'backToHome'.translate(context),

@@ -17,16 +17,16 @@ class SetProeprtyParametersScreen extends StatefulWidget {
     required this.isUpdate,
     super.key,
   });
-  final Map<dynamic, dynamic> propertyDetails;
+  final Map propertyDetails;
   final bool isUpdate;
-  static Route<dynamic> route(RouteSettings settings) {
-    final argument = settings.arguments as Map<dynamic, dynamic>?;
+  static Route route(RouteSettings settings) {
+    final argument = settings.arguments as Map?;
 
     return BlurredRouter(
       builder: (context) {
         return SetProeprtyParametersScreen(
-          propertyDetails: argument?['details'] as Map<dynamic, dynamic>? ?? {},
-          isUpdate: argument?['isUpdate'] as bool,
+          propertyDetails: argument?['details'],
+          isUpdate: argument?['isUpdate'],
         );
       },
     );
@@ -40,23 +40,23 @@ class SetProeprtyParametersScreen extends StatefulWidget {
 class _SetProeprtyParametersScreenState
     extends State<SetProeprtyParametersScreen>
     with AutomaticKeepAliveClientMixin {
-  List<ValueNotifier<dynamic>> disposableFields = [];
+  List<ValueNotifier> disposableFields = [];
   bool newCustomFields = true;
   final GlobalKey<FormState> _formKey = GlobalKey();
-  List<dynamic> galleryImage = [];
+  List galleryImage = [];
   File? titleImage;
   File? t360degImage;
-  ImagePickerValue<dynamic>? metaImage;
+  ImagePickerValue? meta_image;
   Map<String, dynamic>? apiParameters;
   List<RenderCustomFields> paramaeterUI = [];
   bool paramIsRequired = false;
   @override
   void initState() {
     apiParameters = Map.from(widget.propertyDetails);
-    galleryImage = apiParameters!['gallery_images'] as List;
-    titleImage = apiParameters!['title_image'] as File?;
-    t360degImage = apiParameters!['three_d_image'] as File?;
-    metaImage = apiParameters!['meta_image'] as ImagePickerValue?;
+    galleryImage = apiParameters!['gallery_images'];
+    titleImage = apiParameters!['title_image'];
+    t360degImage = apiParameters!['three_d_image'];
+    meta_image = apiParameters!['meta_image'];
     Future.delayed(
       Duration.zero,
       () {
@@ -71,10 +71,9 @@ class _SetProeprtyParametersScreenState
           return RenderCustomFields(
             isRequired: data['is_required'] == 1,
             index: index,
-            field:
-                KRegisteredFields().get(data['type_of_parameter'].toString()) ??
-                    BlankField(),
-            data: data as Map<String, dynamic>,
+            field: KRegisteredFields().get(data['type_of_parameter']) ??
+                BlankField(),
+            data: data,
           );
         }).toList();
 
@@ -148,7 +147,7 @@ class _SetProeprtyParametersScreenState
             apiParameters?.addAll(Map.from(parameterValues));
 
             // Check if all required parameters are filled
-            var allRequiredParamsFilled = true;
+            bool allRequiredParamsFilled = true;
 
             for (final element in paramaeterUI) {
               print('element is $element');
@@ -205,9 +204,8 @@ class _SetProeprtyParametersScreenState
             final gallery = [];
             await Future.forEach(
               galleryImage,
-              (item) async {
-                final multipartFile =
-                    await MultipartFile.fromFile((item?.path ?? '').toString());
+              (dynamic item) async {
+                final multipartFile = await MultipartFile.fromFile(item.path);
                 if (!multipartFile.isFinalized) {
                   gallery.add(multipartFile);
                 }
@@ -235,14 +233,13 @@ class _SetProeprtyParametersScreenState
               );
             }
 
-            if (metaImage != null) {
-              final mimeType =
-                  lookupMimeType(metaImage!.value.path?.toString() ?? '');
+            if (meta_image != null) {
+              final mimeType = lookupMimeType(meta_image!.value.path);
               final extension = mimeType!.split('/');
               apiParameters!['meta_image'] = await MultipartFile.fromFile(
-                metaImage?.value.path?.toString() ?? '',
+                meta_image?.value.path ?? '',
                 contentType: h.MediaType('image', extension[1]),
-                filename: metaImage?.value.path.split('/').last?.toString(),
+                filename: meta_image?.value.path.split('/').last,
               );
             }
             // if (meta_image == null) {
@@ -332,7 +329,7 @@ class _SetProeprtyParametersScreenState
               FocusScope.of(context).unfocus();
             },
             child: SingleChildScrollView(
-              physics: Constant.scrollPhysics,
+              physics: const BouncingScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Column(

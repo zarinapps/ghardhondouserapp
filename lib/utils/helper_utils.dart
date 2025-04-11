@@ -127,7 +127,7 @@ class HelperUtils {
   static Future<void> printServerError(
     String url, {
     required int statusCode,
-    required Map<dynamic, dynamic> parameter,
+    required Map parameter,
     required String response,
   }) async {
     final directory = await getApplicationDocumentsDirectory();
@@ -155,17 +155,8 @@ class HelperUtils {
     return 'https://${AppSettings.shareNavigationWebUrl}/properties-details/$slug/';
   }
 
-  static Future<void> share(
-    BuildContext context,
-    int propertyId,
-    String slugId,
-  ) async {
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null) return;
-
-    final sharePositionOrigin = box.localToGlobal(Offset.zero) & box.size;
-
-    await showModalBottomSheet<void>(
+  static void share(BuildContext context, int propertyId, String slugId) {
+    showModalBottomSheet(
       context: context,
       backgroundColor: context.color.backgroundColor,
       builder: (context) {
@@ -173,10 +164,7 @@ class HelperUtils {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(
-                Icons.copy,
-                color: context.color.inverseSurface,
-              ),
+              leading: const Icon(Icons.copy),
               title: CustomText('copylink'.translate(context)),
               onTap: () async {
                 var deepLink = '';
@@ -198,10 +186,7 @@ class HelperUtils {
               },
             ),
             ListTile(
-              leading: Icon(
-                Icons.share,
-                color: context.color.inverseSurface,
-              ),
+              leading: const Icon(Icons.share),
               title: CustomText('share'.translate(context)),
               onTap: () async {
                 var deepLink = '';
@@ -214,11 +199,7 @@ class HelperUtils {
 
                 final text =
                     '${'sharePropertyDescription'.translate(context)}\n$deepLink';
-                await Share.share(
-                  text,
-                  subject: 'shareProperty'.translate(context),
-                  sharePositionOrigin: sharePositionOrigin,
-                );
+                await Share.share(text);
               },
             ),
           ],
@@ -226,6 +207,8 @@ class HelperUtils {
       },
     );
   }
+
+  static lockOrientation() {}
 
   static void unfocus() {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -242,7 +225,7 @@ class HelperUtils {
   static String mobileNumberWithoutCountryCode() {
     final mobile = HiveUtils.getUserDetails().mobile;
 
-    final countryCode = HiveUtils.getCountryCode()?.toString();
+    final String? countryCode = HiveUtils.getCountryCode();
 
     final countryCodeLength = countryCode?.length ?? 0;
 
@@ -261,10 +244,7 @@ class HelperUtils {
   }) async {
     final snackBar = ScaffoldMessenger.of(context!).showSnackBar(
       SnackBar(
-        content: CustomText(
-          message,
-          color: context.color.buttonColor,
-        ),
+        content: CustomText(message),
         behavior: (isFloating ?? false) ? SnackBarBehavior.floating : null,
         backgroundColor: type?.value ?? successMessageColor,
         duration: Duration(seconds: messageDuration),
@@ -276,7 +256,7 @@ class HelperUtils {
     }
   }
 
-  static Future<dynamic> sendApiRequest(
+  static Future sendApiRequest(
     String url,
     Map<String, dynamic> body,
     isPost,
@@ -296,7 +276,7 @@ class HelperUtils {
     }
     Response response;
     try {
-      if (isPost as bool) {
+      if (isPost) {
         response = await post(
           Uri.parse(Constant.baseUrl + url),
           body: body.isNotEmpty ? body : null,
@@ -354,20 +334,19 @@ class HelperUtils {
         print("isDeactivated ? -- ${Constant.isUserDeactivated}");
         break; */
 
-        Map<dynamic, dynamic> getdata;
+        Map getdata;
         getdata = {};
         if (isfromfile) {
           final responseData = await streamedResponse!.stream.toBytes();
-          getdata = json.decode(String.fromCharCodes(responseData)) as Map;
+          getdata = json.decode(String.fromCharCodes(responseData));
         } else {
-          getdata = json.decode(response!.body) as Map;
+          getdata = json.decode(response!.body);
         }
 
         Future.delayed(
           Duration.zero,
           () {
-            showSnackBarMessage(
-                context, getdata[Api.message]?.toString() ?? '');
+            showSnackBarMessage(context, getdata[Api.message]);
           },
         );
         throw UnauthorisedException(getdata[Api.message]);
@@ -388,19 +367,18 @@ class HelperUtils {
     return ((bytes / pow(1024, i)).toStringAsFixed(decimals)) + suffixes[i];
   }
 
-  static void killPreviousPages(
-      BuildContext context, String nextPage, Object args) {
+  static void killPreviousPages(BuildContext context, var nextPage, var args) {
     Navigator.of(context)
         .pushNamedAndRemoveUntil(nextPage, (route) => false, arguments: args);
   }
 
   static void goToNextPage(
-    String nextPage,
+    var nextPage,
     BuildContext bContext,
     isReplace, {
-    Object? args,
+    Map? args,
   }) {
-    if ((isReplace as bool) == true) {
+    if (isReplace) {
       Navigator.of(bContext).pushReplacementNamed(nextPage, arguments: args);
     } else {
       Navigator.of(bContext).pushNamed(nextPage, arguments: args);
@@ -514,7 +492,7 @@ extension ListExtensions<T> on List<T> {
   }) async {
     final results = <R>[];
     final queue = StreamController<T>.broadcast();
-    final done = Completer<dynamic>();
+    final done = Completer();
 
     // Start worker functions
     for (var i = 0; i < concurrency; i++) {
@@ -533,11 +511,11 @@ extension ListExtensions<T> on List<T> {
     return results;
   }
 
-  void _startWorker<J, R>(
-    Stream<J> input,
+  void _startWorker<T, R>(
+    Stream<T> input,
     List<R> results,
-    FutureOr<R> Function(J) mapper,
-    Completer<dynamic> done,
+    FutureOr<R> Function(T) mapper,
+    Completer done,
   ) {
     input.listen(
       (element) async {

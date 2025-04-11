@@ -23,26 +23,26 @@ class ChatMessageModel {
 
   ChatMessageModel.fromJson(Map<String, dynamic> json) {
     id = json['id'].toString();
-    isSentByMe = json['isSentByMe'] as bool? ?? false;
-    isSentNow = json['isSentNow'] as bool? ?? false;
-    date = json['created_at']?.toString() ?? '';
-    propertyTitleImage = json['property_title_image']?.toString() ?? '';
-    timeAgo = json['time_ago']?.toString() ?? '';
+    isSentByMe = json['isSentByMe'] ?? false;
+    isSentNow = json['isSentNow'] ?? false;
+    date = json['created_at'];
+    propertyTitleImage = json['property_title_image'];
+    timeAgo = json['time_ago'];
     receiverId = json['receiver_id'].toString();
-    sound = json['sound']?.toString() ?? '';
+    sound = json['sound'];
 
-    userProfile = json['user_profile']?.toString() ?? '';
-    body = json['body']?.toString() ?? '';
-    title = json['title']?.toString() ?? '';
-    clickAction = json['click_action']?.toString() ?? '';
-    message = json['message']?.toString() ?? '';
+    userProfile = json['user_profile'];
+    body = json['body'];
+    title = json['title'];
+    clickAction = json['click_action'];
+    message = json['message'];
     senderId = json['sender_id'].toString();
 
     propertyId = json['property_id'].toString();
-    file = json['file']?.toString() ?? '';
-    chatMessageType = json['chat_message_type']?.toString() ?? '';
-    audio = json['audio']?.toString() ?? '';
-    username = json['username']?.toString() ?? '';
+    file = json['file'];
+    chatMessageType = json['chat_message_type'];
+    audio = json['audio'];
+    username = json['username'];
   }
   String? id;
   bool? isSentByMe;
@@ -95,10 +95,9 @@ class ChatMessageModel {
 
   Future<void> setId(String id) async => this.id = id;
 
-  Future<void> setIsSentByMe(value) async =>
-      isSentByMe = value as bool? ?? false;
+  Future<void> setIsSentByMe(value) async => isSentByMe = value;
 
-  Future<void> setIsSentNow(value) async => isSentNow = value as bool? ?? false;
+  Future<void> setIsSentNow(value) async => isSentNow = value;
 
   @override
   String toString() {

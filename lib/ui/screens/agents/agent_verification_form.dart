@@ -188,16 +188,15 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
     switch (field.fieldType) {
       case 'text':
       case 'number':
-        return _buildTextField(field, fieldValue?.toString() ?? '');
+        return _buildTextField(field, fieldValue);
       case 'radio':
-        return _buildRadioGroup(field, fieldValue?.toString() ?? '');
+        return _buildRadioGroup(field, fieldValue);
       case 'checkbox':
         return _buildCheckboxGroup(field, fieldValue);
       case 'dropdown':
-        print('field is $field, fieldValue is $fieldValue');
-        return _buildDropdown(field, fieldValue?.toString() ?? '');
+        return _buildDropdown(field, fieldValue);
       case 'textarea':
-        return _buildTextArea(field, fieldValue?.toString() ?? '');
+        return _buildTextArea(field, fieldValue);
       case 'file':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +395,7 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
     String? fieldValue,
   ) {
     return FormField<String>(
-      initialValue: field.formFieldsValues.first.value,
+      initialValue: fieldValue,
       validator: (value) {
         if (value == null || value.isEmpty) {
           return '${field.name} ${'isRequired'.translate(context)}';
@@ -430,8 +429,7 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
                   isExpanded: true,
                   value: state.value,
                   hint: CustomText(
-                    '${'select'.translate(context)} ${field.name}',
-                  ),
+                      '${'select'.translate(context)} ${field.name}'),
                   items: List.generate(field.formFieldsValues.length, (index) {
                     return DropdownMenuItem<String>(
                       value: field.formFieldsValues[index].value,
@@ -622,8 +620,7 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: CustomText('${'defaultErrorMsg'.translate(context)}: $e'),
-        ),
+            content: CustomText('${'defaultErrorMsg'.translate(context)}: $e')),
       );
     }
   }
@@ -794,8 +791,7 @@ class DocumentPickerWidgetState extends State<DocumentPickerWidget> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: CustomText('${'defaultErrorMsg'.translate(context)}: $e'),
-        ),
+            content: CustomText('${'defaultErrorMsg'.translate(context)}: $e')),
       );
     }
   }

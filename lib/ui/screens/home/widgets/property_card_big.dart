@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/widgets/like_button_widget.dart';
 import 'package:ebroker/ui/screens/widgets/promoted_widget.dart';
@@ -25,119 +24,33 @@ class PropertyCardBig extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var rentPrice = property.price!.priceFormat(
-      enabled: Constant.isNumberWithSuffix == true,
-      context: context,
-    );
+    var rentPrice = property.price!
+        .priceFormat(
+          enabled: Constant.isNumberWithSuffix == true,
+          context: context,
+        )
+        .formatAmount(prefix: true);
     if (property.rentduration != '' && property.rentduration != null) {
       rentPrice =
           ('$rentPrice / ') + (property.rentduration ?? '').translate(context);
     }
-    final isPremium = property.allPropData['is_premium'] as bool? ?? false;
-    final isPromoted = property.promoted ?? false;
-    final isAddedByMe = property.addedBy.toString() == HiveUtils.getUserId();
-    return GestureDetector(
-      onTap: () async {
-        try {
-          unawaited(Widgets.showLoader(context));
-          if (isPremium) {
-            GuestChecker.check(
-              onNotGuest: () async {
-                if (isAddedByMe) {
-                  final fetch = PropertyRepository();
-                  final dataOutput = await fetch.fetchPropertyFromPropertyId(
-                    id: property.id!,
-                    isMyProperty: isAddedByMe,
-                  );
-                  Future.delayed(
-                    Duration.zero,
-                    () {
-                      Widgets.hideLoder(context);
-                      HelperUtils.goToNextPage(
-                        Routes.propertyDetails,
-                        context,
-                        false,
-                        args: {
-                          'propertyData': dataOutput,
-                        },
-                      );
-                    },
-                  );
-                } else {
-                  final checkPackage = CheckPackage();
-                  final packageAvailable =
-                      await checkPackage.checkPackageAvailable(
-                    packageType: PackageType.premiumProperties,
-                  );
-                  if (packageAvailable) {
-                    final fetch = PropertyRepository();
-                    final dataOutput = await fetch.fetchPropertyFromPropertyId(
-                      id: property.id!,
-                      isMyProperty: isAddedByMe,
-                    );
-                    Future.delayed(
-                      Duration.zero,
-                      () {
-                        Widgets.hideLoder(context);
-                        HelperUtils.goToNextPage(
-                          Routes.propertyDetails,
-                          context,
-                          false,
-                          args: {
-                            'propertyData': dataOutput,
-                          },
-                        );
-                      },
-                    );
-                  } else {
-                    Widgets.hideLoder(context);
-                    await UiUtils.showBlurredDialoge(
-                      context,
-                      dialoge: const BlurredSubscriptionDialogBox(
-                        packageType: SubscriptionPackageType.premiumProperties,
-                        isAcceptContainesPush: true,
-                      ),
-                    );
-                  }
-                }
-              },
-            );
-          } else {
-            final fetch = PropertyRepository();
-            final dataOutput = await fetch.fetchPropertyFromPropertyId(
-              id: property.id!,
-              isMyProperty: isAddedByMe,
-            );
-            Future.delayed(
-              Duration.zero,
-              () {
-                Widgets.hideLoder(context);
-                HelperUtils.goToNextPage(
-                  Routes.propertyDetails,
-                  context,
-                  false,
-                  args: {
-                    'propertyData': dataOutput,
-                  },
-                );
-              },
-            );
-          }
-        } catch (e) {
-          Widgets.hideLoder(context);
-        }
-      },
+
+    return Padding(
+      padding: EdgeInsetsDirectional.only(
+        start: (isFirst ?? false) ? 0 : 5.0,
+        end: (showEndPadding ?? true) ? 5.0 : 0,
+      ),
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        width: MediaQuery.of(context).size.width * 0.7,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
           color: context.color.secondaryColor,
           border: Border.all(
             width: 1.5,
             color: context.color.borderColor,
           ),
         ),
+        height: 280,
+        width: 260,
         child: Stack(
           children: [
             Column(
@@ -156,24 +69,6 @@ class PropertyCardBig extends StatelessWidget {
                           blurHash: property.titleimagehash,
                         ),
                       ),
-                      if (isPremium)
-                        PositionedDirectional(
-                          start: 10,
-                          top: 10,
-                          child: UiUtils.getSvg(
-                            height: 24,
-                            width: 24,
-                            AppIcons.premium,
-                          ),
-                        ),
-                      if (isPromoted)
-                        PositionedDirectional(
-                          start: isPremium ? 39 : 10,
-                          top: 10,
-                          child: const PromotedCard(
-                            type: PromoteCardType.icon,
-                          ),
-                        ),
                       PositionedDirectional(
                         start: 10,
                         bottom: 10,
@@ -219,7 +114,6 @@ class PropertyCardBig extends StatelessWidget {
                       right: 12,
                     ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Row(
@@ -233,18 +127,21 @@ class PropertyCardBig extends StatelessWidget {
                                   : null,
                             ),
                             const SizedBox(
-                              width: 8,
+                              width: 5,
                             ),
                             Flexible(
                               child: CustomText(
                                 property.category?.category ?? '',
                                 fontWeight: FontWeight.w400,
-                                fontSize: context.font.large,
+                                fontSize: context.font.small,
                                 color: context.color.textLightColor,
                                 maxLines: 1,
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(
+                          height: 5,
                         ),
                         if (property.properyType.toString().toLowerCase() ==
                             'rent') ...[
@@ -257,49 +154,48 @@ class PropertyCardBig extends StatelessWidget {
                           ),
                         ] else ...[
                           CustomText(
-                            property.price!.priceFormat(
-                              enabled: Constant.isNumberWithSuffix == true,
-                              context: context,
-                            ),
+                            property.price!
+                                .priceFormat(
+                                  enabled: Constant.isNumberWithSuffix == true,
+                                  context: context,
+                                )
+                                .formatAmount(prefix: true),
                             maxLines: 1,
                             fontWeight: FontWeight.w700,
                             fontSize: context.font.large,
                             color: context.color.tertiaryColor,
                           ),
                         ],
+                        const SizedBox(
+                          height: 5,
+                        ),
                         CustomText(
                           property.title ?? '',
                           maxLines: 1,
-                          fontSize: context.font.larger,
-                          fontWeight: FontWeight.w400,
+                          fontSize: context.font.large,
                           color: context.color.textColorDark,
                         ),
                         if (property.city != '') ...[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 5),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                UiUtils.getSvg(
-                                  AppIcons.location,
-                                  height: 18,
-                                  width: 18,
-                                  color: context.color.textColorDark,
-                                ),
-                                const SizedBox(
-                                  width: 5,
-                                ),
-                                Expanded(
+                          const Spacer(),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              UiUtils.getSvg(
+                                AppIcons.location,
+                                height: 20,
+                                width: 15,
+                                color: context.color.textLightColor,
+                              ),
+                              const SizedBox(
+                                width: 5,
+                              ),
+                              Expanded(
                                   child: CustomText(
-                                    property.city!,
-                                    maxLines: 1,
-                                    color: context.color.textLightColor,
-                                    fontSize: context.font.small,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ],
-                            ),
+                                property.city!,
+                                maxLines: 1,
+                                color: context.color.textLightColor,
+                              )),
+                            ],
                           ),
                         ],
                       ],
@@ -333,6 +229,18 @@ class PropertyCardBig extends StatelessWidget {
                   ),
                 ),
               ),
+            PositionedDirectional(
+              start: 10,
+              top: 10,
+              child: Row(
+                children: [
+                  Visibility(
+                    visible: property.promoted ?? false,
+                    child: const PromotedCard(type: PromoteCardType.text),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

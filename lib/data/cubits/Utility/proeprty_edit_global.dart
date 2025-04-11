@@ -1,11 +1,11 @@
-import 'package:ebroker/data/model/advertisement_model.dart';
+import 'package:ebroker/data/cubits/property/fetch_my_promoted_propertys_cubit.dart';
 import 'package:ebroker/data/model/property_model.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class PropertyEditGlobal {
   PropertyEditGlobal(this.list, this.ads);
   final List<PropertyModel> list;
-  final List<AdvertisementProperty> ads;
+  final List<Advertisement> ads;
 }
 
 class PropertyEditCubit extends Cubit<PropertyEditGlobal> {
@@ -30,7 +30,7 @@ class PropertyEditCubit extends Cubit<PropertyEditGlobal> {
     );
   }
 
-  AdvertisementProperty getAd(AdvertisementProperty model) {
+  Advertisement getAd(Advertisement model) {
     return state.ads.firstWhere(
       (element) => element.id == model.id,
       orElse: () {

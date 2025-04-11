@@ -36,7 +36,7 @@ class PropertyReportCubit extends Cubit<PropertyReportState> {
       );
 
       reportedProperties.add(propertyId);
-      emit(PropertyReportInSuccess(result['message'].toString()));
+      emit(PropertyReportInSuccess(result['message']));
     } catch (e) {
       emit(PropertyReportFailure(e));
     }

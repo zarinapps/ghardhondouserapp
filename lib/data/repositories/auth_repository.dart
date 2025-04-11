@@ -51,24 +51,28 @@ class AuthRepository {
     required String password,
     required LoginType type,
   }) async {
-    final parameters = {
-      'email': email,
-      'password': password,
-      Api.type: type.value,
-    };
-    final response = await Api.post(
-      url: Api.apiLogin,
-      parameter: parameters,
-      useAuthToken: false,
-    );
-    if (response['error'] == true) {
-      return response;
-    }
+    try {
+      final parameters = {
+        'email': email,
+        'password': password,
+        Api.type: type.value,
+      };
+      final response = await Api.post(
+        url: Api.apiLogin,
+        parameter: parameters,
+        useAuthToken: false,
+      );
+      if (response['error'] == true) {
+        return response;
+      }
 
-    return {
-      'token': response['token'],
-      'data': response['data'],
-    };
+      return {
+        'token': response['token'],
+        'data': response['data'],
+      };
+    } catch (e) {
+      throw Exception(e.toString());
+    }
   }
 
   Future<Map<String, dynamic>> sendForgotPasswordEmail({
@@ -129,13 +133,11 @@ class AuthRepository {
     try {
       final response = await Api.get(
         url: Api.apiGetOtp,
-        useAuthToken: false,
         queryParameters: {
           'email': email,
           'password': password,
         },
       );
-      print(response);
       return response;
     } catch (e) {
       throw Exception(e.toString());

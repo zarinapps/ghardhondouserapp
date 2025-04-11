@@ -46,8 +46,7 @@ class SendMessageCubit extends Cubit<SendMessageState> {
             await MultipartFile.fromFile(audio, contentType: setMediaType);
       }
       if (attachment != null) {
-        attachmentFile =
-            await MultipartFile.fromFile(attachment?.toString() ?? '');
+        attachmentFile = await MultipartFile.fromFile(attachment);
       }
 
       ///If use is not uploading any text so we will upload [File].
@@ -65,7 +64,7 @@ class SendMessageCubit extends Cubit<SendMessageState> {
         audio: audioFile,
       );
 
-      emit(SendMessageSuccess(messageId: result['id'] as int));
+      emit(SendMessageSuccess(messageId: result['id']));
     } catch (e) {
       emit(SendMessageFailed(e.toString()));
     }

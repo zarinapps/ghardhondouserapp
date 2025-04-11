@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:country_picker/country_picker.dart';
 import 'package:ebroker/data/model/system_settings_model.dart';
 import 'package:ebroker/data/repositories/auth_repository.dart';
@@ -33,8 +31,8 @@ class LoginScreen extends StatefulWidget {
           BlocProvider(create: (context) => VerifyOtpCubit()),
         ],
         child: LoginScreen(
-          isDeleteAccount: args?['isDeleteAccount'] as bool? ?? false,
-          popToCurrent: args?['popToCurrent'] as bool? ?? false,
+          isDeleteAccount: args?['isDeleteAccount'],
+          popToCurrent: args?['popToCurrent'],
         ),
       ),
     );
@@ -118,7 +116,10 @@ class LoginScreenState extends State<LoginScreen> {
           }
         }
       });
-    context.read<FetchSystemSettingsCubit>();
+    context.read<FetchSystemSettingsCubit>().fetchSettings(
+          isAnonymous: true,
+          forceRefresh: true,
+        );
     mobileNumController.addListener(
       () {
         if (mobileNumController.text.isEmpty &&
@@ -187,7 +188,7 @@ class LoginScreenState extends State<LoginScreen> {
         is FetchSystemSettingsSuccess) {
       Constant.isDemoModeOn = context
               .watch<FetchSystemSettingsCubit>()
-              .getSetting(SystemSetting.demoMode) as bool? ??
+              .getSetting(SystemSetting.demoMode) ??
           false;
     }
 
@@ -271,7 +272,7 @@ class LoginScreenState extends State<LoginScreen> {
             body: ScrollConfiguration(
               behavior: RemoveGlow().copyWith(scrollbars: false),
               child: SingleChildScrollView(
-                physics: Constant.scrollPhysics,
+                physics: AlwaysScrollableScrollPhysics(),
                 child: buildLoginFields(context),
               ),
             ),
@@ -311,7 +312,7 @@ class LoginScreenState extends State<LoginScreen> {
             }
             if (state is LoginSuccess) {
               try {
-                unawaited(Widgets.showLoader(context));
+                Widgets.showLoader(context);
                 GuestChecker.set('login_screen', isGuest: false);
                 HiveUtils.setIsNotGuest();
                 await LoadAppSettings().load(true);
@@ -331,8 +332,7 @@ class LoginScreenState extends State<LoginScreen> {
                   'force-disable-demo-mode',
                 )) {
                   Constant.isDemoModeOn =
-                      settings.getSetting(SystemSetting.demoMode) as bool? ??
-                          false;
+                      settings.getSetting(SystemSetting.demoMode) ?? false;
                 }
                 if (state.isProfileCompleted) {
                   HiveUtils.setUserIsAuthenticated();
@@ -380,7 +380,7 @@ class LoginScreenState extends State<LoginScreen> {
                 }
               } catch (e) {
                 Widgets.hideLoder(context);
-                await HelperUtils.showSnackBarMessage(
+                HelperUtils.showSnackBarMessage(
                   context,
                   'somethingWentWrong'.translate(context),
                   type: MessageType.error,
@@ -431,21 +431,16 @@ class LoginScreenState extends State<LoginScreen> {
                   otpVerificationId = state.verificationId ?? '';
                   setState(() {});
 
-                  if (!isForgotPasswordVisible) {
-                    Navigator.pushNamed(
-                      context,
-                      Routes.otpScreen,
-                      arguments: {
-                        'isDeleteAccount': widget.isDeleteAccount ?? false,
-                        'phoneNumber': mobileNumController.text,
-                        'email': emailAddressController.text,
-                        'otpVerificationId': otpVerificationId,
-                        'countryCode': countryCode ?? '',
-                        'otpIs': otpIs,
-                        'isEmailSelected': isEmailSelected,
-                      },
-                    );
-                  }
+                  if (!isForgotPasswordVisible)
+                    Navigator.pushNamed(context, Routes.otpScreen, arguments: {
+                      'isDeleteAccount': widget.isDeleteAccount ?? false,
+                      'phoneNumber': mobileNumController.text,
+                      'email': emailAddressController.text,
+                      'otpVerificationId': otpVerificationId,
+                      'countryCode': countryCode ?? '',
+                      'otpIs': otpIs,
+                      'isEmailSelected': isEmailSelected,
+                    });
                   // context.read<SendOtpCubit>().setToInitial();
                 }
                 if (state is SendOtpFailure) {
@@ -491,15 +486,11 @@ class LoginScreenState extends State<LoginScreen> {
       },
       builder: (context, state) {
         final phoneLogin = context
-                .read<FetchSystemSettingsCubit>()
-                .getSetting(SystemSetting.numberWithOtpLogin)
-                ?.toString() ??
-            '';
+            .read<FetchSystemSettingsCubit>()
+            .getSetting(SystemSetting.numberWithOtpLogin);
         final socialLogin = context
-                .read<FetchSystemSettingsCubit>()
-                .getSetting(SystemSetting.socialLogin)
-                ?.toString() ??
-            '';
+            .read<FetchSystemSettingsCubit>()
+            .getSetting(SystemSetting.socialLogin);
         if (state is FetchSystemSettingsSuccess) {
           return Column(
             children: [
@@ -517,13 +508,10 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginShapeContainer(
-    BuildContext context,
-    String phoneLogin,
-    String socialLogin,
-  ) {
-    final isSocialLogin = socialLogin == '1';
-    final isPhoneLogin = phoneLogin == '1';
-    final height = isSocialLogin && isPhoneLogin
+      BuildContext context, String phoneLogin, String socialLogin) {
+    final bool isSocialLogin = socialLogin == '1';
+    final bool isPhoneLogin = phoneLogin == '1';
+    final double height = isSocialLogin && isPhoneLogin
         ? MediaQuery.of(context).size.height * 0.5
         : MediaQuery.of(context).size.height * 0.55;
     return Stack(
@@ -574,10 +562,7 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginContent(
-    BuildContext context,
-    String phoneLogin,
-    String socialLogin,
-  ) {
+      BuildContext context, String phoneLogin, String socialLogin) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: sidePadding),
       child: Column(
@@ -601,12 +586,10 @@ class LoginScreenState extends State<LoginScreen> {
   Widget _buildTitle(BuildContext context) => Center(
         child: Column(
           children: [
-            CustomText(
-              UiUtils.translate(context, 'loginNow'),
-              fontWeight: FontWeight.w700,
-              fontSize: context.font.extraLarge,
-              color: context.color.textColorDark,
-            ),
+            CustomText(UiUtils.translate(context, 'loginNow'),
+                fontWeight: FontWeight.w700,
+                fontSize: context.font.extraLarge,
+                color: context.color.textColorDark),
             const SizedBox(
               height: 8,
             ),
@@ -626,32 +609,29 @@ class LoginScreenState extends State<LoginScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildSocialButton(
-            context: context,
-            text: 'signInWithApple'.translate(context),
-            icon: isEmailSelected ? AppIcons.phone : AppIcons.email,
-            onTap: () {
-              isEmailSelected
-                  ? isEmailSelected = false
-                  : isEmailSelected = true;
-              setState(() {});
-            },
-          ),
+              context: context,
+              text: 'signInWithApple'.translate(context),
+              icon: isEmailSelected ? AppIcons.phone : AppIcons.email,
+              onTap: () {
+                isEmailSelected
+                    ? isEmailSelected = false
+                    : isEmailSelected = true;
+                setState(() {});
+              }),
           const SizedBox(width: 10),
           if (Platform.isIOS) ...[
             _buildSocialButton(
-              context: context,
-              text: 'signInWithApple'.translate(context),
-              icon: AppIcons.apple,
-              onTap: _onTapAppleLogin,
-            ),
+                context: context,
+                text: 'signInWithApple'.translate(context),
+                icon: AppIcons.apple,
+                onTap: _onTapAppleLogin),
             const SizedBox(width: 10),
           ],
           _buildSocialButton(
-            text: 'signInWithGoogle'.translate(context),
-            context: context,
-            icon: AppIcons.google,
-            onTap: _onGoogleTap,
-          ),
+              text: 'signInWithGoogle'.translate(context),
+              context: context,
+              icon: AppIcons.google,
+              onTap: _onGoogleTap),
         ],
       );
     } else {
@@ -685,16 +665,15 @@ class LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildSocialButton(
-                context: context,
-                text: 'signInWithApple'.translate(context),
-                icon: isEmailSelected ? AppIcons.phone : AppIcons.email,
-                onTap: () {
-                  isEmailSelected
-                      ? isEmailSelected = false
-                      : isEmailSelected = true;
-                  setState(() {});
-                },
-              ),
+                  context: context,
+                  text: 'signInWithApple'.translate(context),
+                  icon: isEmailSelected ? AppIcons.phone : AppIcons.email,
+                  onTap: () {
+                    isEmailSelected
+                        ? isEmailSelected = false
+                        : isEmailSelected = true;
+                    setState(() {});
+                  }),
               const SizedBox(width: 10),
               if (Platform.isIOS) ...[
                 _buildSocialButton(
@@ -754,23 +733,166 @@ class LoginScreenState extends State<LoginScreen> {
 
   Widget buildMobileEmailField() => Column(
         children: [
-          if (isEmailSelected)
-            Column(
-              children: [
-                TextFormField(
-                  validator: Validator.validateEmail,
+          isEmailSelected
+              ? Column(
+                  children: [
+                    TextFormField(
+                      validator: Validator.validateEmail,
+                      autofocus: false,
+                      textDirection: TextDirection.ltr,
+                      scrollPadding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).viewInsets.bottom * 4),
+                      decoration: InputDecoration(
+                        errorMaxLines: 1,
+                        errorText: '',
+                        errorStyle: TextStyle(
+                          color: Colors.transparent,
+                          fontSize: 0,
+                        ),
+                        contentPadding: EdgeInsets.all(14),
+                        isDense: true,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: context.color.tertiaryColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: context.color.tertiaryColor),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: context.color.tertiaryColor),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: context.color.tertiaryColor),
+                        ),
+                        hintText: 'email'.translate(context),
+                        hintStyle: TextStyle(
+                            color: context.color.inverseSurface
+                                .withValues(alpha: 0.5)),
+                        prefixIcon: Icon(Icons.email),
+                        prefixIconColor: context.color.tertiaryColor,
+                      ),
+                      onChanged: (String value) {
+                        setState(() {});
+                        isResendOtpButtonVisible = false;
+                      },
+                      textAlignVertical: TextAlignVertical.bottom,
+                      style: TextStyle(fontSize: 20),
+                      cursorColor: context.color.tertiaryColor,
+                      cursorErrorColor: context.color.tertiaryColor,
+                      cursorHeight: 20,
+                      keyboardType: TextInputType.emailAddress,
+                      controller: emailAddressController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.singleLineFormatter
+                      ],
+                      textAlign: TextAlign.start,
+                    ),
+                    if (!isForgotPasswordVisible)
+                      TextFormField(
+                        validator: Validator.validatePassword,
+                        autofocus: false,
+                        textDirection: TextDirection.ltr,
+                        scrollPadding: EdgeInsets.only(
+                            bottom:
+                                MediaQuery.of(context).viewInsets.bottom * 4),
+                        obscureText: !isPasswordVisible,
+                        decoration: InputDecoration(
+                          suffixIcon: IconButton(
+                            onPressed: () {
+                              if (isPasswordVisible == true) {
+                                isPasswordVisible = false;
+                              } else {
+                                isPasswordVisible = true;
+                              }
+                              setState(() {});
+                            },
+                            icon: Icon(isPasswordVisible
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined),
+                            color: context.color.inverseSurface,
+                          ),
+                          errorMaxLines: 1,
+                          errorText: '',
+                          errorStyle: TextStyle(
+                            color: Colors.transparent,
+                            fontSize: 0,
+                          ),
+                          contentPadding: EdgeInsets.all(14),
+                          isDense: true,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: context.color.tertiaryColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: context.color.tertiaryColor),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: context.color.tertiaryColor),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: context.color.tertiaryColor),
+                          ),
+                          hintText: 'password'.translate(context),
+                          hintStyle: TextStyle(
+                              color: context.color.inverseSurface
+                                  .withValues(alpha: 0.5)),
+                          prefixIcon: Icon(Icons.lock),
+                          prefixIconColor: context.color.tertiaryColor,
+                        ),
+                        onChanged: (String value) {
+                          setState(() {});
+                        },
+                        textAlignVertical: TextAlignVertical.bottom,
+                        style: TextStyle(fontSize: 20),
+                        cursorColor: context.color.tertiaryColor,
+                        cursorErrorColor: context.color.tertiaryColor,
+                        cursorHeight: 20,
+                        keyboardType: TextInputType.visiblePassword,
+                        controller: passwordController,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.singleLineFormatter
+                        ],
+                        textAlign: TextAlign.start,
+                      ),
+                  ],
+                )
+              : TextFormField(
+                  autofocus: false,
                   textDirection: TextDirection.ltr,
+                  maxLength: 16,
                   scrollPadding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom * 4,
-                  ),
+                      bottom: MediaQuery.of(context).viewInsets.bottom * 4),
+                  buildCounter: (
+                    context, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) {
+                    return const SizedBox.shrink();
+                  },
+                  validator: Validator.validatePhoneNumber,
                   decoration: InputDecoration(
                     errorMaxLines: 1,
                     errorText: '',
-                    errorStyle: const TextStyle(
+                    errorStyle: TextStyle(
                       color: Colors.transparent,
                       fontSize: 0,
                     ),
-                    contentPadding: const EdgeInsets.all(14),
+                    contentPadding: EdgeInsets.all(14),
                     isDense: true,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -788,255 +910,99 @@ class LoginScreenState extends State<LoginScreen> {
                           BorderSide(color: context.color.tertiaryColor),
                     ),
                     errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(10.0),
                       borderSide:
                           BorderSide(color: context.color.tertiaryColor),
                     ),
-                    hintText: 'email'.translate(context),
+                    hintTextDirection: TextDirection.ltr,
+                    hintText: ' +${countryCode ?? ''} 0000000000',
                     hintStyle: TextStyle(
-                      color: context.color.textColorDark.withValues(alpha: 0.5),
-                    ),
-                    prefixIcon: Padding(
-                      padding: const EdgeInsetsDirectional.only(end: 8),
-                      child: Icon(
-                        Icons.email,
-                        color: context.color.tertiaryColor,
-                        size: 20,
-                      ),
-                    ),
+                        color: context.color.inverseSurface
+                            .withValues(alpha: 0.5)),
+                    prefixIcon: !AppSettings.disableCountrySelection &&
+                            Directionality.of(context) == TextDirection.ltr
+                        ? FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: GestureDetector(
+                              onTap: showCountryCode,
+                              child: Container(
+                                padding:
+                                    const EdgeInsetsDirectional.only(start: 10),
+                                height: 50,
+                                alignment: Alignment.center,
+                                child: Row(
+                                  children: [
+                                    CustomText(
+                                      flagEmoji ?? '',
+                                      fontSize: context.font.xxLarge,
+                                    ),
+                                    const SizedBox(
+                                      width: 4,
+                                    ),
+                                    UiUtils.getSvg(
+                                      height: 12,
+                                      AppIcons.downArrow,
+                                      color: context.color.tertiaryColor,
+                                    ),
+                                    const SizedBox(
+                                      width: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : SizedBox.shrink(),
+                    suffixIcon: !AppSettings.disableCountrySelection &&
+                            Directionality.of(context) == TextDirection.rtl
+                        ? FittedBox(
+                            fit: BoxFit.none,
+                            child: GestureDetector(
+                              onTap: showCountryCode,
+                              child: Container(
+                                padding:
+                                    const EdgeInsetsDirectional.only(end: 10),
+                                height: 50,
+                                alignment: Alignment.center,
+                                child: Row(
+                                  children: [
+                                    CustomText(
+                                      flagEmoji ?? '',
+                                      fontSize: context.font.xxLarge,
+                                    ),
+                                    const SizedBox(
+                                      width: 4,
+                                    ),
+                                    UiUtils.getSvg(
+                                      height: 12,
+                                      AppIcons.downArrow,
+                                      color: context.color.tertiaryColor,
+                                    ),
+                                    const SizedBox(
+                                      width: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : SizedBox.shrink(),
                   ),
                   onChanged: (String value) {
-                    setState(() {});
-                    isResendOtpButtonVisible = false;
+                    setState(() {
+                      phone = '${countryCode!} $value';
+                    });
                   },
                   textAlignVertical: TextAlignVertical.bottom,
-                  style: TextStyle(
-                    fontSize: 20,
-                    color: context.color.textColorDark,
-                  ),
+                  style: TextStyle(fontSize: 20),
                   cursorColor: context.color.tertiaryColor,
                   cursorErrorColor: context.color.tertiaryColor,
                   cursorHeight: 20,
-                  keyboardType: TextInputType.emailAddress,
-                  controller: emailAddressController,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.singleLineFormatter,
-                  ],
+                  keyboardType: TextInputType.phone,
+                  controller: mobileNumController,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  textAlign: TextAlign.start,
                 ),
-                if (!isForgotPasswordVisible)
-                  TextFormField(
-                    validator: Validator.validatePassword,
-                    textDirection: TextDirection.ltr,
-                    scrollPadding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).viewInsets.bottom * 4,
-                    ),
-                    obscureText: !isPasswordVisible,
-                    decoration: InputDecoration(
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          if (isPasswordVisible == true) {
-                            isPasswordVisible = false;
-                          } else {
-                            isPasswordVisible = true;
-                          }
-                          setState(() {});
-                        },
-                        icon: Icon(
-                          isPasswordVisible
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                        color: context.color.inverseSurface,
-                      ),
-                      errorMaxLines: 1,
-                      errorText: '',
-                      errorStyle: const TextStyle(
-                        color: Colors.transparent,
-                        fontSize: 0,
-                      ),
-                      contentPadding: const EdgeInsets.all(14),
-                      isDense: true,
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: context.color.tertiaryColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: context.color.tertiaryColor),
-                      ),
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: context.color.tertiaryColor),
-                      ),
-                      errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: context.color.tertiaryColor),
-                      ),
-                      hintText: 'password'.translate(context),
-                      hintStyle: TextStyle(
-                        color:
-                            context.color.inverseSurface.withValues(alpha: 0.5),
-                      ),
-                      prefixIcon: Padding(
-                        padding: const EdgeInsetsDirectional.only(end: 8),
-                        child: Icon(
-                          Icons.lock,
-                          color: context.color.tertiaryColor,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    onChanged: (String value) {
-                      setState(() {});
-                    },
-                    textAlignVertical: TextAlignVertical.bottom,
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: context.color.textColorDark,
-                    ),
-                    cursorColor: context.color.tertiaryColor,
-                    cursorErrorColor: context.color.tertiaryColor,
-                    cursorHeight: 20,
-                    keyboardType: TextInputType.visiblePassword,
-                    controller: passwordController,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.singleLineFormatter,
-                    ],
-                  ),
-              ],
-            )
-          else
-            TextFormField(
-              textDirection: TextDirection.ltr,
-              maxLength: 16,
-              scrollPadding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom * 4,
-              ),
-              buildCounter: (
-                context, {
-                required currentLength,
-                required isFocused,
-                maxLength,
-              }) {
-                return const SizedBox.shrink();
-              },
-              validator: Validator.validatePhoneNumber,
-              decoration: InputDecoration(
-                errorMaxLines: 1,
-                errorText: '',
-                errorStyle: const TextStyle(
-                  color: Colors.transparent,
-                  fontSize: 0,
-                ),
-                contentPadding: const EdgeInsets.all(14),
-                isDense: true,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: context.color.tertiaryColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: context.color.tertiaryColor),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: context.color.tertiaryColor),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: context.color.tertiaryColor),
-                ),
-                hintTextDirection: TextDirection.ltr,
-                hintText: ' +${countryCode ?? ''} 0000000000',
-                hintStyle: TextStyle(
-                  color: context.color.inverseSurface.withValues(alpha: 0.5),
-                ),
-                prefixIcon: !AppSettings.disableCountrySelection &&
-                        Directionality.of(context) == TextDirection.ltr
-                    ? FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: GestureDetector(
-                          onTap: showCountryCode,
-                          child: Container(
-                            padding:
-                                const EdgeInsetsDirectional.only(start: 10),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Row(
-                              children: [
-                                CustomText(
-                                  flagEmoji ?? '',
-                                  fontSize: context.font.xxLarge,
-                                ),
-                                const SizedBox(
-                                  width: 4,
-                                ),
-                                UiUtils.getSvg(
-                                  height: 12,
-                                  AppIcons.downArrow,
-                                  color: context.color.tertiaryColor,
-                                ),
-                                const SizedBox(
-                                  width: 4,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-                suffixIcon: !AppSettings.disableCountrySelection &&
-                        Directionality.of(context) == TextDirection.rtl
-                    ? FittedBox(
-                        fit: BoxFit.none,
-                        child: GestureDetector(
-                          onTap: showCountryCode,
-                          child: Container(
-                            padding: const EdgeInsetsDirectional.only(end: 10),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Row(
-                              children: [
-                                CustomText(
-                                  flagEmoji ?? '',
-                                  fontSize: context.font.xxLarge,
-                                ),
-                                const SizedBox(
-                                  width: 4,
-                                ),
-                                UiUtils.getSvg(
-                                  height: 12,
-                                  AppIcons.downArrow,
-                                  color: context.color.tertiaryColor,
-                                ),
-                                const SizedBox(
-                                  width: 4,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              onChanged: (String value) {
-                setState(() {
-                  phone = '${countryCode!} $value';
-                });
-              },
-              textAlignVertical: TextAlignVertical.bottom,
-              style: const TextStyle(fontSize: 20),
-              cursorColor: context.color.tertiaryColor,
-              cursorErrorColor: context.color.tertiaryColor,
-              cursorHeight: 20,
-              keyboardType: TextInputType.phone,
-              controller: mobileNumController,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            ),
           const SizedBox(
             height: 4,
           ),
@@ -1051,9 +1017,7 @@ class LoginScreenState extends State<LoginScreen> {
               child: Container(
                 alignment: AlignmentDirectional.centerEnd,
                 padding: const EdgeInsetsDirectional.only(
-                  end: sidePadding,
-                  bottom: 10,
-                ),
+                    end: sidePadding, bottom: 10),
                 child: CustomText(
                   'goBackToLogin'.translate(context),
                   fontSize: context.font.normal,
@@ -1061,12 +1025,11 @@ class LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-          if (isForgotPasswordVisible)
-            buildSubmitButton(context: context)
-          else
-            isResendOtpButtonVisible
-                ? buildResendOtpButton(context: context, isEmail: true)
-                : buildNextButton(context: context, isEmail: isEmailSelected),
+          isForgotPasswordVisible
+              ? buildSubmitButton(context: context)
+              : isResendOtpButtonVisible
+                  ? buildResendOtpButton(context: context, isEmail: true)
+                  : buildNextButton(context: context, isEmail: isEmailSelected),
           const SizedBox(
             height: 10,
           ),
@@ -1076,17 +1039,14 @@ class LoginScreenState extends State<LoginScreen> {
               children: [
                 CustomText('registerWith'.translate(context)),
                 const SizedBox(width: 5),
-                CustomText('appName'.translate(context)),
+                CustomText('eBroker'.translate(context)),
                 const SizedBox(width: 5),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      Routes.emailRegistrationForm,
-                      arguments: {
-                        'email': emailAddressController.text,
-                      },
-                    );
+                    Navigator.pushNamed(context, Routes.emailRegistrationForm,
+                        arguments: {
+                          'email': emailAddressController.text,
+                        });
                   },
                   child: CustomText(
                     'signUp'.translate(context),
@@ -1095,7 +1055,7 @@ class LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ],
-            ),
+            )
         ],
       );
 
@@ -1128,15 +1088,14 @@ class LoginScreenState extends State<LoginScreen> {
 
   Future<void> sendEmailVerificationCode() async {
     if (_formKey.currentState!.validate()) {
-      unawaited(Widgets.showLoader(context));
+      Widgets.showLoader(context);
       await context.read<LoginCubit>().loginWithEmail(
             email: emailAddressController.text.trim(),
             password: passwordController.text.trim(),
             type: LoginType.email,
           );
       final state = context.read<LoginCubit>().state;
-      if (state is LoginFailure &&
-          state.errorMessage.toLowerCase().contains('not verified')) {
+      if (state is LoginFailure) {
         Widgets.hideLoder(context);
         isResendOtpButtonVisible = true;
         setState(() {});
@@ -1146,7 +1105,7 @@ class LoginScreenState extends State<LoginScreen> {
       }
     } else {
       Widgets.hideLoder(context);
-      await HelperUtils.showSnackBarMessage(
+      HelperUtils.showSnackBarMessage(
         context,
         'enterValidEmailPassword'.translate(context),
         messageDuration: 1,
@@ -1251,21 +1210,20 @@ class LoginScreenState extends State<LoginScreen> {
               email: emailAddressController.text.trim(),
             );
       },
-      disabled: emailAddressController.text.trim().isEmpty,
+      disabled: (emailAddressController.text.trim().isEmpty),
       disabledColor: Colors.grey,
       height: 50,
       radius: 10,
       border: BorderSide(
         color: context.color.borderColor,
+        width: 1,
       ),
       buttonTitle: 'submit'.translate(context),
     );
   }
 
-  Widget buildResendOtpButton({
-    required BuildContext context,
-    required bool isEmail,
-  }) {
+  Widget buildResendOtpButton(
+      {required BuildContext context, required bool isEmail}) {
     return UiUtils.buildButton(
       context,
       onPressed: () async {
@@ -1278,10 +1236,8 @@ class LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget buildNextButton({
-    required BuildContext context,
-    required bool isEmail,
-  }) {
+  Widget buildNextButton(
+      {required BuildContext context, required bool isEmail}) {
     return UiUtils.buildButton(
       context,
       disabled: (isEmail && emailAddressController.text.isEmpty) ||
@@ -1293,6 +1249,7 @@ class LoginScreenState extends State<LoginScreen> {
       buttonTitle: 'continue'.translate(context),
       border: BorderSide(
         color: context.color.borderColor,
+        width: 1,
       ),
       radius: 10,
     );
@@ -1380,9 +1337,9 @@ class VShapeClipper extends CustomClipper<Path> {
     final h = size.height;
     final w = size.width;
     final path = Path();
-    final shortestSide = MediaQuery.of(context).size.width;
+    var shortestSide = MediaQuery.of(context).size.width;
 
-    final useMobileLayout = shortestSide < 550;
+    final bool useMobileLayout = shortestSide < 550;
 
     final pad = useMobileLayout ? 12.0 : 25.0;
     path

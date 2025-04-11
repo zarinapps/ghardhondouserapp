@@ -49,7 +49,7 @@ class _FlutterwaveWidgetState extends State<FlutterwaveWidget> {
       }
 
       // Assign the package
-      await flutterwaveCubit.assign(widget.pacakge.id);
+      await flutterwaveCubit.assign(widget.pacakge.id!);
 
       // Get the current state
       final state = flutterwaveCubit.state;
@@ -115,7 +115,9 @@ class _FlutterwaveWidgetState extends State<FlutterwaveWidget> {
       )
       ..setNavigationDelegate(
         NavigationDelegate(
-          onUrlChange: _handleUrlChange,
+          onUrlChange: (change) {
+            _handleUrlChange(change);
+          },
         ),
       );
 

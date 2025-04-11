@@ -11,14 +11,14 @@ class FetchSubscriptionPackagesInProgress
     extends FetchSubscriptionPackagesState {}
 
 class FetchSubscriptionPackagesSuccess extends FetchSubscriptionPackagesState {
-  final PackageResponseModel packageResponseModel;
+  final List<SubscriptionPackageModel> subscriptionPacakges;
   final bool isLoadingMore;
   final bool hasError;
   final int offset;
   final int total;
 
   FetchSubscriptionPackagesSuccess({
-    required this.packageResponseModel,
+    required this.subscriptionPacakges,
     required this.isLoadingMore,
     required this.hasError,
     required this.offset,
@@ -26,14 +26,14 @@ class FetchSubscriptionPackagesSuccess extends FetchSubscriptionPackagesState {
   });
 
   FetchSubscriptionPackagesSuccess copyWith({
-    PackageResponseModel? packageResponseModel,
+    List<SubscriptionPackageModel>? subscriptionPacakges,
     bool? isLoadingMore,
     bool? hasError,
     int? offset,
     int? total,
   }) {
     return FetchSubscriptionPackagesSuccess(
-      packageResponseModel: packageResponseModel ?? this.packageResponseModel,
+      subscriptionPacakges: subscriptionPacakges ?? this.subscriptionPacakges,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasError: hasError ?? this.hasError,
       offset: offset ?? this.offset,
@@ -61,24 +61,22 @@ class FetchSubscriptionPackagesCubit
       );
       emit(
         FetchSubscriptionPackagesSuccess(
-          packageResponseModel: result,
+          subscriptionPacakges: result.modelList,
           offset: 0,
           isLoadingMore: false,
-          total: result.subscriptionPackage.length,
+          total: result.total,
           hasError: false,
         ),
       );
-    } catch (e, st) {
+    } catch (e) {
       emit(FetchSubscriptionPackagesFailure(e));
-      print(st);
     }
   }
 
   bool hasMore() {
     if (state is FetchSubscriptionPackagesSuccess) {
       return (state as FetchSubscriptionPackagesSuccess)
-              .packageResponseModel
-              .subscriptionPackage
+              .subscriptionPacakges
               .length <
           (state as FetchSubscriptionPackagesSuccess).total;
     }
@@ -97,23 +95,21 @@ class FetchSubscriptionPackagesCubit
         );
         final result = await _subscriptionRepository.getSubscriptionPackages(
           offset: (state as FetchSubscriptionPackagesSuccess)
-              .packageResponseModel
-              .subscriptionPackage
+              .subscriptionPacakges
               .length,
         );
 
         final subscriptionPacakges = (state as FetchSubscriptionPackagesSuccess)
-            .packageResponseModel
-            .subscriptionPackage
-          ..addAll(result.subscriptionPackage);
+            .subscriptionPacakges
+          ..addAll(result.modelList);
 
         emit(
           FetchSubscriptionPackagesSuccess(
-            packageResponseModel: result,
+            subscriptionPacakges: subscriptionPacakges,
             isLoadingMore: false,
             hasError: false,
             offset: subscriptionPacakges.length,
-            total: result.subscriptionPackage.length,
+            total: result.total,
           ),
         );
       }

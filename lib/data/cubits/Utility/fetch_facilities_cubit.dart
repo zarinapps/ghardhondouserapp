@@ -10,15 +10,15 @@ class FetchFacilitiesInitial extends FetchFacilitiesState {}
 class FetchFacilitiesLoading extends FetchFacilitiesState {}
 
 class FetchFacilitiesSuccess extends FetchFacilitiesState {
+  final List<FacilitiesModel> facilities;
 
   FetchFacilitiesSuccess({required this.facilities});
-  final List<FacilitiesModel> facilities;
 }
 
 class FetchFacilitiesCubit extends Cubit<FetchFacilitiesState> {
+  final FacilitiesRepository _facilitiesRepository = FacilitiesRepository();
 
   FetchFacilitiesCubit() : super(FetchFacilitiesInitial());
-  final FacilitiesRepository _facilitiesRepository = FacilitiesRepository();
 
   Future<void> fetch() async {
     emit(FetchFacilitiesLoading());

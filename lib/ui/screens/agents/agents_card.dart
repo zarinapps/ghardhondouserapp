@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:ebroker/data/cubits/agents/fetch_property_cubit.dart';
 import 'package:ebroker/data/model/agent/agent_model.dart';
 import 'package:ebroker/exports/main_export.dart';
@@ -30,19 +28,21 @@ class AgentCard extends StatelessWidget {
         GuestChecker.check(
           onNotGuest: () async {
             try {
-              unawaited(Widgets.showLoader(context));
+              Widgets.showLoader(context);
               await context
                   .read<FetchAgentsPropertyCubit>()
                   .fetchAgentsProperty(
-                    agentId: agent.id,
-                    forceRefresh: true,
-                    isAdmin: agent.isAdmin,
-                  );
+                      agentId: agent.id,
+                      forceRefresh: true,
+                      isAdmin: agent.isAdmin);
               final state = context.read<FetchAgentsPropertyCubit>().state;
-
-              if (state is FetchAgentsPropertySuccess) {
+              final bool isPremium = context
+                      .read<FetchSystemSettingsCubit>()
+                      .getRawSettings()['is_premium'] ??
+                  false;
+              if (isPremium && state is FetchAgentsPropertySuccess) {
                 Widgets.hideLoder(context);
-                await Navigator.pushNamed(
+                Navigator.pushNamed(
                   context,
                   Routes.agentDetailsScreen,
                   arguments: {
@@ -54,7 +54,7 @@ class AgentCard extends StatelessWidget {
                 if ((agent.id.toString() == HiveUtils.getUserId()) &&
                     state is FetchAgentsPropertySuccess) {
                   Widgets.hideLoder(context);
-                  await Navigator.pushNamed(
+                  Navigator.pushNamed(
                     context,
                     Routes.agentDetailsScreen,
                     arguments: {
@@ -62,8 +62,34 @@ class AgentCard extends StatelessWidget {
                       'isAdmin': agent.isAdmin,
                     },
                   );
+                } else if (state is FetchAgentsPropertyFailure) {
+                  Widgets.hideLoder(context);
+                  HelperUtils.showSnackBarMessage(
+                    context,
+                    state.errorMessage,
+                  );
+                } else {
+                  Widgets.hideLoder(context);
+                  UiUtils.showBlurredDialoge(
+                    context,
+                    dialoge: BlurredDialogBox(
+                      title: 'Subscription needed',
+                      isAcceptContainesPush: true,
+                      onAccept: () async {
+                        await Navigator.popAndPushNamed(
+                          context,
+                          Routes.subscriptionPackageListRoute,
+                          arguments: {'from': 'home'},
+                        );
+                      },
+                      content: CustomText(
+                        'subscribeToUseThisFeature'.translate(context),
+                      ),
+                    ),
+                  );
                 }
               }
+              ;
             } catch (e) {
               Widgets.hideLoder(context);
             }
@@ -100,6 +126,7 @@ class AgentCard extends StatelessWidget {
               ),
             ),
             Expanded(
+              flex: 1,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Column(

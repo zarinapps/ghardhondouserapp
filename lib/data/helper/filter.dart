@@ -118,7 +118,7 @@ class FilterApply {
   }
 
   ////It will return data in Map format of combined filters so we can send it in API
-  Map<dynamic, dynamic> getFilter() {
+  Map getFilter() {
     return _filters.fold(
       {},
       (previousValue, element) => previousValue..addAll(element.filter()),

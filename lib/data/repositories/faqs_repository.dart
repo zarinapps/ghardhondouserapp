@@ -17,7 +17,6 @@ class FaqsRepository {
         .map<FaqsModel>(FaqsModel.fromJson)
         .toList();
 
-    return DataOutput(
-        total: result['total'] as int? ?? 0, modelList: modelList);
+    return DataOutput(total: result['total'] ?? 0, modelList: modelList);
   }
 }

@@ -46,9 +46,6 @@ class _AgentPropertiesState extends State<AgentProperties> {
       backgroundColor: Colors.transparent,
       body: BlocBuilder<FetchAgentsPropertyCubit, FetchAgentsPropertyState>(
         builder: (agentsContext, state) {
-          if (state is FetchAgentsPropertyLoading) {
-            return Center(child: UiUtils.progress());
-          }
           if (state is FetchAgentsPropertySuccess &&
               state.agentsProperty.propertiesData.isEmpty) {
             return Container(
@@ -82,12 +79,9 @@ class _AgentPropertiesState extends State<AgentProperties> {
           }
           if (state is FetchAgentsPropertySuccess &&
               state.agentsProperty.propertiesData.isNotEmpty) {
-            final totalPropertiesCount =
-                state.agentsProperty.propertiesData.length +
-                    state.agentsProperty.premiumPropertyCount;
             return Column(
               children: <Widget>[
-                Flexible(
+                Expanded(
                   child: Container(
                     clipBehavior: Clip.antiAlias,
                     margin: const EdgeInsets.only(
@@ -133,12 +127,14 @@ class _AgentPropertiesState extends State<AgentProperties> {
                             fontSize: 16,
                             color: context.color.inverseSurface,
                             fontWeight: FontWeight.w700,
-                            '$totalPropertiesCount ${UiUtils.translate(context, 'properties')}',
+                            '${state.agentsProperty.customerData.propertyCount} ${UiUtils.translate(context, 'properties')}',
                           ),
                         ),
                         Expanded(
                           child: ListView.builder(
-                            physics: Constant.scrollPhysics,
+                            physics: AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
                             padding: const EdgeInsets.symmetric(
                               vertical: 8,
                             ),

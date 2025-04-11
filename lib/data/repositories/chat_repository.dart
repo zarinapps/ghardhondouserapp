@@ -24,12 +24,10 @@ class ChatRepository {
     );
 
     final modelList = (response['data'] as List).map((e) {
-      return ChatedUser.fromJson(e as Map<String, dynamic>? ?? {});
+      return ChatedUser.fromJson(e);
     }).toList();
 
-    return DataOutput(
-        total: int.parse(response['total_page']?.toString() ?? '0'),
-        modelList: modelList);
+    return DataOutput(total: response['total_page'] ?? 0, modelList: modelList);
   }
 
   Future<DataOutput<Message>> getMessages({
@@ -49,14 +47,13 @@ class ChatRepository {
     final modelList = (response['data']['data'] as List).map(
       (result) {
         //Creating model
-        final chatMessageModel =
-            ChatMessageModel.fromJson(result as Map<String, dynamic>? ?? {});
+        final chatMessageModel = ChatMessageModel.fromJson(result);
         chatMessageModel
           ..setIsSentByMe(
             HiveUtils.getUserId() == chatMessageModel.senderId.toString(),
           )
           ..setIsSentNow(false)
-          ..date = result?['created_at']?.toString() ?? '';
+          ..date = result['created_at'];
         //Creating message widget
         final message = filterMessageType(chatMessageModel)
           ..isSentByMe = chatMessageModel.isSentByMe ?? false
@@ -67,9 +64,7 @@ class ChatRepository {
       },
     ).toList();
 
-    return DataOutput(
-        total: int.parse(response['total_page']?.toString() ?? '0'),
-        modelList: modelList);
+    return DataOutput(total: response['total_page'] ?? 0, modelList: modelList);
   }
 
   Future<Map<String, dynamic>> sendMessage({

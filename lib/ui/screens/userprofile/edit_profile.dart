@@ -28,14 +28,14 @@ class UserProfileScreen extends StatefulWidget {
   @override
   State<UserProfileScreen> createState() => UserProfileScreenState();
 
-  static Route<dynamic> route(RouteSettings routeSettings) {
-    final arguments = routeSettings.arguments! as Map?;
+  static Route route(RouteSettings routeSettings) {
+    final arguments = routeSettings.arguments! as Map;
     return BlurredRouter(
       builder: (_) => UserProfileScreen(
-        from: arguments?['from'] as String,
-        popToCurrent: arguments?['popToCurrent'] as bool?,
-        navigateToHome: arguments?['navigateToHome'] as bool?,
-        phoneNumber: arguments?['phoneNumber'] as String?,
+        from: arguments['from'] as String,
+        popToCurrent: arguments['popToCurrent'] as bool?,
+        navigateToHome: arguments['navigateToHome'] as bool?,
+        phoneNumber: arguments['phoneNumber'] as String?,
       ),
     );
   }
@@ -45,10 +45,6 @@ class UserProfileScreenState extends State<UserProfileScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController instagramController = TextEditingController();
-  final TextEditingController facebookController = TextEditingController();
-  final TextEditingController youtubeController = TextEditingController();
-  final TextEditingController twitterController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   dynamic size;
@@ -64,7 +60,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
   double? latitude;
   double? longitude;
   late LoginType loginType;
-  String? selectedCountryCode = HiveUtils.getCountryCode()?.toString() ?? '';
+  String? selectedCountryCode = HiveUtils.getCountryCode();
   List<Country> countryList = CountryService().getAll();
 
   @override
@@ -86,10 +82,6 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     nameController.text = HiveUtils.getUserDetails().name ?? userName;
     emailController.text = HiveUtils.getUserDetails().email ?? '';
     addressController.text = HiveUtils.getUserDetails().address ?? '';
-    instagramController.text = HiveUtils.getUserDetails().instagram ?? '';
-    facebookController.text = HiveUtils.getUserDetails().facebook ?? '';
-    youtubeController.text = HiveUtils.getUserDetails().youtube ?? '';
-    twitterController.text = HiveUtils.getUserDetails().twitter ?? '';
     isNotificationsEnabled = true;
   }
 
@@ -100,7 +92,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
       return null;
     }
 
-    final String? countryCode = HiveUtils.getCountryCode()?.toString() ?? '';
+    final String? countryCode = HiveUtils.getCountryCode();
 
     final countryCodeLength = countryCode?.length ?? 0;
 
@@ -115,10 +107,6 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     nameController.dispose();
     emailController.dispose();
     addressController.dispose();
-    instagramController.dispose();
-    facebookController.dispose();
-    youtubeController.dispose();
-    twitterController.dispose();
     super.dispose();
   }
 
@@ -130,15 +118,13 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     )) {
       if (Constant.isDemoModeOn) {
         await HelperUtils.showSnackBarMessage(
-          context,
-          'Not valid in demo mode',
-        );
+            context, 'Not valid in demo mode');
 
         return;
       }
     }
 
-    final result = await showModalBottomSheet<dynamic>(
+    final result = await showModalBottomSheet(
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
@@ -164,7 +150,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  void _onTapCountryCode() {
+  _onTapCountryCode() {
     showCountryPicker(
       context: context,
       showPhoneCode: true,
@@ -204,7 +190,9 @@ class UserProfileScreenState extends State<UserProfileScreen> {
               ? null
               : UiUtils.buildAppBar(context, showBackButton: true),
           body: SingleChildScrollView(
-            physics: Constant.scrollPhysics,
+            physics: AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Form(
@@ -223,7 +211,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     buildTextField(
                       context,
-                      title: 'email',
+                      title: 'companyEmailLbl',
                       controller: emailController,
                       validator: CustomTextFieldValidator.email,
                       readOnly: loginType != LoginType.phone ? true : false,
@@ -281,30 +269,6 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                       fontSize: context.font.small,
                       color: context.color.textColorDark.withValues(alpha: 0.8),
                     ),
-                    buildTextField(
-                      context,
-                      title: 'instagram',
-                      controller: instagramController,
-                      validator: CustomTextFieldValidator.link,
-                    ),
-                    buildTextField(
-                      context,
-                      title: 'facebook',
-                      controller: facebookController,
-                      validator: CustomTextFieldValidator.link,
-                    ),
-                    buildTextField(
-                      context,
-                      title: 'youtube',
-                      controller: youtubeController,
-                      validator: CustomTextFieldValidator.link,
-                    ),
-                    buildTextField(
-                      context,
-                      title: 'twitter',
-                      controller: twitterController,
-                      validator: CustomTextFieldValidator.link,
-                    ),
                     SizedBox(
                       height: 45.rh(context),
                     ),
@@ -315,20 +279,18 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                           HelperUtils.showSnackBarMessage(
                             context,
                             UiUtils.translate(
-                              context,
-                              'thisActionNotValidDemo',
-                            ),
+                                context, 'thisActionNotValidDemo'),
                           );
                           return;
                         }
                         if (city != null && city != '') {
                           HiveUtils.setLocation(
-                            city: city?.toString() ?? '',
-                            state: _state?.toString() ?? '',
+                            city: city,
+                            state: _state,
                             latitude: latitude,
                             longitude: longitude,
-                            country: country?.toString() ?? '',
-                            placeId: placeid?.toString() ?? '',
+                            country: country,
+                            placeId: placeid,
                           );
                           Hive.box(HiveKeys.userDetailsBox)
                               .put(HiveKeys.cityTeemp, city);
@@ -490,8 +452,8 @@ class UserProfileScreenState extends State<UserProfileScreen> {
   Widget buildTextField(
     BuildContext context, {
     required String title,
-    required TextEditingController controller,
     List<TextInputFormatter>? formaters,
+    required TextEditingController controller,
     TextInputType? keyboard,
     Widget? prefix,
     Widget? suffix,
@@ -505,7 +467,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
         SizedBox(
           height: 10.rh(context),
         ),
-        CustomText(UiUtils.translate(context, title).firstUpperCase()),
+        CustomText(UiUtils.translate(context, title)),
         SizedBox(
           height: 10.rh(context),
         ),
@@ -520,7 +482,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
           suffix: suffix,
           formaters: formaters, //
           // formaters: [FilteringTextInputFormatter.deny(RegExp(","))],
-          fillColor: context.color.textLightColor.withValues(alpha: .01),
+          fillColor: context.color.textLightColor.withValues(alpha: 00.01),
         ),
       ],
     );
@@ -688,25 +650,22 @@ class UserProfileScreenState extends State<UserProfileScreen> {
             phone: '$selectedCountryCode${phoneController.text}',
             latitude: latitude,
             longitude: longitude,
-            city: city?.toString() ?? '',
-            state: _state?.toString() ?? '',
-            country: country?.toString() ?? '',
+            city: city,
+            state: _state,
+            country: country,
             address: addressController.text,
             notification: isNotificationsEnabled == true ? '1' : '0',
-            instagram: instagramController.text,
-            facebook: facebookController.text,
-            youtube: youtubeController.text,
-            twitter: twitterController.text,
           );
       Future.delayed(Duration.zero, () {
         final result = response;
         final data = result['data'];
         data['countryCode'] = selectedCountryCode;
 
-        HiveUtils.setUserData(data as Map<dynamic, dynamic>? ?? {});
+        HiveUtils.setUserData(data);
 
-        context.read<UserDetailsCubit>().copy(UserModel.fromJson(
-            response['data'] as Map<String, dynamic>? ?? {}));
+        context
+            .read<UserDetailsCubit>()
+            .copy(UserModel.fromJson(response['data']));
       });
 
       Future.delayed(
@@ -765,11 +724,9 @@ class UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   void showPicker() {
-    showModalBottomSheet<void>(
+    showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
+      shape: setRoundedBorder(10),
       builder: (BuildContext bc) {
         return SafeArea(
           child: Wrap(
@@ -808,7 +765,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Future<void> _imgFromGallery(ImageSource imageSource) async {
+  _imgFromGallery(ImageSource imageSource) async {
     CropImage.init(context);
 
     final pickedFile = await ImagePicker().pickImage(source: imageSource);

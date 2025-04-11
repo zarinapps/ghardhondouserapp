@@ -13,16 +13,16 @@ import 'package:hive/hive.dart';
 class AddPropertyDetails extends StatefulWidget {
   const AddPropertyDetails({super.key, this.propertyDetails, this.properties});
 
-  final Map<dynamic, dynamic>? propertyDetails;
-  final Map<dynamic, dynamic>? properties;
+  final Map? propertyDetails;
+  final Map? properties;
 
-  static Route<dynamic> route(RouteSettings routeSettings) {
+  static Route route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map?;
     return BlurredRouter(
       builder: (context) {
         return AddPropertyDetails(
-          propertyDetails: arguments?['details'] as Map<String, dynamic>?,
-          properties: arguments?['properties'] as Map<String, dynamic>?,
+          propertyDetails: arguments?['details'],
+          properties: arguments?['properties'],
         );
       },
     );
@@ -35,35 +35,31 @@ class AddPropertyDetails extends StatefulWidget {
 class _AddPropertyDetailsState extends State<AddPropertyDetails> {
   final GlobalKey<FormState> _formKey = GlobalKey();
 
-  late PropertyModel? property = getEditPropertyData(
-      widget.propertyDetails?['property'] as Map<String, dynamic>?);
+  late PropertyModel? property =
+      getEditPropertyData(widget.propertyDetails?['property']);
 
   late final TextEditingController _propertyNameController =
-      TextEditingController(
-          text: widget.propertyDetails?['name']?.toString() ?? '');
-  late final TextEditingController _slugController = TextEditingController(
-      text: widget.propertyDetails?['slug_id']?.toString() ?? '');
+      TextEditingController(text: widget.propertyDetails?['name']);
+  late final TextEditingController _slugController =
+      TextEditingController(text: widget.propertyDetails?['slug_id'] ?? '');
   late final TextEditingController _descriptionController =
-      TextEditingController(
-          text: widget.propertyDetails?['desc']?.toString() ?? '');
-  late final TextEditingController _cityNameController = TextEditingController(
-      text: widget.propertyDetails?['city']?.toString() ?? '');
-  late final TextEditingController _stateNameController = TextEditingController(
-      text: widget.propertyDetails?['state']?.toString() ?? '');
+      TextEditingController(text: widget.propertyDetails?['desc']);
+  late final TextEditingController _cityNameController =
+      TextEditingController(text: widget.propertyDetails?['city']);
+  late final TextEditingController _stateNameController =
+      TextEditingController(text: widget.propertyDetails?['state']);
   late final TextEditingController _countryNameController =
-      TextEditingController(
-          text: widget.propertyDetails?['country']?.toString() ?? '');
-  late final TextEditingController _latitudeController = TextEditingController(
-      text: widget.propertyDetails?['latitude']?.toString() ?? '');
-  late final TextEditingController _longitudeController = TextEditingController(
-      text: widget.propertyDetails?['longitude']?.toString() ?? '');
-  late final TextEditingController _addressController = TextEditingController(
-      text: widget.propertyDetails?['address']?.toString() ?? '');
-  late final TextEditingController _priceController = TextEditingController(
-      text: widget.propertyDetails?['price']?.toString() ?? '');
+      TextEditingController(text: widget.propertyDetails?['country']);
+  late final TextEditingController _latitudeController =
+      TextEditingController(text: widget.propertyDetails?['latitude']);
+  late final TextEditingController _longitudeController =
+      TextEditingController(text: widget.propertyDetails?['longitude']);
+  late final TextEditingController _addressController =
+      TextEditingController(text: widget.propertyDetails?['address']);
+  late final TextEditingController _priceController =
+      TextEditingController(text: widget.propertyDetails?['price']);
   late final TextEditingController _clientAddressController =
-      TextEditingController(
-          text: widget.propertyDetails?['client']?.toString() ?? '');
+      TextEditingController(text: widget.propertyDetails?['client']);
 
   late final TextEditingController _videoLinkController =
       TextEditingController();
@@ -79,29 +75,28 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
       TextEditingController();
 
   ///
-  Map<dynamic, dynamic> propertyData = {};
+  Map propertyData = {};
   final PickImage _pickTitleImage = PickImage();
   final PickImage _propertiesImagePicker = PickImage();
   final PickImage _pick360deg = PickImage();
   // final PickImage _pickMetaTitle = PickImage();
-  List<dynamic> editPropertyImageList = [];
+  List editPropertyImageList = [];
   String threeDImageURL = '';
   String titleImageURL = '';
   // String metaImageUrl = '';
   String selectedRentType = 'Monthly';
-  List<dynamic> removedImageId = [];
+  List removedImageId = [];
   int propertyType = 0;
   List<PropertyDocuments> documentFiles = [];
   List<int> removedDocumentId = [];
   int removeThreeDImage = 0;
   var localLatitude = 0.0;
   var localLongitude = 0.0;
-  late final allPropData =
-      widget.propertyDetails?['allPropData'] as Map<String, dynamic>? ?? {};
 
   // meta image new code
-  late String metaImageUrl = allPropData['meta_image']?.toString() ?? '';
-  late ImagePickerValue<dynamic>? metaImage =
+  late String metaImageUrl =
+      widget.propertyDetails?['allPropData']['meta_image'];
+  late ImagePickerValue? metaImage =
       metaImageUrl != '' ? UrlValue(metaImageUrl) : null;
 
   List<dynamic> mixedPropertyImageList = [];
@@ -124,33 +119,33 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
       });
     });
 
-    documentFiles =
-        widget.properties?['documents'] as List<PropertyDocuments>? ?? [];
+    documentFiles = widget.properties?['documents'] ?? [];
     propertyType = widget.propertyDetails?['propType'] == 'rent' ? 1 : 0;
-    titleImageURL = widget.propertyDetails?['titleImage']?.toString() ?? '';
-    threeDImageURL = widget.propertyDetails?['three_d_image']?.toString() ?? '';
-    removeThreeDImage =
-        widget.propertyDetails?['remove_three_d_image'] as int? ?? 0;
-    metaImageUrl = allPropData['meta_image']?.toString() ?? '';
+    titleImageURL = widget.propertyDetails?['titleImage'] ?? '';
+    threeDImageURL = widget.propertyDetails?['three_d_image'] ?? '';
+    removeThreeDImage = widget.propertyDetails?['remove_three_d_image'] ?? 0;
+    metaImageUrl = widget.propertyDetails?['allPropData']['meta_image'] ?? '';
 
-    mixedPropertyImageList = List<dynamic>.from(
-        widget.propertyDetails?['images'] as Iterable<dynamic>? ?? []);
+    mixedPropertyImageList =
+        List<dynamic>.from(widget.propertyDetails?['images'] ?? []);
     if (widget.propertyDetails != null) {
       selectedRentType =
           (widget.propertyDetails?['rentduration']).toString().isEmpty
               ? 'Monthly'
-              : widget.propertyDetails?['rentduration']?.toString() ?? '';
-      isPrivateProperty = allPropData['is_premium'] as bool? ?? false;
+              : widget.propertyDetails?['rentduration'];
+      isPrivateProperty =
+          widget.propertyDetails?['allPropData']?['is_premium'] ?? false;
     }
 
-    metaTitleController.text = allPropData['meta_title']?.toString() ?? '';
+    metaTitleController.text =
+        widget.propertyDetails?['allPropData']['meta_title'] ?? '';
     metaDescriptionController.text =
-        allPropData['meta_description']?.toString() ?? '';
-    metaKeywordController.text = allPropData['meta_keywords']?.toString() ?? '';
+        widget.propertyDetails?['allPropData']['meta_description'] ?? '';
+    metaKeywordController.text =
+        widget.propertyDetails?['allPropData']['meta_keywords'] ?? '';
     _propertiesImagePicker.listener((images) {
       try {
-        mixedPropertyImageList
-            .addAll(List<dynamic>.from(images as Iterable<dynamic>? ?? []));
+        mixedPropertyImageList.addAll(List<dynamic>.from(images));
       } catch (e) {
         log('Error is $e');
       }
@@ -172,7 +167,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
         .replaceAll(RegExp(r'[^\w-]'), '');
   }
 
-  Future<void> _onTapChooseLocation(FormFieldState<dynamic> state) async {
+  Future<void> _onTapChooseLocation(FormFieldState state) async {
     FocusManager.instance.primaryFocus?.unfocus();
 
     if (Hive.box(HiveKeys.userDetailsBox)
@@ -197,12 +192,10 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
       Routes.chooseLocaitonMap,
       arguments: {
         'latitude': widget.propertyDetails?['latitude'] != null
-            ? double.parse(
-                widget.propertyDetails?['latitude']?.toString() ?? '')
+            ? double.parse(widget.propertyDetails?['latitude'])
             : null,
         'longitude': widget.propertyDetails?['longitude'] != null
-            ? double.parse(
-                widget.propertyDetails?['longitude']?.toString() ?? '')
+            ? double.parse(widget.propertyDetails?['longitude'])
             : null,
       },
     ) as Map?;
@@ -255,7 +248,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
     }
 
     if (_formKey.currentState!.validate()) {
-      var documents = <String, dynamic>{};
+      var documents = {};
       try {
         documents = documentFiles.fold({}, (pr, el) {
           pr.addAll({
@@ -463,7 +456,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
 
   @override
   Widget build(BuildContext context) {
-    const requiredSymbol = CustomText(
+    final requiredSymbol = const CustomText(
       '*',
       color: Colors.redAccent,
     );
@@ -503,7 +496,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            physics: Constant.scrollPhysics,
+            physics: const BouncingScrollPhysics(),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -574,8 +567,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                     children: [
                       Expanded(
                         child: CustomText(
-                          'Is Private Property?'.translate(context),
-                        ),
+                            'Is Private Property?'.translate(context)),
                       ),
                       CupertinoSwitch(
                         value: isPrivateProperty,
@@ -752,13 +744,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                       Expanded(
                         child: CustomTextFormField(
                           action: TextInputAction.next,
-                          prefix: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: CustomText(
-                              '${Constant.currencySymbol} ',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          prefix: CustomText('${Constant.currencySymbol} '),
                           controller: _priceController,
                           formaters: [
                             FilteringTextInputFormatter.allow(
@@ -805,8 +791,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                                 DropdownMenuItem(
                                   value: 'Quarterly',
                                   child: CustomText(
-                                    'Quarterly'.translate(context),
-                                  ),
+                                      'Quarterly'.translate(context)),
                                 ),
                                 DropdownMenuItem(
                                   value: 'Yearly',
@@ -879,8 +864,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                         alignment: Alignment.center,
                         height: 48.rh(context),
                         child: CustomText(
-                          UiUtils.translate(context, 'add360degPicture'),
-                        ),
+                            UiUtils.translate(context, 'add360degPicture')),
                       ),
                     ),
                   ),
@@ -901,7 +885,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Image.file(
-                              image as File,
+                              image,
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -957,7 +941,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                                             fontWeight: FontWeight.bold,
                                             fontSize: context.font.small,
                                             color: context.color.textColorDark,
-                                          ),
+                                          )
                                         ],
                                       ),
                                     ),
@@ -1058,7 +1042,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                                             fontWeight: FontWeight.bold,
                                             fontSize: context.font.small,
                                             color: context.color.textColorDark,
-                                          ),
+                                          )
                                         ],
                                       ),
                                     ),
@@ -1164,7 +1148,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                     title: UiUtils.translate(context, 'addMetaImage'),
                     multiImage: false,
                     value: metaImage,
-                    onSelect: (ImagePickerValue<dynamic>? selected) {
+                    onSelect: (ImagePickerValue? selected) {
                       if (selected is FileValue || selected == null) {
                         metaImage = selected;
                         setState(() {});
@@ -1258,7 +1242,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                       } else {
                         UiUtils.showFullScreenImage(
                           context,
-                          provider: FileImage(image as File),
+                          provider: FileImage(image),
                         );
                       }
                     },
@@ -1577,12 +1561,12 @@ class ImageAdapter extends StatelessWidget {
   Widget build(BuildContext context) {
     if (image is String) {
       return Image.network(
-        image?.toString() ?? '',
+        image,
         fit: BoxFit.cover,
       );
     } else if (image is File) {
       return Image.file(
-        image as File,
+        image,
         fit: BoxFit.cover,
       );
     }

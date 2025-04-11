@@ -47,17 +47,16 @@ class NoInternet extends StatelessWidget {
               height: 5,
             ),
             TextButton(
-              onPressed: onRetry,
-              style: ButtonStyle(
-                overlayColor: WidgetStateProperty.all(
-                  context.color.tertiaryColor.withValues(alpha: 0.2),
+                onPressed: onRetry,
+                style: ButtonStyle(
+                  overlayColor: WidgetStateProperty.all(
+                    context.color.tertiaryColor.withValues(alpha: 0.2),
+                  ),
                 ),
-              ),
-              child: CustomText(
-                UiUtils.translate(context, 'retry'),
-                color: context.color.tertiaryColor,
-              ),
-            ),
+                child: CustomText(
+                  UiUtils.translate(context, 'retry'),
+                  color: context.color.tertiaryColor,
+                )),
           ],
         ),
       ),

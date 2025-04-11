@@ -92,12 +92,9 @@ class FileAndText extends Message {
                           child: SizedBox(
                             height: 65,
                             child: Center(
-                              child: CustomText(
-                                extension.toUpperCase(),
-                                fontSize: context.font.small,
-                                color: context.color.textColorDark,
-                              ),
-                            ),
+                                child: CustomText(extension.toUpperCase(),
+                                    fontSize: context.font.small,
+                                    color: context.color.textColorDark)),
                           ),
                         ),
                         Container(

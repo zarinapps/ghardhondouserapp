@@ -1,262 +1,236 @@
 import 'package:ebroker/data/model/subscription_pacakage_model.dart';
-import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/utils/payment/in_app_purchase/inAppPurchaseManager.dart';
+import 'package:ebroker/ui/screens/subscription/widget/subscripton_feature_line.dart';
+import 'package:ebroker/utils/AppIcon.dart';
+import 'package:ebroker/utils/extensions/extensions.dart';
+import 'package:ebroker/utils/extensions/lib/custom_text.dart';
+import 'package:ebroker/utils/responsiveSize.dart';
+import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 
-class SubscriptionPackageTile extends StatefulWidget {
+abstract class Limit<T> {
+  abstract final T value;
+}
+
+class StringLimit extends Limit {
+  StringLimit(this.value);
+  @override
+  final String value;
+}
+
+class IntLimit extends Limit {
+  IntLimit(this.value);
+  @override
+  final int value;
+}
+
+class NotAvailable extends Limit {
+  NotAvailable();
+  @override
+  void value;
+}
+
+class PackageLimit {
+  PackageLimit(this.limit);
+  final dynamic limit;
+
+  Limit get(context) {
+    if (limit is int) {
+      return IntLimit(limit);
+    } else {
+      if (isAvailable(context, limit)) {
+        if (isUnLimited(context, limit)) {
+          return StringLimit('unlimited'.translate(context));
+        } else {
+          //Will not execute but added
+          return StringLimit(limit);
+        }
+      } else {
+        return NotAvailable();
+      }
+    }
+  }
+
+  bool isUnLimited(BuildContext context, String value) {
+    if (value == 'unlimited') {
+      return true;
+    }
+    return false;
+  }
+
+  bool isAvailable(BuildContext context, String? value) {
+    if (value == 'not_available' || value == null) {
+      return false;
+    }
+    return true;
+  }
+}
+
+class SubscriptionPackageTile extends StatelessWidget {
   const SubscriptionPackageTile({
     required this.onTap,
     required this.package,
-    required this.packageFeatures,
     super.key,
   });
-
   final SubscriptionPackageModel package;
-  final List<AllFeature> packageFeatures;
   final VoidCallback onTap;
 
   @override
-  State<SubscriptionPackageTile> createState() =>
-      _SubscriptionPackageTileState();
-}
-
-class _SubscriptionPackageTileState extends State<SubscriptionPackageTile> {
-  InAppPurchaseManager inAppPurchase = InAppPurchaseManager();
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsetsDirectional.only(top: 10, start: 16, end: 16),
-      decoration: BoxDecoration(
-        color: context.color.secondaryColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.color.borderColor, width: 1.5),
-      ),
-      child: Column(
-        children: [
-          buildPackageTitle(),
-          packageFeaturesAndValidity(),
-          buildSeparator(),
-          buildPriceAndSubscribe(),
-        ],
-      ),
-    );
-  }
-
-  Widget buildPriceAndSubscribe() {
-    return Container(
-      margin: const EdgeInsets.only(top: 18, bottom: 18, left: 16, right: 16),
-      padding: const EdgeInsets.symmetric(vertical: 17, horizontal: 18),
       decoration: BoxDecoration(
         color: context.color.tertiaryColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Stack(
             children: [
-              CustomText(
-                widget.package.price == 0
-                    ? 'free'.translate(context)
-                    : '${Constant.currencySymbol} ${widget.package.price}',
-                fontSize: context.font.larger,
-                color: context.color.tertiaryColor,
-                fontWeight: FontWeight.bold,
+              SizedBox(
+                width: context.screenWidth,
+                child: UiUtils.getSvg(
+                  AppIcons.headerCurve,
+                  color: context.color.tertiaryColor,
+                  fit: BoxFit.fitWidth,
+                ),
               ),
-              CustomText(
-                '${widget.package.duration} ${'days'.translate(context)}',
-                fontSize: context.font.large,
-                color: context.color.tertiaryColor,
+              PositionedDirectional(
+                start: 10.rw(context),
+                top: 8.rh(context),
+                child: CustomText(
+                  package.name ?? '',
+                  fontWeight: FontWeight.w600,
+                  fontSize: context.font.larger,
+                  color: context.color.secondaryColor,
+                ),
               ),
             ],
-          ),
-          const Spacer(),
-          UiUtils.buildButton(
-            context,
-            height: 45.rh(context),
-            autoWidth: true,
-            radius: 6,
-            onPressed: widget.onTap,
-            buttonTitle: 'subscribe'.translate(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildSeparator() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: MySeparator(
-        color: context.color.tertiaryColor.withValues(alpha: 0.7),
-      ),
-    );
-  }
-
-  Widget buildPackageTitle() {
-    return Container(
-      height: 50,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      width: MediaQuery.of(context).size.width,
-      decoration: BoxDecoration(
-        color: context.color.textColorDark,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(18),
-          topRight: Radius.circular(18),
-        ),
-      ),
-      child: CustomText(
-        widget.package.name,
-        fontSize: context.font.larger,
-        color: context.color.secondaryColor,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
-  Widget packageFeaturesAndValidity() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          buildValidity(
-            duration: widget.package.duration.toString(),
-          ),
-          buildPackageFeatures(
-            packageFeatures: widget.packageFeatures,
-            package: widget.package,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildValidity({required String duration}) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Row(
-        children: [
-          UiUtils.getSvg(
-            AppIcons.featureAvailable,
-            height: 20,
-            width: 20,
           ),
           const SizedBox(
-            width: 5,
+            height: 20,
           ),
-          CustomText(
-            '${'validUntil'.translate(context)} $duration ${'days'.translate(context)}',
-            fontSize: context.font.small,
-            color: context.color.textColorDark,
+          SubscriptionFeatureLine(
+            limit: PackageLimit(package.advertisementLimit),
+            isTime: false,
+            title: UiUtils.translate(context, 'adLimitIs'),
+          ),
+          SizedBox(
+            height: 5.rh(context),
+          ),
+          Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SubscriptionFeatureLine(
+                    limit: PackageLimit(package.propertyLimit),
+                    isTime: false,
+                    title: UiUtils.translate(context, 'propertyLimit'),
+                  ),
+                  SizedBox(
+                    height: 5.rh(context),
+                  ),
+                  SubscriptionFeatureLine(
+                    limit: null,
+                    isTime: true,
+                    timeLimit:
+                        "${package.duration} ${UiUtils.translate(context, "days")}",
+                    title: UiUtils.translate(context, 'validity'),
+                  ),
+                  // SubscriptionFeatureLine(),
+                ],
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 15),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: context.color.secondaryColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    height: 39.rh(context),
+                    constraints: BoxConstraints(
+                      minWidth: 80.rw(context),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: CustomText(
+                        package.price == 0
+                            ? 'Free'.translate(context)
+                            : '${package.price}'.formatAmount(prefix: true),
+                        fontWeight: FontWeight.bold,
+                        fontSize: context.font.large,
+                        color: context.color.tertiaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: UiUtils.buildButton(
+              context,
+              onPressed: onTap,
+              radius: 9,
+              height: 33.rh(context),
+              buttonTitle: UiUtils.translate(context, 'subscribe'),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget buildPackageFeatures({
-    required List<AllFeature> packageFeatures,
-    required SubscriptionPackageModel package,
-  }) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: packageFeatures.length,
-      itemBuilder: (context, index) {
-        final allFeatures = packageFeatures[index];
-        final includedFeatures = package.features
-            .where((element) => element.id == allFeatures.id)
-            .toList();
-        // Check if we have matching features before accessing
-        var getLimit = '';
-        if (includedFeatures.isNotEmpty) {
-          if (includedFeatures[0].limit?.toString() != '0') {
-            getLimit = includedFeatures[0].limit?.toString() ??
-                includedFeatures[0].limitType.toString();
-          } else {
-            getLimit = includedFeatures[0].limitType.name;
-          }
-        }
-
-        return Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Row(
-            children: [
-              UiUtils.getSvg(
-                package.features.any((element) => element.id == allFeatures.id)
-                    ? AppIcons.featureAvailable
-                    : AppIcons.featureNotAvailable,
-                height: 20,
-                width: 20,
-              ),
-              const SizedBox(
-                width: 5,
-              ),
-              CustomText(
-                allFeatures.name,
-                fontSize: context.font.small,
-                color: context.color.textColorDark,
-              ),
-              const SizedBox(
-                width: 5,
-              ),
-              if (getLimit != '')
-                CustomText(
-                  ': ${getLimit.firstUpperCase()}',
-                  fontSize: context.font.small,
-                  color: context.color.textColorDark,
-                ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
 
-class MySeparator extends StatelessWidget {
-  const MySeparator({super.key, this.height = 1, this.color = Colors.grey});
-  final double height;
-  final Color color;
+class ViewOnlyPackageCard extends StatelessWidget {
+  const ViewOnlyPackageCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final boxWidth = constraints.constrainWidth();
-        const dashWidth = 10.0;
-        final dashHeight = height;
-        final dashCount = (boxWidth / (2 * dashWidth)).floor();
-        return Flex(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          direction: Axis.horizontal,
-          children: List.generate(dashCount, (_) {
-            return SizedBox(
-              width: dashWidth,
-              height: dashHeight,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: color),
+    return Padding(
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        height: 60,
+        child: Center(
+          child: Container(
+            height: 50,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: context.color.tertiaryColor,
+                width: 2.5,
               ),
-            );
-          }),
-        );
-      },
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    Icons.remove_red_eye_outlined,
+                    color: context.color.tertiaryColor,
+                  ),
+                ),
+                CustomText(
+                  'Unlocked Private Properties'.translate(context),
+                  fontWeight: FontWeight.w500,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class WavePattern extends CustomPainter {
-  WavePattern({required this.color});
   final Color color;
+
+  WavePattern({this.color = const Color(0xFF087C7C)});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -268,25 +242,25 @@ class WavePattern extends CustomPainter {
 
     // Define wave dimensions
     final waveWidth = size.width / 14;
-    const waveHeight = 6.0;
-    const cornerRadius = 15.0;
+    final waveHeight = 6.0;
+    final cornerRadius = 15.0;
 
     // Start path from top-left with rounded corner
-    path
-      ..moveTo(cornerRadius, 0)
+    path.moveTo(cornerRadius, 0);
 
-      // Top edge with rounded corners
-      ..lineTo(size.width - cornerRadius, 0)
-      ..arcToPoint(
-        Offset(size.width, cornerRadius),
-        radius: const Radius.circular(cornerRadius),
-      )
+    // Top edge with rounded corners
+    path.lineTo(size.width - cornerRadius, 0);
+    path.arcToPoint(
+      Offset(size.width, cornerRadius),
+      radius: Radius.circular(cornerRadius),
+      clockwise: true,
+    );
 
-      // Right edge
-      ..lineTo(size.width, size.height - waveHeight);
+    // Right edge
+    path.lineTo(size.width, size.height - waveHeight);
 
     // Draw curved waves
-    var currentX = size.width;
+    double currentX = size.width;
 
     // Starting point for waves
     path.lineTo(currentX, size.height - waveHeight);
@@ -313,13 +287,13 @@ class WavePattern extends CustomPainter {
     }
 
     // Complete the path
-    path
-      ..lineTo(0, size.height - waveHeight)
-      ..lineTo(0, cornerRadius)
-      ..arcToPoint(
-        const Offset(cornerRadius, 0),
-        radius: const Radius.circular(cornerRadius),
-      );
+    path.lineTo(0, size.height - waveHeight);
+    path.lineTo(0, cornerRadius);
+    path.arcToPoint(
+      Offset(cornerRadius, 0),
+      radius: Radius.circular(cornerRadius),
+      clockwise: true,
+    );
 
     canvas.drawPath(path, paint);
   }

@@ -14,11 +14,11 @@ class InterestedUserModel {
   InterestedUserModel.fromJson(Map<String, dynamic> json) {
     try {
       id = Adapter.forceInt(json['id']);
-      name = json['name']?.toString() ?? '';
-      image = json['profile']?.toString() ?? '';
-      email = json['email']?.toString() ?? '';
-      mobile = json['mobile']?.toString() ?? '';
-      customertotalpost = json['customertotalpost'] as int? ?? 0;
+      name = json['name'];
+      image = json['profile'] ?? '';
+      email = json['email'];
+      mobile = json['mobile'];
+      customertotalpost = json['customertotalpost'];
       runtimeTypeLog =
           json.map((key, value) => MapEntry(key, value.runtimeType)).toString();
     } catch (e) {

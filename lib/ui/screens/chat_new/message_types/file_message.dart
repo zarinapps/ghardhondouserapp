@@ -97,7 +97,7 @@ class FileMessage extends Message {
                           child: Center(
                             child: CustomText(extension.toUpperCase(),
                                 fontSize: context.font.small,
-                                color: context.color.textColorDark,),
+                                color: context.color.textColorDark),
                           ),
                         ),
                       ),

@@ -28,9 +28,9 @@ class City {
 
   factory City.fromMap(Map<String, dynamic> map) {
     return City(
-      name: map['City']?.toString() ?? '',
-      count: map['Count'] as int? ?? 0,
-      image: map['image']?.toString() ?? '',
+      name: map['City'] as String,
+      count: map['Count'] as int,
+      image: map['image'],
     );
   }
 

@@ -1,4 +1,4 @@
-import 'package:ebroker/data/model/advertisement_model.dart';
+import 'package:ebroker/data/model/category.dart';
 import 'package:ebroker/data/repositories/property_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -19,14 +19,14 @@ class FetchMyPromotedPropertysSuccess extends FetchMyPromotedPropertysState {
   });
   final bool isLoadingMore;
   final bool loadingMoreError;
-  final List<AdvertisementProperty> advertisement;
+  final List<Advertisement> advertisement;
   final int offset;
   final int total;
 
   FetchMyPromotedPropertysSuccess copyWith({
     bool? isLoadingMore,
     bool? loadingMoreError,
-    List<AdvertisementProperty>? advertisement,
+    List<Advertisement>? advertisement,
     int? offset,
     int? total,
   }) {
@@ -77,7 +77,7 @@ class FetchMyPromotedPropertysCubit
     if (state is FetchMyPromotedPropertysSuccess) {
       final propertymodel = (state as FetchMyPromotedPropertysSuccess)
           .advertisement
-        ..removeWhere((element) => element.id == id);
+        ..removeWhere((element) => element.advertisementId == id);
 
       emit(
         (state as FetchMyPromotedPropertysSuccess)
@@ -130,7 +130,7 @@ class FetchMyPromotedPropertysCubit
     return false;
   }
 
-  void update(AdvertisementProperty model) {
+  void update(Advertisement model) {
     if (state is FetchMyPromotedPropertysSuccess) {
       final properties =
           (state as FetchMyPromotedPropertysSuccess).advertisement;
@@ -145,5 +145,109 @@ class FetchMyPromotedPropertysCubit
             .copyWith(advertisement: properties),
       );
     }
+  }
+}
+
+class Advertisement {
+  Advertisement({
+    this.id,
+    this.category,
+    this.slugId,
+    this.title,
+    this.propertyType,
+    this.titleImage,
+    this.price,
+    this.city,
+    this.state,
+    this.country,
+    this.advertisementId,
+    this.advertisementStatus,
+    this.advertisementType,
+  });
+
+  factory Advertisement.fromMap(Map<String, dynamic> json) {
+    return Advertisement(
+      id: json['id'],
+      category: Category.fromMap(json['category']),
+      slugId: json['slug_id'],
+      title: json['title'],
+      propertyType: json['property_type'],
+      titleImage: json['title_image'],
+      price: json['price'],
+      city: json['city'],
+      state: json['state'],
+      country: json['country'],
+      advertisementId: json['advertisement_id'],
+      advertisementStatus: json['advertisement_status'],
+      advertisementType: json['advertisement_type'],
+    );
+  }
+  final int? id;
+  final Category? category;
+  final String? slugId;
+  final String? title;
+  final String? propertyType;
+  final String? titleImage;
+  final String? price;
+  final String? city;
+  final String? state;
+  final String? country;
+  final int? advertisementId;
+  final int? advertisementStatus;
+  final String? advertisementType;
+
+  Advertisement copyWith({
+    int? id,
+    Category? category,
+    String? slugId,
+    String? title,
+    String? propertyType,
+    String? titleImage,
+    String? price,
+    String? city,
+    String? state,
+    String? country,
+    int? advertisementId,
+    int? advertisementStatus,
+    String? advertisementType,
+  }) {
+    return Advertisement(
+      id: id ?? id,
+      category: category ?? category,
+      slugId: slugId ?? slugId,
+      title: title ?? title,
+      propertyType: propertyType ?? propertyType,
+      titleImage: titleImage ?? titleImage,
+      price: price ?? price,
+      city: city ?? city,
+      state: state ?? state,
+      country: country ?? country,
+      advertisementId: advertisementId ?? advertisementId,
+      advertisementStatus: advertisementStatus ?? advertisementStatus,
+      advertisementType: advertisementType ?? advertisementType,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    final data = <String, dynamic>{};
+    data['id'] = id;
+    data['category'] = category?.toMap();
+    data['slug_id'] = slugId;
+    data['title'] = title;
+    data['property_type'] = propertyType;
+    data['title_image'] = titleImage;
+    data['price'] = price;
+    data['city'] = city;
+    data['state'] = state;
+    data['country'] = country;
+    data['advertisement_id'] = advertisementId;
+    data['advertisement_status'] = advertisementStatus;
+    data['advertisement_type'] = advertisementType;
+    return data;
+  }
+
+  @override
+  String toString() {
+    return 'Advertisement(id: $id,category: $category, slugId: $slugId, title: $title, propertyType: $propertyType, titleImage: $titleImage, price: $price, city: $city, state: $state, country: $country, advertisementId: $advertisementId, advertisementStatus: $advertisementStatus, advertisementType: $advertisementType)';
   }
 }

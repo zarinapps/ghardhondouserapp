@@ -1,7 +1,6 @@
 extension MapExt on Map {
   void removeEmptyKeys() {
-    removeWhere((key, value) =>
-        value.isEmpty as bool? ?? false || value == '' || value == null);
+    removeWhere((key, value) => value.isEmpty || value == '' || value == null);
   }
 
   dynamic get(dynamic key) {

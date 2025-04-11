@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:ebroker/data/cubits/agents/fetch_property_cubit.dart';
 import 'package:ebroker/data/repositories/chat_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
@@ -58,7 +56,7 @@ class _ChatScreenState extends State<ChatScreen>
   bool isFetchedFirstTime = false;
   double scrollPositionWhenLoadMore = 0;
   late Stream<PermissionStatus> notificationStream = notificationPermission();
-  late StreamSubscription<dynamic> notificationStreamSubsctription;
+  late StreamSubscription notificationStreamSubsctription;
   bool isNotificationPermissionGranted = true;
   ValueNotifier<bool> showRecordButton = ValueNotifier(true);
   late final ScrollController _pageScrollController = ScrollController()
@@ -94,6 +92,8 @@ class _ChatScreenState extends State<ChatScreen>
 
     isBlockedByMe = widget.isBlockedByMe;
     isBlockedByUser = widget.isBlockedByUser;
+    currentlyChatPropertyId = widget.propertyId;
+    currentlyChatingWith = widget.userId;
     notificationStreamSubsctription =
         notificationStream.listen((PermissionStatus permissionStatus) {
       isNotificationPermissionGranted = permissionStatus.isGranted;
@@ -165,39 +165,60 @@ class _ChatScreenState extends State<ChatScreen>
     GuestChecker.check(
       onNotGuest: () async {
         await context.read<FetchAgentsPropertyCubit>().fetchAgentsProperty(
-              agentId: int.parse(widget.userId),
-              forceRefresh: true,
-              isAdmin: widget.userId == '0',
-            );
+            agentId: int.parse(widget.userId),
+            forceRefresh: true,
+            isAdmin: widget.userId.toString() == '0');
         final state = context.read<FetchAgentsPropertyCubit>().state;
-
-        false;
+        final bool isPremium = context
+                .read<FetchSystemSettingsCubit>()
+                .getRawSettings()['is_premium'] ??
+            false;
         if (state is FetchAgentsPropertyLoading) {
-          unawaited(Widgets.showLoader(context));
+          Widgets.showLoader(context);
         }
-        if (state is FetchAgentsPropertySuccess) {
+        if (isPremium && state is FetchAgentsPropertySuccess) {
           Widgets.hideLoder(context);
-          await Navigator.pushNamed(
+          Navigator.pushNamed(
             context,
             Routes.agentDetailsScreen,
             arguments: {
               'agent': state.agentsProperty.customerData,
-              'isAdmin': widget.userId == '0',
+              'isAdmin': widget.userId.toString() == '0',
             },
           );
         } else {
           Widgets.hideLoder(context);
-          if ((widget.userId == HiveUtils.getUserId()) &&
+          if ((widget.userId.toString() == HiveUtils.getUserId()) &&
               state is FetchAgentsPropertySuccess) {
             Widgets.hideLoder(context);
 
-            await Navigator.pushNamed(
+            Navigator.pushNamed(
               context,
               Routes.agentDetailsScreen,
               arguments: {
                 'agent': state.agentsProperty.customerData,
-                'isAdmin': widget.userId == '0',
+                'isAdmin': widget.userId.toString() == '0',
               },
+            );
+          } else {
+            Widgets.hideLoder(context);
+
+            UiUtils.showBlurredDialoge(
+              context,
+              dialoge: BlurredDialogBox(
+                title: 'Subscription needed',
+                isAcceptContainesPush: true,
+                onAccept: () async {
+                  await Navigator.popAndPushNamed(
+                    context,
+                    Routes.subscriptionPackageListRoute,
+                    arguments: {'from': 'home'},
+                  );
+                },
+                content: CustomText(
+                  'subscribeToUseThisFeature'.translate(context),
+                ),
+              ),
             );
           }
         }
@@ -211,7 +232,7 @@ class _ChatScreenState extends State<ChatScreen>
       final fetch = PropertyRepository();
       final dataOutput = await fetch.fetchPropertyFromPropertyId(
         id: int.parse(widget.propertyId),
-        isMyProperty: widget.userId == HiveUtils.getUserId(),
+        isMyProperty: widget.userId.toString() == HiveUtils.getUserId(),
       );
       Future.delayed(
         Duration.zero,
@@ -224,7 +245,8 @@ class _ChatScreenState extends State<ChatScreen>
             false,
             args: {
               'propertyData': dataOutput,
-              'fromMyProperty': widget.userId == HiveUtils.getUserId(),
+              'fromMyProperty':
+                  widget.userId.toString() == HiveUtils.getUserId(),
             },
           );
         },
@@ -252,7 +274,7 @@ class _ChatScreenState extends State<ChatScreen>
                 receiverId: widget.userId,
                 propertyId: widget.propertyId,
               );
-          final deleteState = context.read<DeleteMessageCubit>().state;
+          final deleteState = await context.read<DeleteMessageCubit>().state;
           if (deleteState is DeleteMessageSuccess) {
             context.read<GetChatListCubit>().fetch();
             Navigator.pop(context);
@@ -289,26 +311,26 @@ class _ChatScreenState extends State<ChatScreen>
       sigmaY: 0.5,
       dialoge: BlurredDialogBox(
         onAccept: () async {
-          final blockUser = await ChatRepository().blockUser(
+          var blockUser = await ChatRepository().blockUser(
             userId: widget.userId,
             reason: reasonController.text,
           );
           if (blockUser['error'] == true) {
-            unawaited(HelperUtils.showSnackBarMessage(
+            HelperUtils.showSnackBarMessage(
               context,
-              blockUser['message']?.toString() ?? '',
-            ));
+              blockUser['message'],
+            );
             return;
           } else {
-            await context.read<GetChatListCubit>().fetch();
+            context.read<GetChatListCubit>().fetch();
             setState(() {
               isBlockedByMe = true;
             });
 
-            unawaited(HelperUtils.showSnackBarMessage(
+            HelperUtils.showSnackBarMessage(
               context,
               UiUtils.translate(context, 'userBlocked'),
-            ));
+            );
           }
           showDeletebutton.value = false;
         },
@@ -325,7 +347,7 @@ class _ChatScreenState extends State<ChatScreen>
             CustomTextFormField(
               controller: reasonController,
               hintText: 'reasonOptional'.translate(context),
-            ),
+            )
           ],
         ),
       ),
@@ -346,14 +368,14 @@ class _ChatScreenState extends State<ChatScreen>
       sigmaY: 0.5,
       dialoge: BlurredDialogBox(
         onAccept: () async {
-          final blockUser = await ChatRepository().unblockUser(
+          var blockUser = await ChatRepository().unblockUser(
             userId: widget.userId,
           );
           if (blockUser['error'] == true) {
-            unawaited(HelperUtils.showSnackBarMessage(
+            HelperUtils.showSnackBarMessage(
               context,
-              blockUser['message']?.toString() ?? '',
-            ));
+              blockUser['message'],
+            );
             return;
           } else {
             context.read<GetChatListCubit>().fetch();
@@ -391,8 +413,10 @@ class _ChatScreenState extends State<ChatScreen>
         Future.delayed(Duration.zero, () {
           Navigator.popUntil(context, (route) => route.isFirst);
         });
+        currentlyChatingWith = '';
         showDeletebutton.value = false;
         ChatMessageHandler.flush();
+        currentlyChatPropertyId = '';
         await notificationStreamSubsctription.cancel();
         ChatMessageHandlerOLD.flushMessages();
       },
@@ -437,64 +461,67 @@ class _ChatScreenState extends State<ChatScreen>
                         child: Padding(
                           padding: const EdgeInsets.all(8),
                           child: CustomText(
-                            'turnOnNotification'.translate(context),
-                          ),
+                              'turnOnNotification'.translate(context)),
                         ),
                       ),
                     ),
                   ),
             actions: [
               PopupMenuButton<String>(
-                color: context.color.primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'agentDetails':
-                      await _onTapAgentDetails();
-                    case 'propertyDetails':
-                      await _onTapPropertyDetails();
-                    case 'deleteAllMessages':
-                      _onTapDeleteAllMessages();
-                    case 'blockUser':
-                      _onTapBlockUser();
-                    case 'unblockUser':
-                      _onTapUnblockUser();
-                  }
-                },
-                offset: const Offset(0, kBottomNavigationBarHeight),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'agentDetails',
-                    child: CustomText('agentDetails'.translate(context)),
+                  color: context.color.primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  PopupMenuItem(
-                    value: 'propertyDetails',
-                    child: CustomText('propertyDetails'.translate(context)),
-                  ),
-                  if ((messageState as LoadChatMessagesSuccess)
-                      .messages
-                      .isNotEmpty)
-                    PopupMenuItem(
-                      value: 'deleteAllMessages',
-                      child: CustomText(
-                        'deleteAllMessages'.translate(context),
-                      ),
-                    ),
-                  if (isBlockedByMe == false &&
-                      messageState.messages.isNotEmpty)
-                    PopupMenuItem(
-                      value: 'blockUser',
-                      child: CustomText('blockUser'.translate(context)),
-                    ),
-                  if (isBlockedByMe == true)
-                    PopupMenuItem(
-                      value: 'unblockUser',
-                      child: CustomText('unblockUser'.translate(context)),
-                    ),
-                ],
-              ),
+                  onSelected: (value) async {
+                    switch (value) {
+                      case 'agentDetails':
+                        await _onTapAgentDetails();
+                        break;
+                      case 'propertyDetails':
+                        await _onTapPropertyDetails();
+                        break;
+                      case 'deleteAllMessages':
+                        _onTapDeleteAllMessages();
+                        break;
+                      case 'blockUser':
+                        _onTapBlockUser();
+                        break;
+                      case 'unblockUser':
+                        _onTapUnblockUser();
+                        break;
+                    }
+                  },
+                  offset: Offset(0, kBottomNavigationBarHeight),
+                  itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'agentDetails',
+                          child: CustomText('agentDetails'.translate(context)),
+                        ),
+                        PopupMenuItem(
+                          value: 'propertyDetails',
+                          child:
+                              CustomText('propertyDetails'.translate(context)),
+                        ),
+                        if ((messageState as LoadChatMessagesSuccess)
+                            .messages
+                            .isNotEmpty)
+                          PopupMenuItem(
+                            value: 'deleteAllMessages',
+                            child: CustomText(
+                                'deleteAllMessages'.translate(context)),
+                          ),
+                        if (isBlockedByMe == false &&
+                            messageState.messages.isNotEmpty)
+                          PopupMenuItem(
+                            value: 'blockUser',
+                            child: CustomText('blockUser'.translate(context)),
+                          ),
+                        if (isBlockedByMe == true)
+                          PopupMenuItem(
+                            value: 'unblockUser',
+                            child: CustomText('unblockUser'.translate(context)),
+                          ),
+                      ]),
             ],
             title: FittedBox(
               fit: BoxFit.none,
@@ -519,6 +546,9 @@ class _ChatScreenState extends State<ChatScreen>
                                 onTap: () {
                                   Navigator.pop(context);
                                 },
+                                child: Container(
+                                  color: const Color.fromARGB(69, 0, 0, 0),
+                                ),
                               );
                             },
                           ),
@@ -542,19 +572,15 @@ class _ChatScreenState extends State<ChatScreen>
                     children: [
                       SizedBox(
                         width: context.screenWidth * 0.35,
-                        child: CustomText(
-                          widget.userName,
-                          fontSize: context.font.normal,
-                          color: context.color.textColorDark,
-                        ),
+                        child: CustomText(widget.userName,
+                            fontSize: context.font.normal,
+                            color: context.color.textColorDark),
                       ),
                       SizedBox(
                         width: context.screenWidth * 0.35,
-                        child: CustomText(
-                          widget.proeprtyTitle,
-                          fontSize: context.font.small,
-                          color: context.color.textColorDark,
-                        ),
+                        child: CustomText(widget.proeprtyTitle,
+                            fontSize: context.font.small,
+                            color: context.color.textColorDark),
                       ),
                     ],
                   ),
@@ -644,8 +670,7 @@ class _ChatScreenState extends State<ChatScreen>
                                             CrossAxisAlignment.start,
                                         children: [
                                           CustomText(
-                                            messageAttachment?.name ?? '',
-                                          ),
+                                              messageAttachment?.name ?? ''),
                                           CustomText(
                                             HelperUtils.getFileSizeString(
                                               bytes: messageAttachment!.size,
@@ -661,8 +686,7 @@ class _ChatScreenState extends State<ChatScreen>
                                   color: context.color.secondaryColor,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
+                                        horizontal: 8),
                                     child: AttachmentMessage(
                                       url: messageAttachment!.path!,
                                       isSentByMe: true,
@@ -742,13 +766,6 @@ class _ChatScreenState extends State<ChatScreen>
                                           context,
                                           'writeHere',
                                         ),
-                                        hintStyle: TextStyle(
-                                          color: context.color.textColorDark
-                                              .withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                      style: TextStyle(
-                                        color: context.color.textColorDark,
                                       ),
                                     ),
                                   ),
@@ -767,7 +784,7 @@ class _ChatScreenState extends State<ChatScreen>
                                                 ChatMessageModel(
                                               message: controller.text,
                                               isSentByMe: true,
-                                              audio: path?.toString() ?? '',
+                                              audio: path,
                                               senderId: HiveUtils.getUserId()
                                                   .toString(),
                                               id: DateTime.now().toString(),
@@ -775,7 +792,7 @@ class _ChatScreenState extends State<ChatScreen>
                                               receiverId: widget.userId,
                                               chatMessageType:
                                                   getSendMessageType(
-                                                path?.toString() ?? '',
+                                                path,
                                                 messageAttachment,
                                                 controller.text,
                                               ),
@@ -804,9 +821,7 @@ class _ChatScreenState extends State<ChatScreen>
 
                                           //if file is selected then user can send message without text
                                           if (controller.text.trim().isEmpty &&
-                                              messageAttachment == null) {
-                                            return;
-                                          }
+                                              messageAttachment == null) return;
                                           //This is adding Chat widget in stream with BlocProvider ,
                                           // because we will need to do api process to store chat message to server,
                                           // when it will be added to list it's initState method will be called
@@ -841,8 +856,7 @@ class _ChatScreenState extends State<ChatScreen>
                                             isSentNow: true,
                                           );
                                           ChatMessageHandler.add(
-                                            chatMessageModel,
-                                          );
+                                              chatMessageModel);
                                           controller.text = '';
                                           messageAttachment = null;
                                           totalMessageCount++;
@@ -932,7 +946,10 @@ class _ChatScreenState extends State<ChatScreen>
                                           reverse: true,
                                           shrinkWrap: true,
                                           controller: _pageScrollController,
-                                          physics: Constant.scrollPhysics,
+                                          physics: const BouncingScrollPhysics(
+                                            parent:
+                                                AlwaysScrollableScrollPhysics(),
+                                          ),
                                           itemBuilder: (context, index) {
                                             final messageList = snapshot.data!;
                                             final messageLength =

@@ -4,13 +4,12 @@ import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:ebroker/app/routes.dart';
-import 'package:ebroker/data/cubits/project/change_project_status_cubit.dart';
 import 'package:ebroker/data/cubits/project/delete_project_cubit.dart';
 import 'package:ebroker/data/cubits/project/fetchMyProjectsListCubit.dart';
-import 'package:ebroker/data/cubits/subscription/get_subsctiption_package_limits_cubit.dart';
+import 'package:ebroker/data/cubits/project/fetchProjectDetailsCubit.dart';
 import 'package:ebroker/data/helper/widgets.dart';
 import 'package:ebroker/data/model/project_model.dart';
-import 'package:ebroker/data/repositories/check_package.dart';
+import 'package:ebroker/data/repositories/system_repository.dart';
 import 'package:ebroker/ui/screens/proprties/property_details.dart';
 import 'package:ebroker/ui/screens/widgets/animated_routes/blur_page_route.dart';
 import 'package:ebroker/ui/screens/widgets/blurred_dialoge_box.dart';
@@ -20,14 +19,12 @@ import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/cloud_state/cloud_state.dart';
 import 'package:ebroker/utils/constant.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
-import 'package:ebroker/utils/extensions/lib/iterable.dart';
 import 'package:ebroker/utils/helper_utils.dart';
 import 'package:ebroker/utils/hive_utils.dart';
 import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/typedefs.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:ebroker/utils/video_player/video_player_widget.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -49,7 +46,7 @@ class ProjectDetailsScreen extends StatefulWidget {
         return BlocProvider(
           create: (context) => DeleteProjectCubit(),
           child: ProjectDetailsScreen(
-            project: arguement?['project'] as ProjectModel? ?? ProjectModel(),
+            project: arguement?['project'],
           ),
         );
       },
@@ -65,7 +62,6 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
   bool isMyProject = false;
-  ValueNotifier<bool> isEnabled = ValueNotifier(false);
   late final ProjectModel project;
   late final CameraPosition _kInitialPlace = CameraPosition(
     target: LatLng(
@@ -77,12 +73,17 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
 
   @override
   void initState() {
-    isEnabled.value = widget.project.status.toString() == '1';
     project = widget.project;
     // getProjectDetails();
     isMyProject = checkIsProjectMine();
     super.initState();
   }
+
+  // Future<void> getProjectDetails() async {
+  //   await context.read<FetchProjectDetailsCubit>().fetchProjectDetails(
+  //         projectId: widget.project.id!,
+  //       );
+  // }
 
   bool checkIsProjectMine() {
     return project.addedBy.toString() == HiveUtils.getUserId();
@@ -99,52 +100,50 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
   bool readMore = false;
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        if (project.addedBy.toString() == HiveUtils.getUserId()) {
-          await context.read<FetchMyProjectsListCubit>().fetchMyProjects();
-        }
-        Navigator.pop(context);
-      },
-      child: Scaffold(
-        backgroundColor: context.color.backgroundColor,
-        bottomNavigationBar: BottomAppBar(
-          color: Colors.transparent,
-          child: bottomNavigation(context),
-        ),
-        body: Builder(
-          builder: (context) {
-            final state = context.read<ChangeProjectStatusCubit>().state;
-            final successState = context.read<ChangeProjectStatusCubit>().state
-                is ChangeProjectStatusSuccess;
-            final failureState = context.read<ChangeProjectStatusCubit>().state
-                is ChangeProjectStatusFailure;
-            final progressState = context.read<ChangeProjectStatusCubit>().state
-                is ChangeProjectStatusInProgress;
-            return Padding(
-              padding: EdgeInsets.zero,
-              child: BlocListener<DeleteProjectCubit, DeleteProjectState>(
+    return Scaffold(
+      backgroundColor: context.color.backgroundColor,
+      bottomNavigationBar: BottomAppBar(
+        color: context.color.secondaryColor,
+        child: bottomNavigation(context),
+      ),
+      body: Builder(
+        builder: (context) {
+          return Padding(
+            padding: EdgeInsets.zero,
+            child: BlocListener<DeleteProjectCubit, DeleteProjectState>(
+              listener: (context, state) {
+                if (state is DeleteProjectInProgress) {
+                  Widgets.showLoader(context);
+                }
+                if (state is DeleteProjectSuccess) {
+                  Widgets.hideLoder(context);
+                  context.read<FetchMyProjectsListCubit>().delete(state.id);
+
+                  Navigator.pop(
+                    context,
+                  );
+                }
+              },
+              child: BlocListener<FetchProjectDetailsCubit,
+                  FetchProjectDetailsState>(
                 listener: (context, state) {
-                  if (state is DeleteProjectInProgress) {
+                  if (state is FetchProjectDetailsInProgress) {
                     Widgets.showLoader(context);
                   }
-                  if (state is DeleteProjectSuccess) {
+                  if (state is FetchProjectDetailsSuccess) {
                     Widgets.hideLoder(context);
-                    context.read<FetchMyProjectsListCubit>().delete(state.id);
-
-                    Navigator.pop(
-                      context,
-                    );
+                    setState(() {
+                      project = state.project;
+                    });
                   }
                 },
                 child: CustomScrollView(
-                  physics: Constant.scrollPhysics,
+                  physics: const BouncingScrollPhysics(),
                   slivers: [
                     SliverAppBar(
-                      systemOverlayStyle:
-                          UiUtils.getSystemUiOverlayStyle(context: context),
+                      systemOverlayStyle: const SystemUiOverlayStyle(
+                        statusBarColor: Colors.transparent,
+                      ),
                       shadowColor:
                           context.color.inverseSurface.withValues(alpha: 0.3),
                       leadingWidth: MediaQuery.of(context).size.width * 0.20,
@@ -200,107 +199,10 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (project.addedBy.toString() ==
-                                HiveUtils.getUserId()) ...[
-                              Row(
-                                children: [
-                                  CustomText(
-                                    'updateProjectStatus'.translate(context),
-                                    fontSize: context.font.large,
-                                    color: context.color.tertiaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  const Spacer(),
-                                  ValueListenableBuilder(
-                                    valueListenable: isEnabled,
-                                    builder: (context, value, child) {
-                                      return child!;
-                                    },
-                                    child: IgnorePointer(
-                                      ignoring: progressState,
-                                      child: CupertinoSwitch(
-                                        activeTrackColor:
-                                            context.color.tertiaryColor,
-                                        value: isEnabled.value,
-                                        onChanged: (value) async {
-                                          if (progressState) return;
-                                          final status =
-                                              isEnabled.value == false ? 1 : 0;
-                                          await context
-                                              .read<ChangeProjectStatusCubit>()
-                                              .enableProject(
-                                                projectId: project.id!,
-                                                status: status,
-                                              );
-                                          if (successState) {
-                                            setState(() {
-                                              isEnabled.value = value;
-                                            });
-                                          } else if (failureState) {
-                                            final errorMessage =
-                                                (state as ChangeProjectStatusFailure)
-                                                        .error
-                                                        .contains('429')
-                                                    ? 'tooManyRequestsPleaseWait'
-                                                        .translate(context)
-                                                    : state.error;
-                                            await HelperUtils
-                                                .showSnackBarMessage(
-                                              context,
-                                              errorMessage,
-                                              type: MessageType.success,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: 7,
-                              ),
-                              const Divider(
-                                color: Colors.grey,
-                                height: 3,
-                              ),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                            ],
                             Row(
                               children: [
                                 categoryCard(context, project),
                                 const Spacer(),
-                                UiUtils.getSvg(
-                                  AppIcons.premium,
-                                  height: 20,
-                                  width: 20,
-                                ),
-                                const SizedBox(
-                                  width: 8,
-                                ),
-                                if (project.isPromoted ?? false) ...[
-                                  Container(
-                                    padding: const EdgeInsets.all(7.5),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: context.color.tertiaryColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: CustomText(
-                                      UiUtils.translate(context, 'featured'),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: context.font.small,
-                                      color: context.color.tertiaryColor,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    width: 8,
-                                  ),
-                                ],
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
@@ -376,28 +278,27 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
                               ),
                             if (hasDocuments()) ...[
                               Container(
-                                decoration: BoxDecoration(
-                                  color: context.color.secondaryColor,
-                                  border: Border.all(
-                                    color: context.color.borderColor,
+                                  decoration: BoxDecoration(
+                                    color: context.color.secondaryColor,
+                                    border: Border.all(
+                                      color: context.color.borderColor,
+                                    ),
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(10),
+                                      topRight: Radius.circular(10),
+                                    ),
                                   ),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(10),
-                                    topRight: Radius.circular(10),
+                                  alignment: AlignmentDirectional.centerStart,
+                                  padding: const EdgeInsetsDirectional.only(
+                                    start: 10,
                                   ),
-                                ),
-                                alignment: AlignmentDirectional.centerStart,
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: 10,
-                                ),
-                                height: 40,
-                                width: MediaQuery.of(context).size.width,
-                                child: CustomText(
-                                  'Documents'.translate(context),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: context.font.large,
-                                ),
-                              ),
+                                  height: 40,
+                                  width: MediaQuery.of(context).size.width,
+                                  child: CustomText(
+                                    'Documents'.translate(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: context.font.large,
+                                  )),
                               Container(
                                 width: MediaQuery.of(context).size.width,
                                 decoration: BoxDecoration(
@@ -440,28 +341,27 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
                             ),
                             if (hasFloors()) ...[
                               Container(
-                                decoration: BoxDecoration(
-                                  color: context.color.secondaryColor,
-                                  border: Border.all(
-                                    color: context.color.borderColor,
+                                  decoration: BoxDecoration(
+                                    color: context.color.secondaryColor,
+                                    border: Border.all(
+                                      color: context.color.borderColor,
+                                    ),
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(10),
+                                      topRight: Radius.circular(10),
+                                    ),
                                   ),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(10),
-                                    topRight: Radius.circular(10),
+                                  alignment: AlignmentDirectional.centerStart,
+                                  padding: const EdgeInsetsDirectional.only(
+                                    start: 10,
                                   ),
-                                ),
-                                alignment: AlignmentDirectional.centerStart,
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: 10,
-                                ),
-                                height: 40,
-                                width: MediaQuery.of(context).size.width,
-                                child: CustomText(
-                                  'floorPlans'.translate(context),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: context.font.large,
-                                ),
-                              ),
+                                  height: 40,
+                                  width: MediaQuery.of(context).size.width,
+                                  child: CustomText(
+                                    'floorPlans'.translate(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: context.font.large,
+                                  )),
                               Container(
                                 decoration: BoxDecoration(
                                   color: context.color.secondaryColor,
@@ -495,28 +395,27 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
                               ),
                             ],
                             Container(
-                              alignment: AlignmentDirectional.centerStart,
-                              decoration: BoxDecoration(
-                                color: context.color.secondaryColor,
-                                border: Border.all(
-                                  color: context.color.borderColor,
+                                alignment: AlignmentDirectional.centerStart,
+                                decoration: BoxDecoration(
+                                  color: context.color.secondaryColor,
+                                  border: Border.all(
+                                    color: context.color.borderColor,
+                                  ),
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(10),
+                                    topRight: Radius.circular(10),
+                                  ),
                                 ),
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(10),
-                                  topRight: Radius.circular(10),
+                                padding: const EdgeInsetsDirectional.only(
+                                  start: 10,
                                 ),
-                              ),
-                              padding: const EdgeInsetsDirectional.only(
-                                start: 10,
-                              ),
-                              height: 40,
-                              width: MediaQuery.of(context).size.width,
-                              child: CustomText(
-                                'projectLocation'.translate(context),
-                                fontWeight: FontWeight.bold,
-                                fontSize: context.font.large,
-                              ),
-                            ),
+                                height: 40,
+                                width: MediaQuery.of(context).size.width,
+                                child: CustomText(
+                                  'projectLocation'.translate(context),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: context.font.large,
+                                )),
                             Container(
                               width: MediaQuery.of(context).size.width,
                               decoration: BoxDecoration(
@@ -677,257 +576,150 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
                   ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget bottomNavigation(BuildContext context) {
     if (isMyProject) {
-      return Container(
+      return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        color: Colors.transparent,
-        height: 65.rh(context),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!HiveUtils.isGuest() && Constant.isDemoModeOn != true) ...[
-                if (project.isFeatureAvailable ?? false) ...[
-                  BlocBuilder<GetSubsctiptionPackageLimitsCubit,
-                      GetSubscriptionPackageLimitsState>(
-                    builder: (context, state) {
-                      final isLoading = context
-                          .read<GetSubsctiptionPackageLimitsCubit>()
-                          .state is GetSubscriptionPackageLimitsInProgress;
-                      return Expanded(
-                        child: UiUtils.buildButton(
-                          context,
-                          disabled: project.status.toString() == '0',
-                          outerPadding: const EdgeInsets.all(
-                            1,
-                          ),
-                          onPressed: () async {
-                            await context
-                                .read<GetSubsctiptionPackageLimitsCubit>()
-                                .getLimits(
-                                  packageType: 'project_feature',
-                                );
-                            if (state is GetSubsctiptionPackageLimitsFailure) {
-                              await UiUtils.showBlurredDialoge(
-                                context,
-                                dialoge: const BlurredSubscriptionDialogBox(
-                                  packageType:
-                                      SubscriptionPackageType.projectFeature,
-                                  isAcceptContainesPush: true,
-                                ),
-                              );
-                            } else if (state
-                                is GetSubscriptionPackageLimitsSuccess) {
-                              if (state.error) {
-                                await UiUtils.showBlurredDialoge(
+        child: SizedBox(
+          height: 65.rh(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(
+                  child: UiUtils.buildButton(
+                    context,
+                    // padding: const EdgeInsets.symmetric(horizontal: 1),
+                    outerPadding: const EdgeInsets.all(1),
+                    onPressed: () async {
+                      try {
+                        unawaited(Widgets.showLoader(context));
+                        final systemRepository = SystemRepository();
+                        final settings =
+                            await systemRepository.fetchSystemSettings(
+                          isAnonymouse: false,
+                        );
+                        if (settings['data']['is_premium'] == true) {
+                          if (Constant.isDemoModeOn) {
+                            await HelperUtils.showSnackBarMessage(
+                              context,
+                              'Not valid in demo mode',
+                            );
+                            return;
+                          }
+                          await Navigator.pushNamed(
+                            context,
+                            Routes.addProjectDetails,
+                            arguments: {
+                              'id': project.id,
+                              'meta_title': project.metaTitle,
+                              'meta_description': project.metaDescription,
+                              'meta_image': project.metaImage,
+                              'slug_id': project.slugId,
+                              'category_id': project.category!.id,
+                              'project': project.toMap(),
+                            },
+                          );
+                          Widgets.hideLoder(context);
+                        } else {
+                          Widgets.hideLoder(context);
+                          await UiUtils.showBlurredDialoge(
+                            context,
+                            dialoge: BlurredDialogBox(
+                              title: 'Subscription needed',
+                              isAcceptContainesPush: true,
+                              onAccept: () async {
+                                await Navigator.popAndPushNamed(
                                   context,
-                                  dialoge: BlurredDialogBox(
-                                    title: state.message.firstUpperCase(),
-                                    isAcceptContainesPush: true,
-                                    onAccept: () async {
-                                      await Navigator.popAndPushNamed(
-                                        context,
-                                        Routes.subscriptionPackageListRoute,
-                                        arguments: {
-                                          'from': 'propertyDetails',
-                                        },
-                                      );
-                                    },
-                                    content: CustomText(
-                                      'yourPackageLimitOver'.translate(context),
-                                    ),
-                                  ),
+                                  Routes.subscriptionPackageListRoute,
+                                  arguments: {'from': 'propertyDetails'},
                                 );
-                              } else {
-                                try {
-                                  await Navigator.pushNamed(
-                                    context,
-                                    Routes.createAdvertismentPopupRoute,
-                                    arguments: {
-                                      'isProject': true,
-                                      'projectData': project,
-                                    },
-                                  ).then(
-                                    (value) {
-                                      setState(() {});
-                                    },
-                                  );
-                                } catch (e) {
-                                  await HelperUtils.showSnackBarMessage(
-                                    context,
-                                    e.toString(),
-                                  );
-                                }
-                              }
-                            }
+                              },
+                              content: CustomText(
+                                'subscribeToUseThisFeature'.translate(context),
+                              ),
+                            ),
+                          );
+                        }
+                        Widgets.hideLoder(context);
+                      } catch (e) {
+                        Widgets.hideLoder(context);
+                        await HelperUtils.showSnackBarMessage(
+                          context,
+                          'somethingWentWrng'.translate(context),
+                        );
+                      }
+                    },
+                    fontSize: context.font.normal,
+                    width: context.screenWidth / 3,
+                    prefixWidget: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: SvgPicture.asset(AppIcons.edit),
+                    ),
+                    buttonTitle: UiUtils.translate(context, 'edit'),
+                  ),
+                ),
+                const SizedBox(
+                  width: 8,
+                ),
+                Expanded(
+                  child: UiUtils.buildButton(
+                    context,
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    outerPadding: const EdgeInsets.all(1),
+                    prefixWidget: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: SvgPicture.asset(
+                        AppIcons.delete,
+                        colorFilter: ColorFilter.mode(
+                          context.color.buttonColor,
+                          BlendMode.srcIn,
+                        ),
+                        width: 14,
+                        height: 14,
+                      ),
+                    ),
+                    onPressed: () async {
+                      log('is demo mode ${Constant.isDemoModeOn}');
+                      if (Constant.isDemoModeOn) {
+                        await HelperUtils.showSnackBarMessage(
+                          context,
+                          'Not valid in demo mode',
+                        );
+
+                        return;
+                      }
+
+                      await UiUtils.showBlurredDialoge(
+                        context,
+                        dialoge: BlurredDialogBox(
+                          title: 'areYouSure'.translate(context),
+                          onAccept: () async {
+                            context.read<DeleteProjectCubit>().delete(
+                                  project.id!,
+                                );
                           },
-                          prefixWidget: Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: isLoading
-                                ? Center(
-                                    child: UiUtils.progress(
-                                      showWhite: true,
-                                      height: 14,
-                                    ),
-                                  )
-                                : SvgPicture.asset(
-                                    AppIcons.promoted,
-                                    width: 14,
-                                    height: 14,
-                                  ),
+                          content: CustomText(
+                            'projectWillNotRecover'.translate(context),
                           ),
-                          fontSize: context.font.normal,
-                          width: context.screenWidth / 3,
-                          buttonTitle: isLoading
-                              ? ''
-                              : UiUtils.translate(context, 'feature'),
                         ),
                       );
                     },
+                    fontSize: context.font.normal,
+                    width: context.screenWidth / 3.2,
+                    buttonTitle: UiUtils.translate(context, 'deleteBtnLbl'),
                   ),
-                  const SizedBox(
-                    width: 8,
-                  ),
-                ],
+                ),
               ],
-              const SizedBox(
-                width: 8,
-              ),
-              Expanded(
-                child: UiUtils.buildButton(
-                  context,
-                  // padding: const EdgeInsets.symmetric(horizontal: 1),
-                  outerPadding: const EdgeInsets.all(1),
-                  onPressed: () async {
-                    try {
-                      unawaited(Widgets.showLoader(context));
-                      final checkPackage = CheckPackage();
-
-                      final packageAvailable =
-                          await checkPackage.checkPackageAvailable(
-                        packageType: PackageType.projectList,
-                      );
-                      if (packageAvailable) {
-                        if (Constant.isDemoModeOn) {
-                          await HelperUtils.showSnackBarMessage(
-                            context,
-                            'Not valid in demo mode',
-                          );
-                          return;
-                        }
-                        await Navigator.pushNamed(
-                          context,
-                          Routes.addProjectDetails,
-                          arguments: {
-                            'id': project.id,
-                            'meta_title': project.metaTitle,
-                            'meta_description': project.metaDescription,
-                            'meta_image': project.metaImage,
-                            'slug_id': project.slugId,
-                            'category_id': project.category!.id,
-                            'project': project.toMap(),
-                          },
-                        );
-                        Widgets.hideLoder(context);
-                      } else {
-                        Widgets.hideLoder(context);
-                        await UiUtils.showBlurredDialoge(
-                          context,
-                          dialoge: BlurredDialogBox(
-                            title: 'Subscription needed',
-                            isAcceptContainesPush: true,
-                            onAccept: () async {
-                              await Navigator.popAndPushNamed(
-                                context,
-                                Routes.subscriptionPackageListRoute,
-                                arguments: {'from': 'propertyDetails'},
-                              );
-                            },
-                            content: CustomText(
-                              'subscribeToUseThisFeature'.translate(context),
-                            ),
-                          ),
-                        );
-                      }
-                      Widgets.hideLoder(context);
-                    } catch (e) {
-                      Widgets.hideLoder(context);
-                      await HelperUtils.showSnackBarMessage(
-                        context,
-                        'somethingWentWrng'.translate(context),
-                      );
-                    }
-                  },
-                  fontSize: context.font.normal,
-                  width: context.screenWidth / 3,
-                  prefixWidget: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: SvgPicture.asset(AppIcons.edit),
-                  ),
-                  buttonTitle: UiUtils.translate(context, 'edit'),
-                ),
-              ),
-              const SizedBox(
-                width: 8,
-              ),
-              Expanded(
-                child: UiUtils.buildButton(
-                  context,
-                  padding: const EdgeInsets.symmetric(horizontal: 1),
-                  outerPadding: const EdgeInsets.all(1),
-                  prefixWidget: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: SvgPicture.asset(
-                      AppIcons.delete,
-                      colorFilter: ColorFilter.mode(
-                        context.color.buttonColor,
-                        BlendMode.srcIn,
-                      ),
-                      width: 14,
-                      height: 14,
-                    ),
-                  ),
-                  onPressed: () async {
-                    log('is demo mode ${Constant.isDemoModeOn}');
-                    if (Constant.isDemoModeOn) {
-                      await HelperUtils.showSnackBarMessage(
-                        context,
-                        'Not valid in demo mode',
-                      );
-
-                      return;
-                    }
-
-                    await UiUtils.showBlurredDialoge(
-                      context,
-                      dialoge: BlurredDialogBox(
-                        title: 'areYouSure'.translate(context),
-                        onAccept: () async {
-                          context.read<DeleteProjectCubit>().delete(
-                                project.id!,
-                              );
-                        },
-                        content: CustomText(
-                          'projectWillNotRecover'.translate(context),
-                        ),
-                      ),
-                    );
-                  },
-                  fontSize: context.font.normal,
-                  width: context.screenWidth / 3.2,
-                  buttonTitle: UiUtils.translate(context, 'deleteBtnLbl'),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -937,7 +729,7 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
 }
 
 Widget categoryCard(BuildContext context, ProjectModel project) {
-  return SizedBox(
+  return Container(
     width: MediaQuery.of(context).size.width * 0.4,
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -1013,7 +805,7 @@ class _ProjectImageCareuselState extends State<ProjectImageCareusel>
           itemCount: widget.images.length,
           controller: _pageController,
           clipBehavior: Clip.antiAlias,
-          physics: Constant.scrollPhysics,
+          physics: const BouncingScrollPhysics(),
           onPageChanged: (index) {
             _sliderIndex.value = index;
           },
@@ -1045,8 +837,9 @@ class _ProjectImageCareuselState extends State<ProjectImageCareusel>
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ...widget.images.mapIndexed(
-                    (element, index) => Container(
+                  ...List.generate(
+                    widget.images.length,
+                    (index) => Container(
                       width: 7,
                       margin: const EdgeInsets.symmetric(horizontal: 1),
                       height: 7,
@@ -1054,7 +847,7 @@ class _ProjectImageCareuselState extends State<ProjectImageCareusel>
                         shape: BoxShape.circle,
                         color: index == val
                             ? context.color.tertiaryColor
-                            : Colors.grey,
+                            : Colors.white,
                       ),
                     ),
                   ),

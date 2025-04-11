@@ -147,8 +147,7 @@ class _PropertyGradiendCardState extends State<PropertyGradiendCard> {
                                   height: 19,
                                   decoration: BoxDecoration(
                                     color: secondaryColorDark.withValues(
-                                      alpha: 0.9,
-                                    ),
+                                        alpha: 0.9),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Padding(
@@ -220,15 +219,12 @@ class _PropertyGradiendCardState extends State<PropertyGradiendCard> {
                                               width: 3,
                                             ),
                                             Expanded(
-                                              child: CustomText(
-                                                (propertie
-                                                        .category!.category) ??
-                                                    '',
-                                                maxLines: 1,
-                                                color:
-                                                    context.color.buttonColor,
-                                              ),
-                                            ),
+                                                child: CustomText(
+                                              (propertie.category!.category) ??
+                                                  '',
+                                              maxLines: 1,
+                                              color: context.color.buttonColor,
+                                            )),
                                           ],
                                         ),
                                         const Spacer(),
@@ -279,12 +275,16 @@ class _PropertyGradiendCardState extends State<PropertyGradiendCard> {
                                         FittedBox(
                                           fit: BoxFit.fitWidth,
                                           child: CustomText(
-                                            propertie.price!.priceFormat(
-                                              enabled:
-                                                  Constant.isNumberWithSuffix ==
+                                            propertie.price!
+                                                .priceFormat(
+                                                  enabled: Constant
+                                                          .isNumberWithSuffix ==
                                                       true,
-                                              context: context,
-                                            ),
+                                                  context: context,
+                                                )
+                                                .formatAmount(
+                                                  prefix: true,
+                                                ),
                                             maxLines: 1,
                                             fontWeight: FontWeight.bold,
                                             fontSize: context.font.extraLarge,

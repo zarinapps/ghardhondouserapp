@@ -3,11 +3,12 @@
 import 'package:ebroker/data/cubits/Utility/fetch_facilities_cubit.dart';
 import 'package:ebroker/data/helper/filter.dart';
 import 'package:ebroker/data/model/category.dart';
-import 'package:ebroker/data/model/propery_filter_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/widgets/bottom_sheets/choose_location_bottomsheet.dart';
 import 'package:ebroker/utils/admob/bannerAdLoadWidget.dart';
 import 'package:flutter/material.dart';
+
+import '../../data/model/propery_filter_model.dart';
 
 dynamic city = '';
 dynamic _state = '';
@@ -30,8 +31,8 @@ class FilterScreen extends StatefulWidget {
     final arguments = routeSettings.arguments as Map?;
     return BlurredRouter(
       builder: (_) => FilterScreen(
-        selectedFilter: arguments?['filter'] as FilterApply? ?? FilterApply(),
-        showPropertyType: arguments?['showPropertyType'] as bool? ?? false,
+        selectedFilter: arguments?['filter'],
+        showPropertyType: arguments?['showPropertyType'],
       ),
     );
   }
@@ -224,9 +225,11 @@ class FilterScreenState extends State<FilterScreen> {
           ),
         ),
         body: SingleChildScrollView(
-          physics: Constant.scrollPhysics,
+          physics: AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -249,7 +252,7 @@ class FilterScreenState extends State<FilterScreen> {
                         return SizedBox(
                           height: 50,
                           child: ListView(
-                            physics: Constant.scrollPhysics,
+                            physics: const BouncingScrollPhysics(),
                             scrollDirection: Axis.horizontal,
                             shrinkWrap: true,
                             children: List.generate(
@@ -920,66 +923,64 @@ class FilterScreenState extends State<FilterScreen> {
             return const SizedBox.shrink();
           }
           return ExpansionTile(
-            title: CustomText('facilities'.translate(context)),
-            textColor: context.color.tertiaryColor,
-            iconColor: context.color.tertiaryColor,
-            children: [
-              GridView.count(
-                shrinkWrap: true,
-                physics: const ClampingScrollPhysics(),
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                childAspectRatio: MediaQuery.of(context).size.width /
-                    (MediaQuery.of(context).size.height / 4),
-                children: List.generate(
-                  facilities.length,
-                  (int index) {
-                    final isSelected =
-                        selectedFacilities.contains(facilities[index].id) ||
-                            (Constant.filterFacilities
-                                    ?.contains(facilities[index].id) ??
-                                false);
-                    return GestureDetector(
-                      onTap: () {
-                        if (isSelected) {
-                          selectedFacilities.remove(facilities[index].id);
-                        } else {
-                          selectedFacilities.add(facilities[index].id!);
-                        }
-                        Constant.filterFacilities = selectedFacilities;
-                        print('selectedFacilities are $selectedFacilities');
-                        print(
-                          'Constant.filterFacilities are ${Constant.filterFacilities}',
-                        );
-                        setState(() {});
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? context.color.tertiaryColor
-                              : context.color.secondaryColor,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            width: 1.5,
-                            color: context.color.borderColor,
+              title: CustomText("facilities".translate(context)),
+              textColor: context.color.tertiaryColor,
+              iconColor: context.color.tertiaryColor,
+              children: [
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: ClampingScrollPhysics(),
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 4,
+                  childAspectRatio: MediaQuery.of(context).size.width /
+                      (MediaQuery.of(context).size.height / 4),
+                  children: List.generate(
+                    facilities.length,
+                    (int index) {
+                      bool isSelected =
+                          selectedFacilities.contains(facilities[index].id) ||
+                              (Constant.filterFacilities
+                                      ?.contains(facilities[index].id) ??
+                                  false);
+                      return GestureDetector(
+                        onTap: () {
+                          if (isSelected) {
+                            selectedFacilities.remove(facilities[index].id);
+                          } else {
+                            selectedFacilities.add(facilities[index].id!);
+                          }
+                          Constant.filterFacilities = selectedFacilities;
+                          print('selectedFacilities are $selectedFacilities');
+                          print(
+                              'Constant.filterFacilities are ${Constant.filterFacilities}');
+                          setState(() {});
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? context.color.tertiaryColor
+                                : context.color.secondaryColor,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              width: 1.5,
+                              color: context.color.borderColor,
+                            ),
+                          ),
+                          child: CustomText(
+                            facilities[index].name ?? '',
+                            maxLines: 3,
+                            color: isSelected
+                                ? context.color.tertiaryColor
+                                : context.color.textColorDark,
                           ),
                         ),
-                        child: CustomText(
-                          facilities[index].name ?? '',
-                          maxLines: 3,
-                          color: isSelected
-                              ? context.color.tertiaryColor
-                              : context.color.textColorDark,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
+                      );
+                    },
+                  ),
+                )
+              ]);
         }
         return const SizedBox.shrink();
       },

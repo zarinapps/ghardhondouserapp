@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:ebroker/data/cubits/Utility/fetch_facilities_cubit.dart';
 import 'package:ebroker/data/helper/filter.dart';
 import 'package:ebroker/exports/main_export.dart';
@@ -19,8 +17,8 @@ class SearchScreen extends StatefulWidget {
     return BlurredRouter(
       builder: (context) {
         return SearchScreen(
-          autoFocus: arguments?['autoFocus'] as bool? ?? false,
-          openFilterScreen: arguments?['openFilterScreen'] as bool? ?? false,
+          autoFocus: arguments?['autoFocus'],
+          openFilterScreen: arguments?['openFilterScreen'],
         );
       },
     );
@@ -165,7 +163,7 @@ class SearchScreenState extends State<SearchScreen>
       }
       return SingleChildScrollView(
         controller: controller,
-        physics: Constant.scrollPhysics,
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(
           vertical: 10,
         ),
@@ -254,10 +252,6 @@ class SearchScreenState extends State<SearchScreen>
                       border: InputBorder.none, //OutlineInputBorder()
                       fillColor: Theme.of(context).colorScheme.secondaryColor,
                       hintText: UiUtils.translate(context, 'searchHintLbl'),
-                      hintStyle: TextStyle(
-                        color:
-                            context.color.inverseSurface.withValues(alpha: 0.5),
-                      ),
                       prefixIcon: setSearchIcon(),
                       prefixIconConstraints:
                           const BoxConstraints(minHeight: 5, minWidth: 5),
@@ -277,34 +271,30 @@ class SearchScreenState extends State<SearchScreen>
                 ),
                 GestureDetector(
                   onTap: () async {
-                    try {
+                    if (facilitiesState is! FetchFacilitiesSuccess) {
                       await context.read<FetchFacilitiesCubit>().fetch();
-                      if (context.read<FetchFacilitiesCubit>().state
-                          is FetchFacilitiesSuccess) {
-                        await Navigator.pushNamed(
-                          context,
-                          Routes.filterScreen,
-                          arguments: {'filter': selectedFilter},
-                        ).then((value) {
-                          if (value != null) {
-                            selectedFilter = value as FilterApply;
-                            context.read<SearchPropertyCubit>().searchProperty(
-                                  searchController.text,
-                                  offset: 0,
-                                  filter: value,
-                                );
-                            setState(() {});
-
-                            // context.read<SearchPropertyCubit>().searchProperty(
-                            //     searchController.text,
-                            //     offset: 0,
-                            //     filter: selectedFilter);
-                          }
-                        });
-                      }
-                    } catch (e, st) {
-                      log('error is $e stack is $st');
                     }
+
+                    Navigator.pushNamed(
+                      context,
+                      Routes.filterScreen,
+                      arguments: {'filter': selectedFilter},
+                    ).then((value) {
+                      if (value != null) {
+                        selectedFilter = value as FilterApply;
+                        context.read<SearchPropertyCubit>().searchProperty(
+                              searchController.text,
+                              offset: 0,
+                              filter: value,
+                            );
+                        setState(() {});
+
+                        // context.read<SearchPropertyCubit>().searchProperty(
+                        //     searchController.text,
+                        //     offset: 0,
+                        //     filter: selectedFilter);
+                      }
+                    });
                   },
                   child: Container(
                     width: 50.rw(context),

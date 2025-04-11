@@ -20,11 +20,11 @@ class NotificationsRepository {
       print('total is ${response['total']}');
 
       final modelList = (response['data'] as List).map((e) {
-        return NotificationData.fromJson(e as Map<String, dynamic>? ?? {});
+        return NotificationData.fromJson(e);
       }).toList();
 
       return DataOutput(
-        total: response['total'] as int? ?? 0,
+        total: response['total'],
         modelList: modelList,
       );
     } catch (e) {

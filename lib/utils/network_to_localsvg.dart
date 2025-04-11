@@ -14,7 +14,7 @@ class NetworkToLocalSvg {
       final response = await dio.get(url);
 
       if (response.statusCode == 200) {
-        return response.data?.toString() ?? '';
+        return response.data;
       } else {
         log('Error while load svg');
       }
@@ -29,7 +29,7 @@ class NetworkToLocalSvg {
     if (Hive.box(HiveKeys.svgBox).containsKey(url) &&
         Hive.box(HiveKeys.svgBox).get(url).toString().isNotEmpty) {
       return SvgPicture.string(
-        Hive.box(HiveKeys.svgBox).get(url)?.toString() ?? '',
+        Hive.box(HiveKeys.svgBox).get(url) ?? '',
         colorFilter:
             color == null ? null : ColorFilter.mode(color, BlendMode.srcIn),
         width: width,
@@ -52,7 +52,7 @@ class NetworkToLocalSvg {
               );
             } else {
               return SvgPicture.string(
-                Hive.box(HiveKeys.svgBox).get(url)?.toString() ?? '',
+                Hive.box(HiveKeys.svgBox).get(url) ?? '',
                 colorFilter: color == null
                     ? null
                     : ColorFilter.mode(color, BlendMode.srcIn),

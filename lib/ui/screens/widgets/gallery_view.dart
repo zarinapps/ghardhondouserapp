@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ebroker/utils/AdMob/interstitialAdManager.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
+import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 
 class GalleryViewWidget extends StatefulWidget {
@@ -47,24 +48,28 @@ class _GalleryViewWidgetState extends State<GalleryViewWidget> {
           iconTheme: IconThemeData(color: context.color.tertiaryColor),
         ),
         backgroundColor: const Color.fromARGB(17, 0, 0, 0),
-        body: PageView.builder(
-          controller: controller,
-          onPageChanged: (value) async {
-            page = value;
-            if (page.isEven) {
-              await admanager.show();
-            }
-            setState(() {});
-          },
-          itemBuilder: (context, index) {
-            return InteractiveViewer(
-              maxScale: 5,
-              child: CachedNetworkImage(
-                imageUrl: images[index]?.toString() ?? '',
-              ),
-            );
-          },
-          itemCount: (images..removeWhere((element) => (element == ''))).length,
+        body: ScrollConfiguration(
+          behavior: RemoveGlow(),
+          child: PageView.builder(
+            controller: controller,
+            onPageChanged: (value) async {
+              page = value;
+              if (page.isEven) {
+                await admanager.show();
+              }
+              setState(() {});
+            },
+            itemBuilder: (context, index) {
+              return InteractiveViewer(
+                maxScale: 5,
+                child: CachedNetworkImage(
+                  imageUrl: images[index],
+                ),
+              );
+            },
+            itemCount:
+                (images..removeWhere((element) => (element == ''))).length,
+          ),
         ),
       ),
     );

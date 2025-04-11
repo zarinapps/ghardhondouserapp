@@ -34,9 +34,6 @@ class SplashScreenState extends State<SplashScreen>
 
   @override
   void initState() {
-    // Debugger.init(context);
-    // Console.use();
-    // Api.initInterceptors();
     locationPermission();
     checkIsUserAuthenticated();
     super.initState();
@@ -208,10 +205,9 @@ class SplashScreenState extends State<SplashScreen>
               }
             }
 
-            if ((state.settings['data'].containsKey('demo_mode') as bool?) ??
-                false) {
+            if (state.settings['data'].containsKey('demo_mode')) {
               Constant.isDemoModeOn =
-                  state.settings['data']['demo_mode'] as bool? ?? false;
+                  state.settings['data']['demo_mode'] ?? false;
             }
             isSettingsLoaded = true;
             setState(() {});

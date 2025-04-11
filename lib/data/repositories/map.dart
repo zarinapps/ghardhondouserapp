@@ -22,7 +22,7 @@ class GMap {
       );
       response.mlog('City response');
       final points = (response['data'] as List).map((e) {
-        return MapPoint.fromMap(e as Map<String, dynamic>? ?? {});
+        return MapPoint.fromMap(e);
       }).toList();
       return points;
     } catch (e) {

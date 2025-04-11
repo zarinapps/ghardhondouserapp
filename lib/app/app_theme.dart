@@ -5,26 +5,22 @@ import 'package:flutter/material.dart';
 
 enum AppTheme { dark, light }
 
-final commonThemeData = ThemeData(
-  useMaterial3: false,
-  fontFamily: 'Manrope',
-  textSelectionTheme: TextSelectionThemeData(
-    selectionColor: tertiaryColor_.withValues(alpha: 0.3),
-    cursorColor: tertiaryColor_,
-    selectionHandleColor: tertiaryColor_,
-  ),
-);
-
 final appThemeData = {
-  AppTheme.light: commonThemeData.copyWith(
+  AppTheme.light: ThemeData(
+    useMaterial3: false,
+    // scaffoldBackgroundColor: pageBackgroundColor,
     brightness: Brightness.light,
+    //textTheme
+    fontFamily: 'Manrope',
+
+    textSelectionTheme: const TextSelectionThemeData(
+      selectionColor: tertiaryColor_,
+      cursorColor: tertiaryColor_,
+      selectionHandleColor: tertiaryColor_,
+    ),
     cardColor: tertiaryColor_,
-    scrollbarTheme: const ScrollbarThemeData(
-      radius: Radius.circular(8),
-    ),
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: tertiaryColor_,
-    ),
+    // textSelectionTheme:
+    //     const TextSelectionThemeData(selectionHandleColor: teritoryColor_),
     switchTheme: SwitchThemeData(
       thumbColor: const WidgetStatePropertyAll(tertiaryColor_),
       trackColor: WidgetStateProperty.resolveWith((states) {
@@ -35,15 +31,15 @@ final appThemeData = {
       }),
     ),
   ),
-  AppTheme.dark: commonThemeData.copyWith(
+  AppTheme.dark: ThemeData(
     brightness: Brightness.dark,
+    useMaterial3: false,
+    fontFamily: 'Manrope',
     cardColor: tertiaryColor_.withValues(alpha: 0.7),
-    scrollbarTheme: const ScrollbarThemeData(
-      radius: Radius.circular(8),
-    ),
-    colorScheme: ColorScheme.fromSeed(
-      brightness: Brightness.dark,
-      seedColor: tertiaryColor_,
+    textSelectionTheme: const TextSelectionThemeData(
+      selectionColor: tertiaryColor_,
+      cursorColor: tertiaryColor_,
+      selectionHandleColor: tertiaryColor_,
     ),
     switchTheme: SwitchThemeData(
       thumbColor: const WidgetStatePropertyAll(tertiaryColor_),

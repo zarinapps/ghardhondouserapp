@@ -336,7 +336,7 @@ class _RecordButtonState extends State<RecordButton> {
         if (widget.isSending) return;
         debugPrint('onLongPress');
         // if (await Vibrate.canVibrate) Vibrate.feedback(FeedbackType.success);
-        final isPermission = await record!.hasPermission();
+        bool isPermission = await record!.hasPermission();
         if (isPermission) {
           await record!.start(
             const RecordConfig(),

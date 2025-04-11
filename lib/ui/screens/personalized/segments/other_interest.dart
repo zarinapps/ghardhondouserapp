@@ -53,10 +53,8 @@ class _OtherInterestsState extends State<OtherInterests> {
         final state = context.read<FetchSystemSettingsCubit>().state;
         if (state is FetchSystemSettingsSuccess) {
           final settingsData = state.settings['data'];
-          final minPrice =
-              double.parse(settingsData['min_price']?.toString() ?? '');
-          final maxPrice =
-              double.parse(settingsData['max_price']?.toString() ?? '');
+          final minPrice = double.parse(settingsData['min_price']);
+          final maxPrice = double.parse(settingsData['max_price']);
           _priceRangeValues = RangeValues(minPrice, maxPrice);
           if (min != 0.0 && max != 0.0) {
             _selectedRangeValues = RangeValues(min, max);
@@ -149,28 +147,23 @@ class _OtherInterestsState extends State<OtherInterests> {
     final isFirstTime = widget.type == PersonalizedVisitType.FirstTime;
     return Scaffold(
       backgroundColor: context.color.primaryColor,
-      appBar: UiUtils.buildAppBar(
-        context,
-        showBackButton: true,
-        actions: [
-          if (isFirstTime)
-            GestureDetector(
-              onTap: () {
-                HelperUtils.killPreviousPages(
-                  context,
-                  Routes.main,
-                  {'from': 'login'},
-                );
-              },
-              child: Chip(
+      appBar: UiUtils.buildAppBar(context, showBackButton: true, actions: [
+        if (isFirstTime)
+          GestureDetector(
+            onTap: () {
+              HelperUtils.killPreviousPages(
+                context,
+                Routes.main,
+                {'from': 'login'},
+              );
+            },
+            child: Chip(
                 label: CustomText(
-                  'skip'.translate(context),
-                  color: context.color.buttonColor,
-                ),
-              ),
-            ),
-        ],
-      ),
+              'skip'.translate(context),
+              color: context.color.buttonColor,
+            )),
+          ),
+      ]),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -209,12 +202,11 @@ class _OtherInterestsState extends State<OtherInterests> {
                             context.color.textColorDark.withValues(alpha: 0.6),
                       ),
                       Expanded(
-                        child: CustomText(
-                          selectedLocation,
-                          fontSize: context.font.large,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                          child: CustomText(
+                        selectedLocation,
+                        fontSize: context.font.large,
+                        fontWeight: FontWeight.w600,
+                      )),
                     ],
                   ),
                 ),
@@ -307,7 +299,7 @@ class _OtherInterestsState extends State<OtherInterests> {
                   const SizedBox(
                     height: 25,
                   ),
-                  SizedBox(
+                  Container(
                     width: MediaQuery.of(context).size.width,
                     child: Row(
                       children: [
@@ -359,26 +351,25 @@ class _OtherInterestsState extends State<OtherInterests> {
       child: TypeAheadField(
         builder: (context, controller, focusNode) {
           return TextField(
-            controller: controller,
-            focusNode: focusNode,
-            decoration: InputDecoration(
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: context.color.tertiaryColor,
+              autofocus: false,
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: context.color.tertiaryColor,
+                  ),
                 ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(
+                enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
                   color: context.color.tertiaryColor,
+                )),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: context.color.tertiaryColor,
+                  ),
                 ),
-              ),
-              border: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: context.color.tertiaryColor,
-                ),
-              ),
-            ),
-          );
+              ));
         },
         errorBuilder: (context, error) {
           return const CustomText('Error');
@@ -390,7 +381,7 @@ class _OtherInterestsState extends State<OtherInterests> {
           final address = <String>[
             itemData.city,
             itemData.state,
-            itemData.country,
+            itemData.country
           ];
 
           return ListTile(
@@ -410,7 +401,7 @@ class _OtherInterestsState extends State<OtherInterests> {
           final addressList = <String>[
             suggestion.city,
             suggestion.state,
-            suggestion.country,
+            suggestion.country
           ];
           final address = addressList.join(',');
           _cityController.text = address;

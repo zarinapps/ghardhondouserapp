@@ -45,7 +45,7 @@ class DeleteAccountCubit extends Cubit<DeleteAccountState> {
       parameter: parameter,
     );
 
-    if (response['error'] == true) {
+    if (response['error']) {
       throw CustomException(response['message']);
     } else {
       Future.delayed(
@@ -54,7 +54,7 @@ class DeleteAccountCubit extends Cubit<DeleteAccountState> {
           HiveUtils.logoutUser(context, onLogout: () {}, isRedirect: false);
         },
       );
-      message = response['message']?.toString() ?? '';
+      message = response['message'];
     }
 
     return message;

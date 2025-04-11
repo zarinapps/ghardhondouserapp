@@ -1,7 +1,9 @@
 // ignore_for_file: invalid_use_of_protected_member
 
+import 'dart:convert';
+
 import 'package:ebroker/data/model/system_settings_model.dart';
-import 'package:ebroker/data/repositories/check_package.dart';
+import 'package:ebroker/data/repositories/system_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/chat/chat_list_screen.dart';
 import 'package:ebroker/ui/screens/home/home_screen.dart';
@@ -61,11 +63,10 @@ class MainActivity extends StatefulWidget {
   @override
   State<MainActivity> createState() => MainActivityState();
 
-  static Route<dynamic> route(RouteSettings routeSettings) {
-    final arguments = routeSettings.arguments as Map? ?? {};
+  static Route route(RouteSettings routeSettings) {
+    final arguments = routeSettings.arguments! as Map;
     return BlurredRouter(
-      builder: (_) =>
-          MainActivity(from: arguments['from'] as String? ?? 'main'),
+      builder: (_) => MainActivity(from: arguments['from'] as String),
     );
   }
 }
@@ -147,7 +148,7 @@ class MainActivityState extends State<MainActivity>
       'force-disable-demo-mode',
     )) {
       Constant.isDemoModeOn =
-          settings.getSetting(SystemSetting.demoMode) as bool? ?? false;
+          settings.getSetting(SystemSetting.demoMode) ?? false;
     }
     final numberWithSuffix =
         settings.getSetting(SystemSetting.numberWithSuffix);
@@ -236,19 +237,16 @@ class MainActivityState extends State<MainActivity>
       return;
     }
     remoteVersion = HelperUtils.comparableVersion(
-      remoteVersion?.toString() ?? '',
+      remoteVersion,
     );
 
-    if ((remoteVersion > currentVersion) as bool? ?? false) {
+    if (remoteVersion > currentVersion) {
       Constant.isUpdateAvailable = true;
-      Constant.newVersionNumber = settings
-              .getSetting(
-                Platform.isIOS
-                    ? SystemSetting.iosVersion
-                    : SystemSetting.androidVersion,
-              )
-              ?.toString() ??
-          '';
+      Constant.newVersionNumber = settings.getSetting(
+        Platform.isIOS
+            ? SystemSetting.iosVersion
+            : SystemSetting.androidVersion,
+      );
 
       Future.delayed(
         Duration.zero,
@@ -375,8 +373,7 @@ class MainActivityState extends State<MainActivity>
                             width: 5,
                           ),
                           CustomText(
-                            UiUtils.translate(context, 'dontshowagain'),
-                          ),
+                              UiUtils.translate(context, 'dontshowagain')),
                         ],
                       ),
                     ],
@@ -415,6 +412,28 @@ class MainActivityState extends State<MainActivity>
   void dispose() {
     pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> checkForMaintenanceMode() async {
+    final body = <String, String>{
+      Api.type: Api.maintenanceMode,
+    };
+
+    final response = await HelperUtils.sendApiRequest(
+      Api.apiGetAppSettings,
+      body,
+      true,
+      context,
+    );
+    final getdata = json.decode(response);
+    if (getdata != null) {
+      if (!getdata[Api.error]) {
+        Constant.maintenanceMode = getdata['data'].toString();
+        if (Constant.maintenanceMode == '1') {
+          setState(() {});
+        }
+      }
+    }
   }
 
   late List<Widget> pages = [
@@ -493,96 +512,102 @@ class MainActivityState extends State<MainActivity>
                           left: (context.screenWidth / 2) - (181 / 2),
                           child: GestureDetector(
                             onTap: () async {
-                              GuestChecker.check(
-                                onNotGuest: () async {
-                                  try {
-                                    if (AppSettings.isVerificationRequired ==
-                                            true &&
-                                        isProfileCompleted != true) {
-                                      await UiUtils.showBlurredDialoge(
-                                        context,
-                                        dialoge: BlurredDialogBox(
-                                          title: 'completeProfile'
-                                              .translate(context),
-                                          isAcceptContainesPush: true,
-                                          onAccept: () async {
-                                            await Navigator.popAndPushNamed(
-                                              context,
-                                              Routes.completeProfile,
-                                              arguments: {
-                                                'from': 'home',
-                                                'navigateToHome': true,
-                                              },
-                                            );
-                                          },
-                                          content: HiveUtils.getUserDetails()
-                                                          .profile ==
-                                                      '' &&
-                                                  (HiveUtils.getUserDetails()
-                                                              .name !=
-                                                          '' &&
-                                                      HiveUtils.getUserDetails()
-                                                              .email !=
-                                                          '' &&
-                                                      HiveUtils.getUserDetails()
-                                                              .address !=
-                                                          '')
-                                              ? CustomText(
-                                                  'uploadProfilePicture'
-                                                      .translate(context),
-                                                )
-                                              : CustomText(
-                                                  'completeProfileFirst'
-                                                      .translate(context),
-                                                ),
-                                        ),
-                                      );
-                                    } else {
-                                      unawaited(Widgets.showLoader(context));
-                                      // final systemRepository = SystemRepository();
-                                      // final settings = await systemRepository
-                                      //     .fetchSystemSettings(
-                                      //   isAnonymouse: false,
-                                      // );
-                                      final checkPackage = CheckPackage();
-
-                                      final packageAvailable =
-                                          await checkPackage
-                                              .checkPackageAvailable(
-                                        packageType: PackageType.propertyList,
-                                      );
-                                      if (packageAvailable) {
-                                        Widgets.hideLoder(context);
-                                        await Navigator.pushNamed(
+                              try {
+                                if (Constant.isDemoModeOn) {
+                                  await HelperUtils.showSnackBarMessage(
+                                    context,
+                                    'thisActionNotValidDemo'.translate(context),
+                                  );
+                                } else if (AppSettings.isVerificationRequired ==
+                                        true &&
+                                    isProfileCompleted != true) {
+                                  await UiUtils.showBlurredDialoge(
+                                    context,
+                                    dialoge: BlurredDialogBox(
+                                      title:
+                                          'completeProfile'.translate(context),
+                                      isAcceptContainesPush: true,
+                                      onAccept: () async {
+                                        await Navigator.popAndPushNamed(
                                           context,
-                                          Routes.selectPropertyTypeScreen,
+                                          Routes.completeProfile,
                                           arguments: {
-                                            'type': PropertyAddType.property,
+                                            'from': 'home',
+                                            'navigateToHome': true
                                           },
                                         );
-                                      } else {
-                                        Widgets.hideLoder(context);
+                                      },
+                                      content: HiveUtils.getUserDetails()
+                                                      .profile ==
+                                                  '' &&
+                                              (HiveUtils.getUserDetails()
+                                                          .name !=
+                                                      '' &&
+                                                  HiveUtils.getUserDetails()
+                                                          .email !=
+                                                      '' &&
+                                                  HiveUtils.getUserDetails()
+                                                          .address !=
+                                                      '')
+                                          ? CustomText('uploadProfilePicture'
+                                              .translate(context))
+                                          : CustomText(
+                                              'completeProfileFirst'
+                                                  .translate(context),
+                                            ),
+                                    ),
+                                  );
+                                } else {
+                                  unawaited(Widgets.showLoader(context));
+                                  final systemRepository = SystemRepository();
+                                  final settings = await systemRepository
+                                      .fetchSystemSettings(
+                                    isAnonymouse: false,
+                                  );
+                                  if (settings['data']['is_premium'] == true) {
+                                    Widgets.hideLoder(context);
+                                    await Navigator.pushNamed(
+                                      context,
+                                      Routes.selectPropertyTypeScreen,
+                                      arguments: {
+                                        'type': PropertyAddType.property,
+                                      },
+                                    );
+                                  } else {
+                                    Widgets.hideLoder(context);
+                                    GuestChecker.check(
+                                      onNotGuest: () async {
                                         await UiUtils.showBlurredDialoge(
                                           context,
-                                          dialoge:
-                                              const BlurredSubscriptionDialogBox(
-                                            packageType: SubscriptionPackageType
-                                                .propertyList,
+                                          dialoge: BlurredDialogBox(
+                                            title: 'Subscription needed',
                                             isAcceptContainesPush: true,
+                                            onAccept: () async {
+                                              await Navigator.popAndPushNamed(
+                                                context,
+                                                Routes
+                                                    .subscriptionPackageListRoute,
+                                                arguments: {'from': 'home'},
+                                              );
+                                            },
+                                            content: CustomText(
+                                              'subscribeToUseThisFeature'
+                                                  .translate(context),
+                                            ),
                                           ),
                                         );
-                                      }
-                                      Widgets.hideLoder(context);
-                                    }
-                                  } catch (e) {
-                                    Widgets.hideLoder(context);
-                                    await HelperUtils.showSnackBarMessage(
-                                      context,
-                                      'somethingWentWrng'.translate(context),
+                                      },
                                     );
                                   }
-                                },
-                              );
+                                  Widgets.hideLoder(context);
+                                }
+                              } catch (e) {
+                                Widgets.hideLoder(context);
+                                await HelperUtils.showSnackBarMessage(
+                                  context,
+                                  'somethingWentWrng'.translate(context),
+                                );
+                              }
                             },
                             child: Container(
                               width: 181,
@@ -635,87 +660,91 @@ class MainActivityState extends State<MainActivity>
                           left: (context.screenWidth / 2) - 128 / 2,
                           child: GestureDetector(
                             onTap: () async {
-                              GuestChecker.check(
-                                onNotGuest: () async {
-                                  try {
-                                    if (Constant.isDemoModeOn) {
-                                      await HelperUtils.showSnackBarMessage(
-                                        context,
-                                        'thisActionNotValidDemo'
-                                            .translate(context),
-                                      );
-                                    } else if (AppSettings
-                                                .isVerificationRequired ==
-                                            true &&
-                                        isProfileCompleted != true) {
-                                      await UiUtils.showBlurredDialoge(
-                                        context,
-                                        dialoge: BlurredDialogBox(
-                                          title: 'completeProfile'
-                                              .translate(context),
-                                          isAcceptContainesPush: true,
-                                          onAccept: () async {
-                                            await Navigator.popAndPushNamed(
-                                              context,
-                                              Routes.completeProfile,
-                                              arguments: {
-                                                'from': 'home',
-                                                'navigateToHome': true,
-                                              },
-                                            );
-                                          },
-                                          content: CustomText(
-                                            'completeProfile'
-                                                .translate(context),
-                                          ),
-                                        ),
-                                      );
-                                    } else {
-                                      unawaited(Widgets.showLoader(context));
-
-                                      final checkPackage = CheckPackage();
-
-                                      final packageAvailable =
-                                          await checkPackage
-                                              .checkPackageAvailable(
-                                        packageType: PackageType.projectList,
-                                      );
-                                      if (packageAvailable) {
-                                        Widgets.hideLoder(context);
-                                        GuestChecker.check(
-                                          onNotGuest: () {
-                                            Navigator.pushNamed(
-                                              context,
-                                              Routes.selectPropertyTypeScreen,
-                                              arguments: {
-                                                'type': PropertyAddType.project,
-                                              },
-                                            );
+                              try {
+                                if (Constant.isDemoModeOn) {
+                                  await HelperUtils.showSnackBarMessage(
+                                    context,
+                                    'thisActionNotValidDemo'.translate(context),
+                                  );
+                                } else if (AppSettings.isVerificationRequired ==
+                                        true &&
+                                    isProfileCompleted != true) {
+                                  await UiUtils.showBlurredDialoge(
+                                    context,
+                                    dialoge: BlurredDialogBox(
+                                      title:
+                                          'completeProfile'.translate(context),
+                                      isAcceptContainesPush: true,
+                                      onAccept: () async {
+                                        await Navigator.popAndPushNamed(
+                                          context,
+                                          Routes.completeProfile,
+                                          arguments: {
+                                            'from': 'home',
+                                            'navigateToHome': true
                                           },
                                         );
-                                      } else {
-                                        Widgets.hideLoder(context);
+                                      },
+                                      content: CustomText(
+                                        'completeProfile'.translate(context),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  unawaited(Widgets.showLoader(context));
+                                  final systemRepository = SystemRepository();
+                                  final settings = await systemRepository
+                                      .fetchSystemSettings(
+                                    isAnonymouse: false,
+                                  );
+                                  if (settings['data']['is_premium'] == true) {
+                                    Widgets.hideLoder(context);
+                                    GuestChecker.check(
+                                      onNotGuest: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          Routes.selectPropertyTypeScreen,
+                                          arguments: {
+                                            'type': PropertyAddType.project,
+                                          },
+                                        );
+                                      },
+                                    );
+                                  } else {
+                                    Widgets.hideLoder(context);
+                                    GuestChecker.check(
+                                      onNotGuest: () async {
                                         await UiUtils.showBlurredDialoge(
                                           context,
-                                          dialoge:
-                                              const BlurredSubscriptionDialogBox(
-                                            packageType: SubscriptionPackageType
-                                                .projectList,
+                                          dialoge: BlurredDialogBox(
+                                            title: 'Subscription needed',
                                             isAcceptContainesPush: true,
+                                            onAccept: () async {
+                                              await Navigator.popAndPushNamed(
+                                                context,
+                                                Routes
+                                                    .subscriptionPackageListRoute,
+                                                arguments: {'from': 'home'},
+                                              );
+                                            },
+                                            content: CustomText(
+                                              'subscribeToUseThisFeature'
+                                                  .translate(context),
+                                            ),
                                           ),
                                         );
-                                      }
-                                      Widgets.hideLoder(context);
-                                    }
-                                  } catch (e) {
-                                    Widgets.hideLoder(context);
-                                    await HelperUtils.showSnackBarMessage(
-                                      context,
-                                      'somethingWentWrng'.translate(context),
+                                      },
                                     );
                                   }
-                                },
-                              );
+                                  Widgets.hideLoder(context);
+                                }
+                              } catch (e) {
+                                Widgets.hideLoder(context);
+                                await HelperUtils.showSnackBarMessage(
+                                  context,
+                                  'somethingWentWrng'.translate(context),
+                                );
+                              }
                             },
                             child: Container(
                               width: 128,

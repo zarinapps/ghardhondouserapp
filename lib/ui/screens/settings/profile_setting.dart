@@ -67,7 +67,7 @@ class ProfileSettingsState extends State<ProfileSettings> {
               );
             }
 
-            return Widgets.noDataFound(state.errmsg?.toString() ?? '');
+            return Widgets.noDataFound(state.errmsg);
           } else {
             return const SizedBox.shrink();
           }
@@ -79,7 +79,7 @@ class ProfileSettingsState extends State<ProfileSettings> {
 
 Widget contentWidget(ProfileSettingFetchSuccess state, BuildContext context) {
   return SingleChildScrollView(
-    physics: Constant.scrollPhysics,
+    physics: const BouncingScrollPhysics(),
     padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Html(
       data: state.data,
