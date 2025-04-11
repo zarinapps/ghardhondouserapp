@@ -55,7 +55,9 @@ dependencies:
   #image rendering
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.4.1
-  flutter_native_image: 0.0.6+1
+  flutter_native_image:
+    git:
+      url: https://github.com/zarinapps/flutter_native_image.git
 
   #  TODO(R): use this if flutter_native_image is not working
   #  flutter_image_compress: ^2.3.0
