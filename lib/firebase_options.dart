@@ -48,11 +48,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCwIJO3sTsgLVEE4bpHJty0osx_PT9cVS8',
-    appId: '1:63168540332:android:8b13b90751cb235f623909',
-    messagingSenderId: '63168540332',
-    projectId: 'ebroker-wrteam',
-    storageBucket: 'ebroker-wrteam.appspot.com',
+    apiKey: 'AIzaSyCaeJid6EbTQTIMgIWNh_1P05wneEep6LI',
+    appId: '1:8982964559:android:15f377239f77aac67d3d3a',
+    messagingSenderId: '8982964559',
+    projectId: 'ghardhondhoapp',
+    storageBucket: 'ghardhondhoapp.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

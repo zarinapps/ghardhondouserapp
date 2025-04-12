@@ -31,7 +31,7 @@
     </intent>
 </queries>
    <application
-        android:label="eBroker"
+        android:label="Ghar Dhondho"
         android:requestLegacyExternalStorage="true"
         android:largeHeap="true"
         android:name="${applicationName}"
