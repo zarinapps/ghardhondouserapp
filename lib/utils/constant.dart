@@ -77,7 +77,7 @@ abstract class Constant {
   //
   static int loadLimit = AppSettings.apiDataLoadLimit;
 
-  static const String defaultCountryCode = AppSettings.defaultCountryCode;
+  static const String defaultCountryCode = '92';
 
   ///This maxCategoryLength is for show limited number of categories and show "More" button,
   ///You have to set less than [loadLimit] constant
@@ -195,7 +195,7 @@ modM8h9DRzp9OaAJqxfP960q
 
   //Demo mode settings
   static bool isDemoModeOn = false;
-  static String demoCountryCode = '91';
+  static String demoCountryCode = '92';
   static String demoMobileNumber = '1234567890';
   static String demoFirebaseID = '6a1Zdl2TxORQGbCazj4XDGfgBBG3';
   static String demoModeOTP = '123456';
