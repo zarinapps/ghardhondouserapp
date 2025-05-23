@@ -45,7 +45,7 @@
            tools:replace="android:resource" />
        <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCwIJO3sTsgLVEE4bpHJty0osx_PT9cVS8" />
+            android:value="AIzaSyCxIHhqO3Xe49ZptAqdlLb_nQmhci-lakQ" />
        <meta-data
            android:name="com.google.android.gms.ads.APPLICATION_ID"
            android:value="ca-app-pub-5521230412950397~4046683496"/>

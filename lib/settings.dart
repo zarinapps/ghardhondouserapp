@@ -12,7 +12,7 @@ class AppSettings {
   static const String androidPackageName = 'ghardhondho.zarin.solutions';
 
   ///API Setting
-  static const String hostUrl = 'https://ghardhondo.zarin.solutions/';
+  static const String hostUrl = 'https://admin.ghardhondo.com/';
   // ghardhondo.zarin.solutions
   static const int apiDataLoadLimit = 10;
   static const int maxCategoryShowLengthInHomeScreen = 5;
