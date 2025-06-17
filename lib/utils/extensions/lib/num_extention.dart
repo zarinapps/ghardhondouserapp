@@ -8,7 +8,7 @@ extension NUMEXT on num {
           '', // if you want to add currency symbol then pass that in this else leave it empty.
     ).format(this);
 
-    if (disabled == true) {
+    if (disabled ?? false) {
       return toString();
     }
 

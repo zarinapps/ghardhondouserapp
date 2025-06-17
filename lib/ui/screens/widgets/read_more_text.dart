@@ -23,14 +23,18 @@ class _ReadMoreTextState extends State<ReadMoreText> {
 
   Widget buildReadMore(String text) {
     final textPainter = TextPainter(
-      text: TextSpan(text: text, style: DefaultTextStyle.of(context).style),
+      text: TextSpan(
+        text: text,
+        style: widget.style,
+      ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: MediaQuery.of(context).size.width);
 
     final numLines = textPainter.computeLineMetrics().length;
 
     if (numLines > 5) {
-      return Wrap(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             showingFullText ? text : _truncateText(text),
@@ -39,6 +43,7 @@ class _ReadMoreTextState extends State<ReadMoreText> {
           TextButton(
             style: const ButtonStyle(
               padding: WidgetStatePropertyAll(EdgeInsets.zero),
+              splashFactory: NoSplash.splashFactory,
             ),
             onPressed: () {
               setState(() {
@@ -56,7 +61,7 @@ class _ReadMoreTextState extends State<ReadMoreText> {
       );
     }
 
-    return Text(text);
+    return Text(text, style: widget.style);
   }
 
   String _truncateText(String text) {

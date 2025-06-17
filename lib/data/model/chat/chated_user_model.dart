@@ -6,6 +6,7 @@ class ChatedUser {
     this.title,
     this.titleImage,
     this.userId,
+    this.unreadCount,
     this.name,
     this.profile,
     this.firebaseId,
@@ -22,13 +23,15 @@ class ChatedUser {
         json['title_image'] != null &&
         json['title_image'] != '') {
       precacheImage(
-          NetworkImage(json['title_image']?.toString() ?? ''), context);
+        NetworkImage(json['title_image']?.toString() ?? ''),
+        context,
+      );
     }
     propertyId = json['property_id'] as int?;
     title = json['title']?.toString() ?? '';
     titleImage = json['title_image']?.toString() ?? '';
     userId = json['user_id'] as int?;
-
+    unreadCount = json['unread_count'] as int?;
     name = json['name']?.toString() ?? '';
     profile = json['profile']?.toString() ?? '';
     firebaseId = json['firebase_id']?.toString() ?? '';
@@ -41,6 +44,7 @@ class ChatedUser {
   String? titleImage;
   int? userId;
   String? name;
+  int? unreadCount;
   String? profile;
   String? firebaseId;
   String? fcmId;
@@ -53,6 +57,7 @@ class ChatedUser {
     data['title'] = title;
     data['title_image'] = titleImage;
     data['user_id'] = userId;
+    data['unread_count'] = unreadCount;
     data['name'] = name;
     data['profile'] = profile;
     data['firebase_id'] = firebaseId;

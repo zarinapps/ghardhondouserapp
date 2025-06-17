@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 
 class ManageFloorPlansScreen extends StatefulWidget {
   const ManageFloorPlansScreen({required this.floorPlans, super.key});
-  final List<Map>? floorPlans;
+  final List<Map<String, dynamic>>? floorPlans;
 
-  static BlurredRouter route(RouteSettings settings) {
+  static CupertinoPageRoute<dynamic> route(RouteSettings settings) {
     final arguments = settings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return ManageFloorPlansScreen(
           floorPlans: (arguments?['floorPlan'] as List? ?? [])
@@ -178,7 +178,7 @@ class FloorPlan extends StatefulWidget {
   });
   final Key planKey;
   final String? title;
-  final ImagePickerValue? imagePickerValue;
+  final ImagePickerValue<dynamic>? imagePickerValue;
   final Function(Key e) onClose;
 
   @override
@@ -188,7 +188,7 @@ class FloorPlan extends StatefulWidget {
 }
 
 class FloorPlanState extends CloudState<FloorPlan> {
-  ImagePickerValue? imagePickerValue;
+  ImagePickerValue<dynamic>? imagePickerValue;
 
   late final TextEditingController floorTitle =
       TextEditingController(text: widget.title);
@@ -251,7 +251,7 @@ class FloorPlanState extends CloudState<FloorPlan> {
             isRequired: true,
             value: imagePickerValue,
             title: 'pickFloorMap'.translate(context),
-            onSelect: (ImagePickerValue? selected) {
+            onSelect: (ImagePickerValue<dynamic>? selected) {
               if (selected is FileValue) {
                 imagePickerValue = selected;
               }

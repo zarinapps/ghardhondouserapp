@@ -1,5 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 
+import 'dart:developer';
+
 import 'package:ebroker/data/model/property_model.dart';
 import 'package:ebroker/data/repositories/property_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,6 +38,10 @@ class CreatePropertyCubit extends Cubit<CreatePropertyState> {
       final result = await _propertyRepository.createProperty(
         parameters: parameters,
       );
+      if (result['error'] == true) {
+        emit(CreatePropertyFailure(result['message']?.toString() ?? ''));
+        return;
+      }
 
       final data = result['data'][0] as Map<String, dynamic>?;
 
@@ -52,7 +58,9 @@ class CreatePropertyCubit extends Cubit<CreatePropertyState> {
           emit(CreatePropertyFailure('Something went wrong'));
         }
       }
-    } catch (e) {
+    } catch (e, st) {
+      log(e.toString());
+      log(st.toString());
       emit(CreatePropertyFailure(e.toString()));
     }
   }

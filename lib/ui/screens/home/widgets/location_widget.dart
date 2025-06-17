@@ -1,7 +1,8 @@
-import 'package:ebroker/data/cubits/auth/auth_cubit.dart';
-import 'package:ebroker/data/cubits/property/fetch_nearby_property_cubit.dart';
-import 'package:ebroker/data/model/google_place_model.dart';
-import 'package:ebroker/ui/screens/widgets/bottom_sheets/choose_location_bottomsheet.dart';
+import 'dart:developer';
+
+import 'package:ebroker/app/app.dart';
+import 'package:ebroker/app/routes.dart';
+import 'package:ebroker/settings.dart';
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
@@ -10,7 +11,8 @@ import 'package:ebroker/utils/hive_utils.dart';
 import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class LocationWidget extends StatefulWidget {
@@ -24,8 +26,10 @@ class _LocationWidgetState extends State<LocationWidget> {
   String city = '';
   String state = '';
   String country = '';
-  late Box userDetailsBox;
+  late Box<dynamic> userDetailsBox;
   late VoidCallback listener;
+  var localLatitude = 0.0;
+  var localLongitude = 0.0;
 
   @override
   void initState() {
@@ -59,111 +63,120 @@ class _LocationWidgetState extends State<LocationWidget> {
     country = HiveUtils.getCountryName().toString().trim();
 
     final locationList = <String>[city, state, country]..removeWhere((element) {
-        return element.isEmpty;
+        return element.isEmpty || element == 'null' || element == '';
       });
     final joinedLocation = locationList.join(', ');
 
-    return FittedBox(
-      fit: BoxFit.none,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 16.rw(context),
-          ),
-          GestureDetector(
-            onTap: () async {
-              final result = await showModalBottomSheet(
-                isScrollControlled: true,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+    return joinedLocation.isEmpty
+        ? Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: UiUtils.getImage(
+              appSettings.appHomeScreen!,
+              height: 45.rh(context),
+              width: 125.rh(context),
+              fit: BoxFit.scaleDown,
+            ),
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () async {
+                  FocusManager.instance.primaryFocus?.unfocus();
+
+                  if (Hive.box<dynamic>(HiveKeys.userDetailsBox)
+                      .get('latitude')
+                      .toString()
+                      .isNotEmpty) {
+                    final dynamic latitudeValue =
+                        Hive.box<dynamic>(HiveKeys.userDetailsBox)
+                                .get('latitude') ??
+                            '0';
+                    localLatitude =
+                        double.tryParse(latitudeValue.toString()) ?? 0.0;
+                  }
+                  if (Hive.box<dynamic>(HiveKeys.userDetailsBox)
+                      .get('longitude')
+                      .toString()
+                      .isNotEmpty) {
+                    final dynamic longitudeValue =
+                        Hive.box<dynamic>(HiveKeys.userDetailsBox)
+                                .get('longitude') ??
+                            '0';
+                    localLongitude =
+                        double.tryParse(longitudeValue.toString()) ?? 0.0;
+                  }
+
+                  final placeMark = await Navigator.pushNamed(
+                    context,
+                    Routes.chooseLocaitonMap,
+                    arguments: {
+                      'from': 'home_location',
+                    },
+                  ) as Map?;
+                  try {
+                    final latlng = placeMark?['latlng'] as LatLng;
+                    final place = placeMark?['place'] as Placemark;
+                    final radius = placeMark?['radius']?.toString() ??
+                        AppSettings.minRadius;
+
+                    await HiveUtils.setLocation(
+                      city: place.locality ?? '',
+                      state: place.administrativeArea ?? '',
+                      latitude: latlng.latitude.toString(),
+                      longitude: latlng.longitude.toString(),
+                      country: place.country ?? '',
+                      placeId: place.postalCode ?? '',
+                      radius: radius,
+                    );
+                  } catch (e) {
+                    log(e.toString());
+                  }
+                },
+                child: Container(
+                  width: 40.rw(context),
+                  height: 40.rh(context),
+                  decoration: BoxDecoration(
+                    color: context.color.secondaryColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: UiUtils.getSvg(
+                    AppIcons.location,
+                    fit: BoxFit.none,
+                    color: context.color.tertiaryColor,
                   ),
                 ),
-                context: context,
-                builder: (context) {
-                  return const ChooseLocatonBottomSheet();
+              ),
+              SizedBox(
+                width: 10.rw(context),
+              ),
+              ValueListenableBuilder(
+                valueListenable: userDetailsBox.listenable(),
+                builder: (context, value, child) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomText(
+                        UiUtils.translate(context, 'locationLbl'),
+                        fontSize: context.font.small,
+                        color: context.color.textColorDark,
+                      ),
+                      SizedBox(
+                        width: 150,
+                        child: CustomText(
+                          joinedLocation,
+                          maxLines: 1,
+                          fontWeight: FontWeight.w600,
+                          fontSize: context.font.small,
+                          color: context.color.textColorDark,
+                        ),
+                      ),
+                    ],
+                  );
                 },
-              );
-              if (result != null) {
-                final place = result as GooglePlaceModel;
-                await HiveUtils.setLocation(
-                  city: place.city,
-                  state: place.state,
-                  latitude: double.parse(place.latitude),
-                  longitude: double.parse(place.longitude),
-                  country: place.country,
-                  placeId: place.placeId,
-                );
-                await context.read<AuthCubit>().updateUserData(
-                      context,
-                      phone: HiveUtils.getUserDetails().mobile,
-                      name: HiveUtils.getUserDetails().name,
-                      email: HiveUtils.getUserDetails().email,
-                      address: HiveUtils.getUserDetails().address,
-                      fcmToken: HiveUtils.getUserDetails().fcmId,
-                      city: place.city,
-                      state: place.state,
-                      country: place.country,
-                      latitude: double.parse(place.latitude),
-                      longitude: double.parse(place.longitude),
-                    );
-                Future.delayed(
-                  Duration.zero,
-                  () {
-                    context.read<FetchNearbyPropertiesCubit>().fetch(
-                          forceRefresh: true,
-                        );
-                  },
-                );
-              }
-            },
-            child: Container(
-              width: 40.rw(context),
-              height: 40.rh(context),
-              decoration: BoxDecoration(
-                color: context.color.secondaryColor,
-                borderRadius: BorderRadius.circular(10),
               ),
-              child: UiUtils.getSvg(
-                AppIcons.location,
-                fit: BoxFit.none,
-                color: context.color.tertiaryColor,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 10.rw(context),
-          ),
-          ValueListenableBuilder(
-            valueListenable: userDetailsBox.listenable(),
-            builder: (context, value, child) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CustomText(
-                    UiUtils.translate(context, 'locationLbl'),
-                    fontSize: context.font.small,
-                    color: context.color.textColorDark,
-                  ),
-                  SizedBox(
-                    width: 150,
-                    child: CustomText(
-                      joinedLocation,
-                      maxLines: 1,
-                      fontWeight: FontWeight.w600,
-                      fontSize: context.font.small,
-                      color: context.color.textColorDark,
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
+            ],
+          );
   }
 }

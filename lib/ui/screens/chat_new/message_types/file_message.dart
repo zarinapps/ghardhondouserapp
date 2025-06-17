@@ -1,14 +1,13 @@
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/chat_new/message_types/blueprint.dart';
 import 'package:ebroker/ui/screens/chat_new/message_types/text_and_file.dart';
+import 'package:ebroker/ui/screens/chat_new/model.dart';
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart';
 
-class FileMessage extends Message {
+class FileMessage extends ChatMessage {
   FileMessage() {
     id = DateTime.now().toString();
   }
-  @override
   String type = 'file';
   List<String> imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp'];
   @override
@@ -16,27 +15,28 @@ class FileMessage extends Message {
     if (isSentNow && isSentByMe && isSent == false) {
       context!.read<SendMessageCubit>().send(
             senderId: HiveUtils.getUserId().toString(),
-            recieverId: message!.receiverId!,
-            attachment: message?.file,
-            message: message!.message!,
-            proeprtyId: message!.propertyId!,
-            audio: message?.audio,
+            recieverId: receiverId!,
+            attachment: file,
+            message: message!,
+            proeprtyId: propertyId!,
+            audio: audio,
           );
     }
-    if (isSentNow == false) {
-      id = message!.id!;
-    }
+    // if (isSentNow == false) {
+    //   id = id;
+    // }
     super.init();
   }
 
   @override
   Widget render(context) {
-    final extension = message!.file!.split('.').last;
+    final extension = file!.split('.').last;
+    final msg = ChatMessage();
 
     if (imageExtensions.contains(extension)) {
       return ImageAttachmentWidget(
         isSentByMe: isSentByMe,
-        message: message,
+        message: msg,
         onFileSent: () {
           isSent = true;
         },
@@ -56,7 +56,7 @@ class FileMessage extends Message {
   void onRemove() {
     context!.read<DeleteMessageCubit>().delete(
           messageId: id,
-          receiverId: message!.receiverId!,
+          receiverId: receiverId!,
           senderId: '',
           propertyId: '',
         );
@@ -95,9 +95,11 @@ class FileMessage extends Message {
                         child: SizedBox(
                           height: 65,
                           child: Center(
-                            child: CustomText(extension.toUpperCase(),
-                                fontSize: context.font.small,
-                                color: context.color.textColorDark,),
+                            child: CustomText(
+                              extension.toUpperCase(),
+                              fontSize: context.font.small,
+                              color: context.color.textColorDark,
+                            ),
                           ),
                         ),
                       ),
@@ -109,11 +111,11 @@ class FileMessage extends Message {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 7),
-                          child: CustomText(message!.file!.split('/').last),
+                          child: CustomText(file!.split('/').last),
                         ),
                       ),
                       FileDownloadButton(
-                        url: message!.file!,
+                        url: file!,
                       ),
                     ],
                   ),
@@ -149,7 +151,7 @@ class FileMessage extends Message {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: CustomText(
-              message?.timeAgo ?? format(DateTime.now()),
+              timeAgo ?? format(DateTime.now()),
               fontSize: context.font.smaller,
               color: context.color.textLightColor,
             ),

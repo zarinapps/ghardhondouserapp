@@ -23,14 +23,15 @@ class AgentsRepository {
         )
         .toList();
     return DataOutput(
-        total: int.parse(response['total']?.toString() ?? '0'),
-        modelList: modelList);
+      total: int.parse(response['total']?.toString() ?? '0'),
+      modelList: modelList,
+    );
   }
 
   Future<({int total, AgentPropertyProjectModel agentsProperty})>
       fetchAgentProperties({
     required int offset,
-    required int agentId,
+    required String agentId,
     required bool isAdmin,
   }) async {
     final parameters = <String, dynamic>{
@@ -57,7 +58,7 @@ class AgentsRepository {
 
   Future<({int total, AgentPropertyProjectModel agentsProperty})>
       fetchAgentProjects({
-    required int agentId,
+    required String agentId,
     required int offset,
     required int isProjects,
     required bool isAdmin,
@@ -91,12 +92,13 @@ class AgentsRepository {
         useAuthToken: true,
       );
 
-      final modelList = (result['data'] as List)
+      final modelList = (result['data'] as List? ?? [])
           .cast<Map<String, dynamic>>()
           .map<AgentVerificationFormFieldsModel>(
             AgentVerificationFormFieldsModel.fromJson,
           )
           .toList();
+
       return modelList;
     } catch (e) {
       throw Exception('Error fetching agent verification form fields: $e');

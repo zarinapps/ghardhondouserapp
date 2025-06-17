@@ -16,47 +16,51 @@ class HiveUtils {
 
   static dynamic initBoxes() async {
     await Hive.initFlutter();
-    await Hive.openBox(HiveKeys.authBox);
-    await Hive.openBox(HiveKeys.userDetailsBox);
-    await Hive.openBox(HiveKeys.languageBox);
-    await Hive.openBox(HiveKeys.themeBox);
-    await Hive.openBox(HiveKeys.svgBox);
-    await Hive.openBox(HiveKeys.themeColorBox);
+    await Hive.openBox<dynamic>(HiveKeys.authBox);
+    await Hive.openBox<dynamic>(HiveKeys.userDetailsBox);
+    await Hive.openBox<dynamic>(HiveKeys.languageBox);
+    await Hive.openBox<dynamic>(HiveKeys.themeBox);
+    await Hive.openBox<dynamic>(HiveKeys.svgBox);
+    await Hive.openBox<dynamic>(HiveKeys.themeColorBox);
   }
 
   static String? getJWT() {
-    return Hive.box(HiveKeys.userDetailsBox)
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox)
             .get(HiveKeys.jwtToken)
             ?.toString() ??
         '';
   }
 
   static void dontShowChooseLocationDialoge() {
-    Hive.box(HiveKeys.userDetailsBox).put('showChooseLocationDialoge', false);
+    Hive.box<dynamic>(HiveKeys.userDetailsBox)
+        .put('showChooseLocationDialoge', false);
   }
 
   static bool isGuest() {
-    return Hive.box(HiveKeys.userDetailsBox).get('isGuest') as bool? ?? true;
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get('isGuest') as bool? ??
+        true;
   }
 
   static void setAppThemeSetting(Map<String, dynamic> data) {
-    Hive.box(HiveKeys.themeColorBox).putAll(data);
+    Hive.box<dynamic>(HiveKeys.themeColorBox).putAll(data);
   }
 
   static Map<String, dynamic> getAppThemeSettings() {
-    return Map<String, dynamic>.from(Hive.box(HiveKeys.themeColorBox).toMap());
+    return Map<String, dynamic>.from(
+      Hive.box<dynamic>(HiveKeys.themeColorBox).toMap(),
+    );
   }
 
   static void setIsNotGuest() {
-    Hive.box(HiveKeys.userDetailsBox).put('isGuest', false);
+    Hive.box<dynamic>(HiveKeys.userDetailsBox).put('isGuest', false);
   }
 
   static void setIsGuest() {
-    Hive.box(HiveKeys.userDetailsBox).put('isGuest', true);
+    Hive.box<dynamic>(HiveKeys.userDetailsBox).put('isGuest', true);
   }
 
   static bool isShowChooseLocationDialoge() {
-    final value = Hive.box(HiveKeys.userDetailsBox).get(
+    final value = Hive.box<dynamic>(HiveKeys.userDetailsBox).get(
       'showChooseLocationDialoge',
     );
 
@@ -67,14 +71,15 @@ class HiveUtils {
   }
 
   static String? getUserId() {
-    if (Hive.box(HiveKeys.userDetailsBox).get('id') == null) {
+    if (Hive.box<dynamic>(HiveKeys.userDetailsBox).get('id') == null) {
       return null;
     }
-    return Hive.box(HiveKeys.userDetailsBox).get('id').toString();
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get('id').toString();
   }
 
   static AppTheme getCurrentTheme() {
-    final current = Hive.box(HiveKeys.themeBox).get(HiveKeys.currentTheme);
+    final current =
+        Hive.box<dynamic>(HiveKeys.themeBox).get(HiveKeys.currentTheme);
 
     if (current == null) {
       return AppTheme.light;
@@ -89,19 +94,23 @@ class HiveUtils {
   }
 
   static dynamic getCountryCode() {
-    return Hive.box(HiveKeys.userDetailsBox).toMap()['countryCode'];
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).toMap()['countryCode'];
   }
 
   static dynamic getLatitude() {
-    return Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.latitude);
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.latitude);
   }
 
   static dynamic getLongitude() {
-    return Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.longitude);
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.longitude);
+  }
+
+  static dynamic getRadius() {
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.radius);
   }
 
   static Future<void> setProfileNotCompleted() async {
-    await Hive.box(HiveKeys.userDetailsBox)
+    await Hive.box<dynamic>(HiveKeys.userDetailsBox)
         .put(HiveKeys.isProfileCompleted, false);
   }
 
@@ -112,62 +121,69 @@ class HiveUtils {
     } else {
       newTheme = 'dark';
     }
-    Hive.box(HiveKeys.themeBox).put(HiveKeys.currentTheme, newTheme);
+    Hive.box<dynamic>(HiveKeys.themeBox).put(HiveKeys.currentTheme, newTheme);
   }
 
-  static Future<void> setUserData(Map data) async {
-    await Hive.box(HiveKeys.userDetailsBox).putAll(data);
+  static Future<void> setUserData(Map<dynamic, dynamic> data) async {
+    await Hive.box<dynamic>(HiveKeys.userDetailsBox).putAll(data);
   }
 
   static LoginType getUserLoginType() {
     return LoginType.values.firstWhere(
       (element) =>
-          element.name == Hive.box(HiveKeys.userDetailsBox).get('type'),
+          element.name ==
+          Hive.box<dynamic>(HiveKeys.userDetailsBox).get('type'),
     );
   }
 
   static dynamic getCityName() {
-    return Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.city);
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.city);
   }
 
   static dynamic getCityPlaceId() {
-    return Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.cityPlaceId);
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.cityPlaceId);
   }
 
   static dynamic getStateName() {
-    return Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.stateKey);
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.stateKey);
   }
 
   static dynamic getCountryName() {
-    return Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.countryKey);
+    return Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.countryKey);
   }
 
   static Future<void> setJWT(String token) async {
-    await Hive.box(HiveKeys.userDetailsBox).put(HiveKeys.jwtToken, token);
+    await Hive.box<dynamic>(HiveKeys.userDetailsBox)
+        .put(HiveKeys.jwtToken, token);
   }
 
   static UserModel getUserDetails() {
     return UserModel.fromJson(
-      Map.from(Hive.box(HiveKeys.userDetailsBox).toMap()),
+      Map<String, dynamic>.from(
+        Hive.box<dynamic>(HiveKeys.userDetailsBox).toMap(),
+      ),
     );
   }
 
   static void setUserIsAuthenticated() {
-    Hive.box(HiveKeys.authBox).put(HiveKeys.isAuthenticated, true);
+    Hive.box<dynamic>(HiveKeys.authBox).put(HiveKeys.isAuthenticated, true);
   }
 
   static Future<void> setUserIsNotAuthenticated() async =>
-      Hive.box(HiveKeys.authBox).put(HiveKeys.isAuthenticated, false);
+      Hive.box<dynamic>(HiveKeys.authBox).put(HiveKeys.isAuthenticated, false);
 
   static Future<void> setUserIsNotNew() {
-    Hive.box(HiveKeys.authBox).put(HiveKeys.isAuthenticated, true);
-    return Hive.box(HiveKeys.authBox).put(HiveKeys.isUserFirstTime, false);
+    Hive.box<dynamic>(HiveKeys.authBox).put(HiveKeys.isAuthenticated, true);
+    return Hive.box<dynamic>(HiveKeys.authBox)
+        .put(HiveKeys.isUserFirstTime, false);
   }
 
   static bool isLocationFilled() {
-    final city = Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.city);
-    final state = Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.stateKey);
-    final country = Hive.box(HiveKeys.userDetailsBox).get(HiveKeys.countryKey);
+    final city = Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.city);
+    final state =
+        Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.stateKey);
+    final country =
+        Hive.box<dynamic>(HiveKeys.userDetailsBox).get(HiveKeys.countryKey);
 
     if (city == null && state == null && country == null) {
       return false;
@@ -179,23 +195,30 @@ class HiveUtils {
   static Future<void> setLocation({
     required String city,
     required String state,
-    required double? latitude,
-    required double? longitude,
+    required String? latitude,
+    required String? longitude,
     required String country,
     required String placeId,
+    required String? radius,
   }) async {
     try {
-      await Hive.box(HiveKeys.userDetailsBox).put(HiveKeys.city, city);
-      await Hive.box(HiveKeys.userDetailsBox).put(HiveKeys.stateKey, state);
-      await Hive.box(HiveKeys.userDetailsBox).put(HiveKeys.countryKey, country);
+      await Hive.box<dynamic>(HiveKeys.userDetailsBox).put(HiveKeys.city, city);
+      await Hive.box<dynamic>(HiveKeys.userDetailsBox)
+          .put(HiveKeys.stateKey, state);
+      await Hive.box<dynamic>(HiveKeys.userDetailsBox)
+          .put(HiveKeys.countryKey, country);
 
       if (latitude != null) {
-        await Hive.box(HiveKeys.userDetailsBox)
+        await Hive.box<dynamic>(HiveKeys.userDetailsBox)
             .put(HiveKeys.latitude, latitude);
       }
       if (longitude != null) {
-        await Hive.box(HiveKeys.userDetailsBox)
+        await Hive.box<dynamic>(HiveKeys.userDetailsBox)
             .put(HiveKeys.longitude, longitude);
+      }
+      if (radius != null) {
+        await Hive.box<dynamic>(HiveKeys.userDetailsBox)
+            .put(HiveKeys.radius, radius);
       }
     } catch (e) {
       e.toString().log('issue here is');
@@ -203,41 +226,49 @@ class HiveUtils {
   }
 
   static Future<void> clearLocation() async {
-    await Hive.box(HiveKeys.userDetailsBox).putAll({
-      HiveKeys.city: null,
-      HiveKeys.stateKey: null,
-      HiveKeys.countryKey: null,
+    await Hive.box<dynamic>(HiveKeys.userDetailsBox).putAll({
+      HiveKeys.city: '',
+      HiveKeys.stateKey: '',
+      HiveKeys.countryKey: '',
+      HiveKeys.latitude: '',
+      HiveKeys.longitude: '',
+      HiveKeys.radius: AppSettings.minRadius,
     });
   }
 
   static Future<bool> storeLanguage(
-    dynamic data,
+    data,
   ) async {
-    await Hive.box(HiveKeys.languageBox).put(HiveKeys.currentLanguageKey, data);
+    await Hive.box<dynamic>(HiveKeys.languageBox)
+        .put(HiveKeys.currentLanguageKey, data);
     // ..put("language", data);
     return true;
   }
 
   static dynamic getLanguage() {
-    return Hive.box(HiveKeys.languageBox).get(HiveKeys.currentLanguageKey);
+    return Hive.box<dynamic>(HiveKeys.languageBox)
+        .get(HiveKeys.currentLanguageKey);
   }
 
   @visibleForTesting
   static Future<void> setUserIsNew() {
     //Only testing purpose // not in production
-    Hive.box(HiveKeys.authBox).put(HiveKeys.isAuthenticated, false);
-    return Hive.box(HiveKeys.authBox).put(HiveKeys.isUserFirstTime, true);
+    Hive.box<dynamic>(HiveKeys.authBox).put(HiveKeys.isAuthenticated, false);
+    return Hive.box<dynamic>(HiveKeys.authBox)
+        .put(HiveKeys.isUserFirstTime, true);
   }
 
   static bool isUserAuthenticated() {
     //log(Hive.box(HiveKeys.authBox).toMap().toString());
-    log('Auth box ${Hive.box(HiveKeys.authBox).toMap()}');
-    return Hive.box(HiveKeys.authBox).get(HiveKeys.isAuthenticated) as bool? ??
+    log('Auth box ${Hive.box<dynamic>(HiveKeys.authBox).toMap()}');
+    return Hive.box<dynamic>(HiveKeys.authBox).get(HiveKeys.isAuthenticated)
+            as bool? ??
         false;
   }
 
   static bool isUserFirstTime() {
-    return Hive.box(HiveKeys.authBox).get(HiveKeys.isUserFirstTime) as bool? ??
+    return Hive.box<dynamic>(HiveKeys.authBox).get(HiveKeys.isUserFirstTime)
+            as bool? ??
         true;
   }
 
@@ -252,7 +283,7 @@ class HiveUtils {
         await AuthRepository().beforeLogout();
         await FirebaseAuth.instance.signOut();
         await setUserIsNotAuthenticated();
-        await Hive.box(HiveKeys.userDetailsBox).clear();
+        await Hive.box<dynamic>(HiveKeys.userDetailsBox).clear();
         onLogout.call();
         await HiveUtils.setUserIsNotAuthenticated();
         await HiveUtils.clear();
@@ -262,7 +293,7 @@ class HiveUtils {
         await AuthRepository().beforeLogout();
         await FirebaseAuth.instance.signOut();
         await setUserIsNotAuthenticated();
-        await Hive.box(HiveKeys.userDetailsBox).clear();
+        await Hive.box<dynamic>(HiveKeys.userDetailsBox).clear();
         onLogout.call();
         await HiveUtils.setUserIsNotAuthenticated();
         await HiveUtils.clear();
@@ -271,14 +302,14 @@ class HiveUtils {
         await AuthRepository().beforeLogout();
         await FirebaseAuth.instance.signOut();
         await setUserIsNotAuthenticated();
-        await Hive.box(HiveKeys.userDetailsBox).clear();
+        await Hive.box<dynamic>(HiveKeys.userDetailsBox).clear();
         onLogout.call();
         await HiveUtils.setUserIsNotAuthenticated();
         await HiveUtils.clear();
       }
       if (L == LoginType.phone && AppSettings.otpServiceProvider == 'twilio') {
         await setUserIsNotAuthenticated();
-        await Hive.box(HiveKeys.userDetailsBox).clear();
+        await Hive.box<dynamic>(HiveKeys.userDetailsBox).clear();
         onLogout.call();
         await HiveUtils.setUserIsNotAuthenticated();
         await HiveUtils.clear();
@@ -305,6 +336,6 @@ class HiveUtils {
   }
 
   static Future<void> clear() async {
-    await Hive.box(HiveKeys.userDetailsBox).clear();
+    await Hive.box<dynamic>(HiveKeys.userDetailsBox).clear();
   }
 }

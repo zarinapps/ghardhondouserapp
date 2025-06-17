@@ -4,7 +4,7 @@ import 'package:ebroker/ui/screens/widgets/blurred_dialoge_box.dart';
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
-import 'package:ebroker/utils/guestChecker.dart';
+import 'package:ebroker/utils/guest_checker.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,7 +29,7 @@ class _ReportPropertyButtonState extends State<ReportPropertyButton> {
     _bottomSheet(propertyId);
   }
 
-  _onTapNo() {
+  void _onTapNo() {
     shouldReport = false;
     setState(() {});
   }
@@ -38,7 +38,7 @@ class _ReportPropertyButtonState extends State<ReportPropertyButton> {
     final cubit = BlocProvider.of<PropertyReportCubit>(context);
     UiUtils.showBlurredDialoge(
       context,
-      dialoge: EmptyDialogBox(
+      dialog: EmptyDialogBox(
         child: AlertDialog(
           backgroundColor: context.color.secondaryColor,
           shape:

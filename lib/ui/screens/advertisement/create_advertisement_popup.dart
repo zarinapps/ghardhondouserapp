@@ -17,30 +17,6 @@ class CreateAdvertisementPopup extends StatefulWidget {
   final PropertyModel property;
   final bool isProject;
   final ProjectModel project;
-  static Route<dynamic> route(RouteSettings routeSettings) {
-    try {
-      final arguments = routeSettings.arguments as Map?;
-      return BlurredRouter(
-        builder: (context) => MultiBlocProvider(
-          providers: [
-            BlocProvider(create: (context) => CreateAdvertisementCubit()),
-            BlocProvider(
-              create: (context) => GetSubsctiptionPackageLimitsCubit(),
-            ),
-          ],
-          child: CreateAdvertisementPopup(
-            property:
-                arguments?['propertyData'] as PropertyModel? ?? PropertyModel(),
-            isProject: arguments?['isProject'] as bool? ?? false,
-            project:
-                arguments?['projectData'] as ProjectModel? ?? ProjectModel(),
-          ),
-        ),
-      );
-    } catch (e) {
-      rethrow;
-    }
-  }
 
   @override
   State<CreateAdvertisementPopup> createState() =>
@@ -87,20 +63,29 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
           : const EdgeInsets.symmetric(horizontal: 24),
       child: index == 0 && widget.isProject != true
           ? PropertyCardBig(
+              isFromCompare: false,
               showLikeButton: false,
+              disableTap: true,
+              showFeatured: true,
               property: widget.property,
             )
           : index != 0 && widget.isProject != true
               ? PropertyHorizontalCard(
+                  showFeatured: true,
                   showLikeButton: false,
                   disableTap: true,
                   property: widget.property,
                 )
               : index == 0 && widget.isProject == true
                   ? ProjectCardBig(
+                      showFeatured: true,
+                      disableTap: true,
                       project: widget.project,
                     )
                   : ProjectHorizontalCard(
+                      showFeatured: true,
+                      disableTap: true,
+                      isRejected: false,
                       project: widget.project,
                     ),
     );
@@ -117,7 +102,7 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.6,
+      height: MediaQuery.of(context).size.height * 0.63,
       child: Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
@@ -271,14 +256,21 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
                       if (state is GetSubsctiptionPackageLimitsFailure) {
                         UiUtils.showBlurredDialoge(
                           context,
-                          dialoge: BlurredDialogBox(
+                          dialog: BlurredDialogBox(
                             title: state.errorMessage.firstUpperCase(),
                             isAcceptContainesPush: true,
                             onAccept: () async {
                               await Navigator.popAndPushNamed(
                                 context,
                                 Routes.subscriptionPackageListRoute,
-                                arguments: {'from': 'propertyDetails'},
+                                arguments: {
+                                  'from': 'propertyDetails',
+                                  'isBankTransferEnabled': (context
+                                              .read<GetApiKeysCubit>()
+                                              .state as GetApiKeysSuccess)
+                                          .bankTransferStatus ==
+                                      '1',
+                                },
                               );
                             },
                             content: CustomText(
@@ -309,7 +301,7 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
                                 onPressed: () {
                                   UiUtils.showBlurredDialoge(
                                     context,
-                                    dialoge: BlurredDialogBox(
+                                    dialog: BlurredDialogBox(
                                       title: 'advertiseProperty'
                                           .translate(context),
                                       content: CustomText(
@@ -347,6 +339,13 @@ class _CreateAdvertisementPopupState extends State<CreateAdvertisementPopup> {
                                     Navigator.pushNamed(
                                       context,
                                       Routes.subscriptionPackageListRoute,
+                                      arguments: {
+                                        'isBankTransferEnabled': (context
+                                                    .read<GetApiKeysCubit>()
+                                                    .state as GetApiKeysSuccess)
+                                                .bankTransferStatus ==
+                                            '1',
+                                      },
                                     );
                                   }
                                 },

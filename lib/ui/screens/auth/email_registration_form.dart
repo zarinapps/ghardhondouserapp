@@ -11,9 +11,9 @@ class EmailRegistrationForm extends StatefulWidget {
   @override
   State<EmailRegistrationForm> createState() => _EmailRegistrationFormState();
 
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments! as Map;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => MultiBlocProvider(
         providers: [
           BlocProvider(create: (context) => SendOtpCubit()),
@@ -297,7 +297,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
     TextInputType? keyboard,
     Widget? prefix,
     Widget? suffix,
-    FormFieldValidator? validator,
+    FormFieldValidator<dynamic>? validator,
     bool? readOnly,
     TextDirection? textDirection,
   }) {
@@ -340,7 +340,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
             hintText: hintText,
             suffixIcon: IconButton(
               onPressed: () {
-                if (isFirstPasswordVisible == true) {
+                if (isFirstPasswordVisible ?? false) {
                   isFirstPasswordVisible = false;
                 } else {
                   isFirstPasswordVisible = true;
@@ -390,7 +390,7 @@ class _EmailRegistrationFormState extends State<EmailRegistrationForm> {
     TextInputType? keyboard,
     Widget? prefix,
     Widget? suffix,
-    FormFieldValidator? validator,
+    FormFieldValidator<dynamic>? validator,
     bool? readOnly,
     TextDirection? textDirection,
   }) {

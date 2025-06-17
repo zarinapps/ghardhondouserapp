@@ -22,4 +22,5 @@ class HiveKeys {
 
   static var latitude = 'latitude';
   static var longitude = 'longitude';
+  static var radius = 'radius';
 }

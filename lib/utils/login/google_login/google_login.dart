@@ -2,7 +2,6 @@ import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/login/lib/login_status.dart';
 import 'package:ebroker/utils/login/lib/login_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleLogin extends LoginSystem {
@@ -22,7 +21,10 @@ class GoogleLogin extends LoginSystem {
       final googleSignIn = await _googleSignIn?.signIn();
 
       if (googleSignIn == null) {
-        throw ErrorDescription('google-terminated');
+        Widgets.hideLoder(context);
+
+        await HelperUtils.showSnackBarMessage(context, 'google-terminated');
+        return null;
       }
       final googleAuth = await googleSignIn.authentication;
 

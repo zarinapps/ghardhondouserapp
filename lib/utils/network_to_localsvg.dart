@@ -11,7 +11,7 @@ class NetworkToLocalSvg {
 
   Future<String?> convert(String url) async {
     try {
-      final response = await dio.get(url);
+      final response = await dio.get<dynamic>(url);
 
       if (response.statusCode == 200) {
         return response.data?.toString() ?? '';
@@ -26,10 +26,10 @@ class NetworkToLocalSvg {
 
   Widget svg(String url, {Color? color, double? width, double? height}) {
     // return SizedBox.shrink();
-    if (Hive.box(HiveKeys.svgBox).containsKey(url) &&
-        Hive.box(HiveKeys.svgBox).get(url).toString().isNotEmpty) {
+    if (Hive.box<dynamic>(HiveKeys.svgBox).containsKey(url) &&
+        Hive.box<dynamic>(HiveKeys.svgBox).get(url).toString().isNotEmpty) {
       return SvgPicture.string(
-        Hive.box(HiveKeys.svgBox).get(url)?.toString() ?? '',
+        Hive.box<dynamic>(HiveKeys.svgBox).get(url)?.toString() ?? '',
         colorFilter:
             color == null ? null : ColorFilter.mode(color, BlendMode.srcIn),
         width: width,
@@ -39,9 +39,9 @@ class NetworkToLocalSvg {
       return FutureBuilder<String?>(
         future: convert(url),
         builder: (context, AsyncSnapshot<String?> snapshot) {
-          if (Hive.box(HiveKeys.svgBox).containsKey(url)) {
-            if (Hive.box(HiveKeys.svgBox).get(url) == null) {
-              Hive.box(HiveKeys.svgBox).put(url, snapshot.data);
+          if (Hive.box<dynamic>(HiveKeys.svgBox).containsKey(url)) {
+            if (Hive.box<dynamic>(HiveKeys.svgBox).get(url) == null) {
+              Hive.box<dynamic>(HiveKeys.svgBox).put(url, snapshot.data);
               return SvgPicture.string(
                 snapshot.data ?? '',
                 colorFilter: color == null
@@ -52,7 +52,7 @@ class NetworkToLocalSvg {
               );
             } else {
               return SvgPicture.string(
-                Hive.box(HiveKeys.svgBox).get(url)?.toString() ?? '',
+                Hive.box<dynamic>(HiveKeys.svgBox).get(url)?.toString() ?? '',
                 colorFilter: color == null
                     ? null
                     : ColorFilter.mode(color, BlendMode.srcIn),
@@ -62,7 +62,7 @@ class NetworkToLocalSvg {
             }
           } else {
             if (snapshot.connectionState == ConnectionState.done) {
-              Hive.box(HiveKeys.svgBox).put(url, snapshot.data);
+              Hive.box<dynamic>(HiveKeys.svgBox).put(url, snapshot.data);
               return SvgPicture.string(
                 snapshot.data ?? '',
                 colorFilter: color == null

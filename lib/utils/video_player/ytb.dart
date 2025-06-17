@@ -8,8 +8,8 @@ class YtbRepo {
     return video;
   }
 
-  Future<List<Map>> getOnlyAudio(String videoId) async {
-    final temp = <Map>[];
+  Future<List<Map<dynamic, dynamic>>> getOnlyAudio(String videoId) async {
+    final temp = <Map<dynamic, dynamic>>[];
     final streamManifest = await yt.videos.streamsClient.getManifest(videoId);
 
     for (final audioStream in streamManifest.audioOnly) {
@@ -24,8 +24,8 @@ class YtbRepo {
     return temp;
   }
 
-  Future<List<Map>> getMuxed(String videoId) async {
-    final temp = <Map>[];
+  Future<List<Map<dynamic, dynamic>>> getMuxed(String videoId) async {
+    final temp = <Map<dynamic, dynamic>>[];
     final streamManifest = await yt.videos.streamsClient.getManifest(videoId);
 
     for (final muxed in streamManifest.muxed) {

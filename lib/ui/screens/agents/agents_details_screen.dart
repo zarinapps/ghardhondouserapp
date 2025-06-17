@@ -11,20 +11,36 @@ import 'package:url_launcher/url_launcher.dart';
 
 class AgentDetailsScreen extends StatefulWidget {
   const AgentDetailsScreen({
-    required this.agent,
     required this.isAdmin,
+    required this.agentID,
     super.key,
   });
   final bool isAdmin;
-  final CustomerData agent;
+  final String agentID;
 
   static Route<dynamic> route(RouteSettings routeSettings) {
     final argument = routeSettings.arguments! as Map;
 
-    return BlurredRouter(
-      builder: (_) => AgentDetailsScreen(
-        agent: argument['agent'] as CustomerData,
-        isAdmin: argument['isAdmin'] as bool,
+    return CupertinoPageRoute(
+      builder: (_) => MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => FetchAgentsPropertyCubit(),
+          ),
+          BlocProvider(
+            create: (_) => FetchAgentsProjectCubit(),
+          ),
+          BlocProvider(
+            create: (_) => FetchProjectByAgentCubit(),
+          ),
+          BlocProvider(
+            create: (_) => FetchPropertyByAgentCubit(),
+          ),
+        ],
+        child: AgentDetailsScreen(
+          isAdmin: argument['isAdmin'] as bool,
+          agentID: argument['agentID'] as String,
+        ),
       ),
     );
   }
@@ -34,49 +50,59 @@ class AgentDetailsScreen extends StatefulWidget {
 }
 
 class _AgentDetailsScreenState extends State<AgentDetailsScreen>
-    with SingleTickerProviderStateMixin {
-  bool isPremiumProperty = true;
-  bool isPremiumUser = false;
+    with TickerProviderStateMixin {
+  // Changed to TickerProviderStateMixin
   bool showProjects = false;
-  bool isProjectListEmpty = false;
+  bool isProjectAllowed = false;
   TabController? _tabController;
-
   @override
   void initState() {
     super.initState();
     getAgentProjectsAndProperties();
-  }
-
-  Future<void> getAgentProjectsAndProperties() async {
-    await context.read<FetchAgentsProjectCubit>().fetchAgentsProject(
-          forceRefresh: true,
-          agentId: widget.agent.id,
-          isAdmin: widget.isAdmin,
-        );
-    await context.read<FetchAgentsPropertyCubit>().fetchAgentsProperty(
-          agentId: widget.agent.id,
-          forceRefresh: true,
-          isAdmin: widget.isAdmin,
-        );
-
-    isProjectListEmpty = (context.read<FetchAgentsProjectCubit>().state
-            as FetchAgentsProjectSuccess)
-        .agentsProperty
-        .projectData
-        .isEmpty;
-    showProjects = (context.read<FetchAgentsProjectCubit>().state
-                as FetchAgentsProjectSuccess)
-            .agentsProperty
-            .customerData
-            .projectCount !=
-        0;
-    _tabController = TabController(length: showProjects ? 3 : 2, vsync: this);
+    // Start with 2 tabs by default
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController?.dispose();
     super.dispose();
+  }
+
+  Future<void> getAgentProjectsAndProperties() async {
+    await context.read<FetchAgentsProjectCubit>().fetchAgentsProject(
+          forceRefresh: true,
+          agentId: widget.agentID,
+          isAdmin: widget.isAdmin,
+        );
+
+    // Check the state after fetching projects
+    final projectState = context.read<FetchAgentsProjectCubit>().state;
+    if (projectState is FetchAgentsProjectSuccess) {
+      // Update showProjects based on the fetched data
+      final hasProjects =
+          projectState.agentsProperty.customerData.projectCount != 0;
+      final needsProjectsTab = hasProjects;
+
+      // Only update state and recreate controller if there's a change
+      if (showProjects != needsProjectsTab) {
+        setState(() {
+          showProjects = needsProjectsTab;
+          isProjectAllowed = projectState.agentsProperty.isFeatureAvailable;
+
+          // Properly dispose and recreate the controller with the new tab count
+          _tabController?.dispose();
+          _tabController =
+              TabController(length: showProjects ? 3 : 2, vsync: this);
+        });
+      }
+    }
+
+    await context.read<FetchAgentsPropertyCubit>().fetchAgentsProperty(
+          forceRefresh: true,
+          agentId: widget.agentID,
+          isAdmin: widget.isAdmin,
+        );
   }
 
   @override
@@ -88,9 +114,23 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
         title: UiUtils.translate(context, 'agentDetails'),
         showBackButton: true,
       ),
-      body: buildAgentDetails(
-        context,
-        widget.agent,
+      body: BlocBuilder<FetchAgentsPropertyCubit, FetchAgentsPropertyState>(
+        builder: (context, state) {
+          if (state is FetchAgentsPropertyLoading ||
+              state is FetchAgentsPropertyInitial) {
+            return buildAgentDetailsShimmer();
+          }
+          if (state is FetchAgentsPropertyFailure) {
+            return const Center(child: SomethingWentWrong());
+          }
+          if (state is FetchAgentsPropertySuccess) {
+            return buildAgentDetails(
+              context,
+              state.agentsProperty.customerData,
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
@@ -252,11 +292,17 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
                                     MainAxisAlignment.spaceEvenly,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  callButton(context),
+                                  callButton(
+                                    context: context,
+                                    contactNumber: agent.mobile,
+                                  ),
                                   const SizedBox(
                                     width: 8,
                                   ),
-                                  emailButton(context),
+                                  emailButton(
+                                    context: context,
+                                    email: agent.email,
+                                  ),
                                   const SizedBox(
                                     width: 8,
                                   ),
@@ -282,7 +328,8 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
                         child: const SomethingWentWrong(),
                       );
                     }
-                    if (state is FetchAgentsPropertyLoading) {
+                    if (state is FetchAgentsPropertyLoading ||
+                        state is FetchAgentsProjectLoading) {
                       return Expanded(
                         child: Container(
                           color: Colors.transparent,
@@ -299,126 +346,120 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
                         child: Container(
                           color: Colors.transparent,
                           width: MediaQuery.of(context).size.width,
-                          child: DefaultTabController(
-                            length: showProjects ? 3 : 2,
-                            child: Column(
-                              children: [
-                                Container(
-                                  height:
-                                      MediaQuery.of(context).size.height * 0.05,
-                                  width: double.infinity,
-                                  margin: const EdgeInsets.only(
-                                    left: 18,
-                                    right: 18,
-                                    top: 15,
+                          child: Column(
+                            children: [
+                              Container(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.05,
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(
+                                  left: 18,
+                                  right: 18,
+                                  top: 15,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.color.secondaryColor,
+                                  border: Border.all(
+                                    color: context.color.borderColor,
+                                    width: 1.5,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: context.color.secondaryColor,
-                                    border: Border.all(
-                                      color: context.color.borderColor,
-                                      width: 1.5,
-                                    ),
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(8),
-                                    ),
-                                  ),
-                                  child: TabBar(
-                                    controller:
-                                        _tabController, // Use the controller here
-                                    indicatorPadding: const EdgeInsets.only(
-                                      left: 10,
-                                      right: 10,
-                                    ),
-                                    indicatorColor: context.color.tertiaryColor,
-                                    labelColor: context.color.tertiaryColor,
-                                    unselectedLabelColor:
-                                        context.color.inverseSurface,
-                                    tabs: [
-                                      Tab(
-                                        text: UiUtils.translate(
-                                          context,
-                                          'details',
-                                        ),
-                                      ),
-                                      Tab(
-                                        text: UiUtils.translate(
-                                          context,
-                                          'properties',
-                                        ),
-                                      ),
-                                      if (showProjects)
-                                        Tab(
-                                          text: UiUtils.translate(
-                                            context,
-                                            'projects',
-                                          ),
-                                        ),
-                                    ],
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(8),
                                   ),
                                 ),
-                                Expanded(
-                                  child: TabBarView(
-                                    controller:
-                                        _tabController, // Use the controller here
-
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    children: [
-                                      detailsTab(
+                                child: TabBar(
+                                  controller: _tabController,
+                                  dividerColor: Colors.transparent,
+                                  indicatorColor: context.color.tertiaryColor,
+                                  labelColor: context.color.tertiaryColor,
+                                  unselectedLabelColor:
+                                      context.color.inverseSurface,
+                                  tabs: [
+                                    Tab(
+                                      text: UiUtils.translate(
                                         context,
-                                        state.agentsProperty.customerData,
+                                        'details',
                                       ),
-                                      AgentProperties(
+                                    ),
+                                    Tab(
+                                      text: UiUtils.translate(
+                                        context,
+                                        'properties',
+                                      ),
+                                    ),
+                                    if (showProjects)
+                                      Tab(
+                                        text: UiUtils.translate(
+                                          context,
+                                          'projects',
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: TabBarView(
+                                  controller: _tabController,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  children: [
+                                    detailsTab(
+                                      context,
+                                      state.agentsProperty.customerData,
+                                    ),
+                                    AgentProperties(
+                                      agentId: state
+                                          .agentsProperty.customerData.id
+                                          .toString(),
+                                      isAdmin: widget.isAdmin,
+                                    ),
+                                    if (showProjects && isProjectAllowed)
+                                      AgentProjects(
                                         agentId: state
-                                            .agentsProperty.customerData.id,
+                                            .agentsProperty.customerData.id
+                                            .toString(),
                                         isAdmin: widget.isAdmin,
                                       ),
-                                      if (showProjects && !isProjectListEmpty)
-                                        AgentProjects(
-                                          agentId: state
-                                              .agentsProperty.customerData.id,
-                                          isAdmin: widget.isAdmin,
-                                        ),
-                                      if (showProjects && isProjectListEmpty)
-                                        Builder(
-                                          builder: (context) {
-                                            WidgetsBinding.instance
-                                                .addPostFrameCallback((_) {
-                                              UiUtils.showBlurredDialoge(
-                                                context,
-                                                dialoge:
-                                                    const BlurredSubscriptionDialogBox(
-                                                  packageType:
-                                                      SubscriptionPackageType
-                                                          .projectAccess,
-                                                  isAcceptContainesPush: true,
-                                                ),
-                                              );
-                                            });
-                                            Future.delayed(
-                                                const Duration(
-                                                  milliseconds: 300,
-                                                ), () {
-                                              _tabController!.index = 1;
-                                            });
-                                            return Container();
-                                          },
-                                        ),
-                                    ],
-                                  ),
+                                    if (showProjects && !isProjectAllowed)
+                                      Builder(
+                                        builder: (context) {
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                            UiUtils.showBlurredDialoge(
+                                              context,
+                                              dialog:
+                                                  const BlurredSubscriptionDialogBox(
+                                                packageType:
+                                                    SubscriptionPackageType
+                                                        .projectAccess,
+                                                isAcceptContainesPush: true,
+                                              ),
+                                            );
+                                          });
+                                          Future.delayed(
+                                              const Duration(
+                                                milliseconds: 300,
+                                              ), () {
+                                            _tabController?.animateTo(
+                                              _tabController!.index - 1,
+                                            );
+                                          });
+                                          return Container();
+                                        },
+                                      ),
+                                  ],
                                 ),
-                                if (state.agentsProperty.premiumPropertyCount !=
-                                        0 &&
-                                    state.agentsProperty.isPackageAvailable ==
-                                        false &&
-                                    state.agentsProperty.isFeatureAvailable ==
-                                        false)
-                                  bottomButton(
-                                    projectOrPropertyCount: state
-                                        .agentsProperty.premiumPropertyCount,
-                                  ),
-                              ],
-                            ),
+                              ),
+                              if (state.agentsProperty.premiumPropertyCount !=
+                                      0 &&
+                                  state.agentsProperty.isPackageAvailable ==
+                                      false &&
+                                  state.agentsProperty.isFeatureAvailable ==
+                                      false)
+                                bottomButton(
+                                  projectOrPropertyCount:
+                                      state.agentsProperty.premiumPropertyCount,
+                                ),
+                            ],
                           ),
                         ),
                       );
@@ -431,6 +472,44 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
           },
         );
       },
+    );
+  }
+
+  Widget buildAgentDetailsShimmer() {
+    return Column(
+      children: [
+        Container(
+          height: MediaQuery.of(context).size.height * 0.15,
+          margin: const EdgeInsets.only(
+            left: 18,
+            right: 18,
+            top: 18,
+          ),
+          child: const CustomShimmer(
+            borderRadius: 8,
+          ),
+        ),
+        Container(
+          height: MediaQuery.of(context).size.height * 0.05,
+          margin: const EdgeInsets.only(
+            left: 18,
+            right: 18,
+            top: 18,
+          ),
+          child: const CustomShimmer(
+            borderRadius: 8,
+          ),
+        ),
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.all(18),
+            width: MediaQuery.of(context).size.width,
+            child: const CustomShimmer(
+              borderRadius: 8,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -519,7 +598,14 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
               await Navigator.pushNamed(
                 context,
                 Routes.subscriptionPackageListRoute,
-                arguments: {'from': 'agentDetails'},
+                arguments: {
+                  'from': 'agentDetails',
+                  'isBankTransferEnabled': (context
+                              .read<GetApiKeysCubit>()
+                              .state as GetApiKeysSuccess)
+                          .bankTransferStatus ==
+                      '1',
+                },
               );
             },
             height: 48.rh(context),
@@ -561,6 +647,7 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
           children: [
             CustomText(
               customerData.aboutMe ?? '',
+              maxLines: 100,
             ),
             const SizedBox(height: 14),
             RichText(
@@ -646,7 +733,10 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
     }
   }
 
-  Widget callButton(BuildContext context) {
+  Widget callButton({
+    required BuildContext context,
+    required String contactNumber,
+  }) {
     return UiUtils.buildButton(
       context,
       fontSize: context.font.normal,
@@ -654,7 +744,9 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
       radius: 5,
       width: MediaQuery.of(context).size.width * 0.25,
       height: MediaQuery.of(context).size.height * 0.038,
-      onPressed: _onTapCall,
+      onPressed: () {
+        _onTapCall(contactNumber: contactNumber);
+      },
       prefixWidget: Padding(
         padding: const EdgeInsetsDirectional.only(end: 3),
         child: SizedBox(
@@ -666,10 +758,11 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
     );
   }
 
-  Future<void> _onTapCall() async {
-    GuestChecker.check(
+  Future<void> _onTapCall({
+    required String contactNumber,
+  }) async {
+    await GuestChecker.check(
       onNotGuest: () async {
-        final contactNumber = widget.agent.mobile;
         final url = Uri.parse('tel: +$contactNumber'); //{contactNumber.data}
         try {
           await launchUrl(url);
@@ -680,18 +773,20 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
     );
   }
 
-  Widget emailButton(BuildContext context) {
+  Widget emailButton({required BuildContext context, required String email}) {
     return UiUtils.buildButton(
       context,
       fontSize: context.font.normal,
       textColor: context.color.tertiaryColor,
-      buttonTitle: UiUtils.translate(context, 'Email'),
+      buttonTitle: UiUtils.translate(context, 'email'),
       buttonColor: context.color.backgroundColor,
       border: BorderSide(color: context.color.tertiaryColor),
       radius: 5,
       width: MediaQuery.of(context).size.width * 0.25,
       height: MediaQuery.of(context).size.height * 0.038,
-      onPressed: _onTapEmail,
+      onPressed: () {
+        _onTapEmail(email: email);
+      },
       prefixWidget: Container(
         margin: const EdgeInsetsDirectional.only(end: 6),
         child: UiUtils.getSvg(
@@ -703,10 +798,11 @@ class _AgentDetailsScreenState extends State<AgentDetailsScreen>
     );
   }
 
-  Future<void> _onTapEmail() async {
-    GuestChecker.check(
+  Future<void> _onTapEmail({
+    required String email,
+  }) async {
+    await GuestChecker.check(
       onNotGuest: () async {
-        final email = widget.agent.email;
         final url = Uri.parse('mailto: +$email');
         try {
           await launchUrl(url);

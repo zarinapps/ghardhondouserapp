@@ -10,6 +10,13 @@ class AppIcons {
   //
   static const String _basePath = 'assets/svg/';
   //** */
+  // Payment methods
+  static String stripe = _svgPath('stripe');
+  static String bankTransfer = _svgPath('bank');
+  static String flutterwave = _svgPath('flutterwave');
+  static String paystack = _svgPath('paystack');
+  static String razorpay = _svgPath('razorpay');
+  static String paypal = _svgPath('paypal');
 
   static String advertisementFeature = _svgPath('advertise_feature');
   static String listingFeature = _svgPath('listing_feature');
@@ -40,6 +47,7 @@ class AppIcons {
   static String iconArrowLeft = _svgPath('icon_arrow_left');
   static String filter = _svgPath('filter');
   static String location = _svgPath('location');
+  static String locationRound = _svgPath('location_round');
   static String downArrow = _svgPath('down_arrow');
   static String arrowRight = _svgPath('arrow_right');
   static String like = _svgPath('like');
@@ -79,9 +87,6 @@ class AppIcons {
   static String somethingwentwrong =
       _svgPath('MultiColorSvg/something_went_wrong');
 
-  static String paystack = _svgPath('paystack');
-  static String razorpay = _svgPath('razorpay');
-  static String paypal = _svgPath('paypal');
   static String transaction = _svgPath('transaction');
   static String reportDark = _svgPath('report_dark');
   static String report = _svgPath('report');

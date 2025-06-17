@@ -7,8 +7,8 @@ class NotificationDetail extends StatefulWidget {
   @override
   State<NotificationDetail> createState() => _NotificationDetailState();
 
-  static Route route(RouteSettings routeSettings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings routeSettings) {
+    return CupertinoPageRoute(
       builder: (_) => const NotificationDetail(),
     );
   }

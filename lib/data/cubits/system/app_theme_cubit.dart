@@ -1,7 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
 import 'package:bloc/bloc.dart';
-
 import 'package:ebroker/app/app_theme.dart';
 import 'package:ebroker/utils/hive_utils.dart';
 
@@ -15,15 +14,14 @@ class AppThemeCubit extends Cubit<ThemeState> {
 
   //dev!
   void toggleTheme() {
+    final newTheme =
+        state.appTheme == AppTheme.dark ? AppTheme.light : AppTheme.dark;
     if (state.appTheme == AppTheme.dark) {
-      HiveUtils.setCurrentTheme(AppTheme.light);
-
       emit(ThemeState(AppTheme.light));
     } else {
-      HiveUtils.setCurrentTheme(AppTheme.dark);
-
       emit(ThemeState(AppTheme.dark));
     }
+    HiveUtils.setCurrentTheme(newTheme);
   }
 
   bool isDarkMode() {

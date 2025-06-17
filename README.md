@@ -205,14 +205,3 @@ rm -rf ios/Flutter/Flutter.podspec
 rm -rf ios/Flutter/flutter_export_environment.sh
 rm -rf ios/Flutter/Generated.xcconfig
 ```
-
-
-//buildscript {
-//    ext.kotlin_version = '1.9.0'
-//
-//    dependencies {
-//        classpath 'com.android.tools.build:gradle:7.1.3'
-//        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-//        classpath 'com.google.gms:google-services:4.3.13'
-//    }
-//}

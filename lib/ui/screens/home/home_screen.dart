@@ -3,17 +3,17 @@
 import 'dart:developer';
 
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:ebroker/data/cubits/home_page_data_cubit.dart';
+import 'package:ebroker/data/cubits/fetch_home_page_data_cubit.dart';
 import 'package:ebroker/data/cubits/property/fetch_city_property_list.dart';
+import 'package:ebroker/data/cubits/property/fetch_premium_properties_cubit.dart';
 import 'package:ebroker/data/cubits/property/home_infinityscroll_cubit.dart';
-import 'package:ebroker/data/helper/design_configs.dart';
 import 'package:ebroker/data/model/agent/agent_model.dart';
 import 'package:ebroker/data/model/category.dart';
+import 'package:ebroker/data/model/city_model.dart';
+import 'package:ebroker/data/model/home_page_data_model.dart';
 import 'package:ebroker/data/model/home_slider.dart';
 import 'package:ebroker/data/model/project_model.dart';
 import 'package:ebroker/data/model/system_settings_model.dart';
-import 'package:ebroker/data/repositories/check_package.dart';
-import 'package:ebroker/data/repositories/project_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/agents/agents_card.dart';
 import 'package:ebroker/ui/screens/home/Widgets/property_card_big.dart';
@@ -21,15 +21,16 @@ import 'package:ebroker/ui/screens/home/Widgets/property_gradient_card.dart';
 import 'package:ebroker/ui/screens/home/city_properties_screen.dart';
 import 'package:ebroker/ui/screens/home/widgets/category_card.dart';
 import 'package:ebroker/ui/screens/home/widgets/custom_grid.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:ebroker/ui/screens/home/widgets/header_card.dart';
-import 'package:ebroker/ui/screens/home/widgets/homeListener.dart';
 import 'package:ebroker/ui/screens/home/widgets/home_search.dart';
 import 'package:ebroker/ui/screens/home/widgets/home_shimmers.dart';
 import 'package:ebroker/ui/screens/home/widgets/location_widget.dart';
 import 'package:ebroker/ui/screens/project/view/project_card_big.dart';
-import 'package:ebroker/ui/screens/proprties/viewAll.dart';
-import 'package:ebroker/utils/admob/bannerAdLoadWidget.dart';
-import 'package:ebroker/utils/network/networkAvailability.dart';
+import 'package:ebroker/ui/screens/proprties/view_all.dart';
+import 'package:ebroker/utils/admob/banner_ad_load_widget.dart';
+import 'package:ebroker/utils/extensions/lib/iterable.dart';
+import 'package:ebroker/utils/network/network_availability.dart';
 import 'package:ebroker/utils/sliver_grid_delegate_with_fixed_cross_axis_count_and_fixed_height.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
@@ -47,7 +48,7 @@ class HomeScreen extends StatefulWidget {
 
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments! as Map;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => HomeScreen(from: arguments['from'] as String),
     );
   }
@@ -57,22 +58,28 @@ class HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<HomeScreen> {
   @override
   bool get wantKeepAlive => true;
-  HomePageStateListener homeStateListener = HomePageStateListener();
+
+  var isAlreadyShowingLocationDialog = false;
 
   @override
   void initState() {
-    context.read<HomePageInfinityScrollCubit>().fetch();
     context.read<FetchHomePageDataCubit>().fetch(
           forceRefresh: false,
         );
+    context.read<HomePageInfinityScrollCubit>().fetch();
+
+    if (GuestChecker.value == false) {
+      context.read<GetApiKeysCubit>().fetch();
+    }
+
     initializeSettings();
     addPageScrollListener();
-    initializeHomeStateListener();
     super.initState();
   }
 
   void initializeSettings() {
     final settingsCubit = context.read<FetchSystemSettingsCubit>();
+
     if (!const bool.fromEnvironment(
       'force-disable-demo-mode',
     )) {
@@ -83,20 +90,6 @@ class HomeScreenState extends State<HomeScreen>
 
   void addPageScrollListener() {
     homeScreenController.addListener(pageScrollListener);
-  }
-
-  void initializeHomeStateListener() {
-    homeStateListener.init(
-      onNetAvailable: () {
-        if (mounted) {
-          loadInitialData(
-            loadWithoutDelay: true,
-            context,
-          );
-          setState(() {});
-        }
-      },
-    );
   }
 
   void pageScrollListener() {
@@ -110,52 +103,192 @@ class HomeScreenState extends State<HomeScreen>
     }
   }
 
-  void _onTapPromotedSeeAll() {
-    Navigator.pushNamed(context, Routes.promotedPropertiesScreen);
+  /// Generic method to handle 'See All' taps for different property types
+  ///
+  /// This method creates a ViewAllScreen with the appropriate state map and cubit,
+  /// navigates to it, and ensures data is loaded if not already available.
+  ///
+  /// Type parameters:
+  /// * [C] - The cubit type that manages the property data
+  /// * [S] - The state type associated with the cubit
+  /// * [I] - The initial state type
+  /// * [P] - The in-progress state type
+  /// * [Success] - The success state type (must implement PropertySuccessStateWireframe)
+  /// * [F] - The failure state type (must implement PropertyErrorStateWireframe)
+  Future<void> _handleSeeAllTap<
+      C extends StateStreamable<S>,
+      S,
+      I,
+      P,
+      Success extends PropertySuccessStateWireframe,
+      F extends PropertyErrorStateWireframe>({
+    required String title,
+    required C Function() getCubit,
+    required bool Function(S state) isSuccessState,
+    required Future<void> Function({bool forceRefresh}) fetchData,
+  }) async {
+    final stateMap = StateMap<I, P, Success, F>();
+
+    ViewAllScreen<C, S>(
+      title: title.translate(context),
+      map: stateMap,
+    ).open(context);
+
+    final cubit = getCubit();
+    if (!isSuccessState(cubit.state)) {
+      await fetchData(forceRefresh: true);
+    }
   }
 
-  void _onTapNearByPropertiesAll() {
-    final stateMap = StateMap<
+  Future<void> _onTapPromotedSeeAll({required String title}) async {
+    await _handleSeeAllTap<
+        FetchPromotedPropertiesCubit,
+        FetchPromotedPropertiesState,
+        FetchPromotedPropertiesInitial,
+        FetchPromotedPropertiesInProgress,
+        FetchPromotedPropertiesSuccess,
+        FetchPromotedPropertiesFailure>(
+      title: title,
+      getCubit: () => context.read<FetchPromotedPropertiesCubit>(),
+      isSuccessState: (state) => state is FetchPromotedPropertiesSuccess,
+      fetchData: ({bool forceRefresh = false}) => context
+          .read<FetchPromotedPropertiesCubit>()
+          .fetch(forceRefresh: forceRefresh),
+    );
+  }
+
+  Future<void> _onTapPremiumSeeAll({required String title}) async {
+    await _handleSeeAllTap<
+        FetchPremiumPropertiesCubit,
+        FetchPremiumPropertiesState,
+        FetchPremiumPropertiesInitial,
+        FetchPremiumPropertiesInProgress,
+        FetchPremiumPropertiesSuccess,
+        FetchPremiumPropertiesFailure>(
+      title: title,
+      getCubit: () => context.read<FetchPremiumPropertiesCubit>(),
+      isSuccessState: (state) => state is FetchPremiumPropertiesSuccess,
+      fetchData: ({bool forceRefresh = false}) => context
+          .read<FetchPremiumPropertiesCubit>()
+          .fetch(forceRefresh: forceRefresh),
+    );
+  }
+
+  Future<void> _onTapNearByPropertiesAll({required String title}) async {
+    await _handleSeeAllTap<
+        FetchNearbyPropertiesCubit,
+        FetchNearbyPropertiesState,
         FetchNearbyPropertiesInitial,
         FetchNearbyPropertiesInProgress,
         FetchNearbyPropertiesSuccess,
-        FetchNearbyPropertiesFailure>();
-
-    ViewAllScreen<FetchNearbyPropertiesCubit, FetchNearbyPropertiesState>(
-      title: 'nearByProperties'.translate(context),
-      map: stateMap,
-    ).open(context);
+        FetchNearbyPropertiesFailure>(
+      title: title,
+      getCubit: () => context.read<FetchNearbyPropertiesCubit>(),
+      isSuccessState: (state) => state is FetchNearbyPropertiesSuccess,
+      fetchData: ({bool forceRefresh = false}) => context
+          .read<FetchNearbyPropertiesCubit>()
+          .fetch(forceRefresh: forceRefresh),
+    );
   }
 
-  void _onTapMostLikedAll() {
-    Navigator.pushNamed(context, Routes.mostLikedPropertiesScreen);
+  Future<void> _onTapMostLikedAll({required String title}) async {
+    await _handleSeeAllTap<
+        FetchMostLikedPropertiesCubit,
+        FetchMostLikedPropertiesState,
+        FetchMostLikedPropertiesInitial,
+        FetchMostLikedPropertiesInProgress,
+        FetchMostLikedPropertiesSuccess,
+        FetchMostLikedPropertiesFailure>(
+      title: title,
+      getCubit: () => context.read<FetchMostLikedPropertiesCubit>(),
+      isSuccessState: (state) => state is FetchMostLikedPropertiesSuccess,
+      fetchData: ({bool forceRefresh = false}) => context
+          .read<FetchMostLikedPropertiesCubit>()
+          .fetch(forceRefresh: forceRefresh),
+    );
   }
 
-  void _onTapMostViewedSeeAll() {
-    Navigator.pushNamed(context, Routes.mostViewedPropertiesScreen);
+  Future<void> _onTapMostViewedSeeAll({required String title}) async {
+    await _handleSeeAllTap<
+        FetchMostViewedPropertiesCubit,
+        FetchMostViewedPropertiesState,
+        FetchMostViewedPropertiesInitial,
+        FetchMostViewedPropertiesInProgress,
+        FetchMostViewedPropertiesSuccess,
+        FetchMostViewedPropertiesFailure>(
+      title: title,
+      getCubit: () => context.read<FetchMostViewedPropertiesCubit>(),
+      isSuccessState: (state) => state is FetchMostViewedPropertiesSuccess,
+      fetchData: ({bool forceRefresh = false}) => context
+          .read<FetchMostViewedPropertiesCubit>()
+          .fetch(forceRefresh: forceRefresh),
+    );
   }
 
-  void _onRefresh() {
-    context.read<FetchNearbyPropertiesCubit>().fetch(
-          forceRefresh: true,
-        );
-    context.read<FetchCityCategoryCubit>().fetchCityCategory(
-          forceRefresh: true,
-        );
-    context.read<FetchPersonalizedPropertyList>().fetch(
-          forceRefresh: true,
-        );
-    context.read<FetchHomePageDataCubit>().fetch(
-          forceRefresh: true,
-        );
-    context.read<HomePageInfinityScrollCubit>().fetch();
-    if (GuestChecker.value == false) {
-      context.read<FetchSystemSettingsCubit>().fetchSettings(
-            isAnonymous: false,
-            forceRefresh: true,
-          );
+  Future<void> _onTapPersonalizedSeeAll({required String title}) async {
+    await _handleSeeAllTap<
+        FetchPersonalizedPropertyList,
+        FetchPersonalizedPropertyListState,
+        FetchPersonalizedPropertyInitial,
+        FetchPersonalizedPropertyInProgress,
+        FetchPersonalizedPropertySuccess,
+        FetchPersonalizedPropertyFail>(
+      title: title,
+      getCubit: () => context.read<FetchPersonalizedPropertyList>(),
+      isSuccessState: (state) => state is FetchPersonalizedPropertySuccess,
+      fetchData: ({bool forceRefresh = false}) =>
+          context.read<FetchPersonalizedPropertyList>().fetch(
+                loadWithoutDelay: true,
+                forceRefresh: forceRefresh,
+              ),
+    );
+  }
+
+  Future<void> _onTapChangeLocation() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final placeMark = await Navigator.pushNamed(
+      context,
+      Routes.chooseLocaitonMap,
+      arguments: {
+        'from': 'home_location',
+      },
+    ) as Map?;
+    try {
+      final latlng = placeMark?['latlng'] as LatLng;
+      final place = placeMark?['place'] as Placemark;
+      final radius = placeMark?['radius'] as String? ?? '';
+
+      await HiveUtils.setLocation(
+        city: place.locality ?? '',
+        state: place.administrativeArea ?? '',
+        latitude: latlng.latitude.toString(),
+        longitude: latlng.longitude.toString(),
+        country: place.country ?? '',
+        placeId: place.postalCode ?? '',
+        radius: radius,
+      );
+    } catch (e) {
+      log(e.toString());
     }
-    setState(() {});
+  }
+
+  Future<void> _onRefresh() async {
+    await CheckInternet.check(
+      onInternet: () async {
+        await context.read<FetchHomePageDataCubit>().fetch(
+              forceRefresh: true,
+            );
+
+        await context.read<HomePageInfinityScrollCubit>().fetch();
+      },
+      onNoInternet: () {
+        return HelperUtils.showSnackBarMessage(
+          context,
+          'noInternet'.translate(context),
+        );
+      },
+    );
   }
 
   @override
@@ -167,159 +300,272 @@ class HomeScreenState extends State<HomeScreen>
     ///
     return Scaffold(
       appBar: AppBar(
-        systemOverlayStyle: UiUtils.getSystemUiOverlayStyle(context: context),
-        elevation: 0,
-        leadingWidth: (HiveUtils.getCityName() != null &&
-                HiveUtils.getCityName().toString().isNotEmpty)
-            ? 200.rw(context)
-            : 130,
+        systemOverlayStyle:
+            UiUtils.getSystemUiOverlayStyle(context: context).copyWith(
+          statusBarColor: context.color.primaryColor,
+          statusBarIconBrightness: context.color.brightness == Brightness.dark
+              ? Brightness.light
+              : Brightness.dark,
+        ),
+        backgroundColor: context.color.primaryColor,
+        leadingWidth: context.screenWidth * .9,
+        scrolledUnderElevation: 0,
         leading: Padding(
           padding: EdgeInsetsDirectional.only(
             start: sidePadding.rw(context),
           ),
-          child: (HiveUtils.getCityName() != null &&
-                  HiveUtils.getCityName().toString().isNotEmpty)
-              ? const LocationWidget() as Widget? ?? const SizedBox.shrink()
-              : LoadAppSettings().loadHomeLogo(appSettings.appHomeScreen!)
-                      as Widget? ??
-                  const SizedBox.shrink(),
+          child: const LocationWidget(),
         ),
-        backgroundColor: const Color.fromARGB(0, 0, 0, 0),
       ),
       backgroundColor: context.color.primaryColor,
-      body: RefreshIndicator(
-        color: context.color.tertiaryColor,
-        onRefresh: () async {
-          await CheckInternet.check(
-            onInternet: () {
-              _onRefresh();
-            },
-            onNoInternet: () {
-              HelperUtils.showSnackBarMessage(
-                context,
-                'noInternet'.translate(context),
-              );
-            },
-          );
-        },
+      body: CustomRefreshIndicator(
+        onRefresh: _onRefresh,
         child: Builder(
           builder: (context) {
-            // if (homeScreenState.state == HomeScreenDataState.fail) {
-            //   return SingleChildScrollView(
-            //     physics: Constant.scrollPhysics,
-            //     child: Container(
-            //       alignment: Alignment.topCenter,
-            //       height: context.screenHeight - 235,
-            //       child: const SomethingWentWrong(),
-            //     ),
-            //   );
-            // }
             return BlocBuilder<FetchSystemSettingsCubit,
                 FetchSystemSettingsState>(
               builder: (context, state) {
-                // if (homeScreenState.state == HomeScreenDataState.nointernet) {
-                //   return NoInternet(
-                //     onRetry: () {
-                //       CheckInternet.check(
-                //         onInternet: () {
-                //           _onRefresh();
-                //           Navigator.popUntil(context, (route) => route.isFirst);
-                //         },
-                //         onNoInternet: () {
-                //           HelperUtils.showSnackBarMessage(
-                //             context,
-                //             'noInternet'.translate(context),
-                //           );
-                //         },
-                //       );
-                //     },
-                //   );
-                // }
-                return BlocBuilder<FetchHomePageDataCubit,
-                    FetchHomePageDataState>(
-                  builder: (homeContext, homeState) {
-                    if (homeState is FetchHomePageDataLoading) {
-                      return const HomeShimmer();
-                    }
-                    if (homeState is FetchHomePageDataSuccess) {
-                      final home = homeState.homePageDataModel;
-                      return SingleChildScrollView(
-                        controller: homeScreenController,
-                        physics: Constant.scrollPhysics,
-                        padding: EdgeInsets.symmetric(
-                          vertical: MediaQuery.of(context).padding.top,
-                        ),
-                        child: BlocProvider(
-                          create: (context) => FetchHomePageDataCubit(),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              ...AppSettings.sections.map((section) {
-                                switch (section) {
-                                  case HomeScreenSections.search:
-                                    return const HomeSearchField();
-                                  case HomeScreenSections.personalizedFeed:
-                                    return const PersonalizedPropertyWidget();
-                                  case HomeScreenSections.slider:
-                                    return sliderWidget(home.sliderSection);
-                                  case HomeScreenSections.category:
-                                    return categoryWidget(
-                                      home.categoriesSection,
-                                    );
-                                  case HomeScreenSections.nearbyProperties:
-                                    return buildNearByProperties(
-                                      nearByProperties: home.nearByProperties,
-                                    );
-                                  case HomeScreenSections.featuredProperties:
-                                    return featuredProperties(
-                                      home.featuredSection,
-                                      context,
-                                    );
-                                  case HomeScreenSections.agents:
-                                    return buildAgents(home.agentsList);
-                                  case HomeScreenSections.mostLikedProperties:
-                                    return mostLikedProperties(
-                                      home.mostLikedProperties,
-                                      context,
-                                    );
-                                  case HomeScreenSections.mostViewed:
-                                    return mostViewedProperties(
-                                      home.mostViewedProperties,
-                                      context,
-                                    );
-                                  case HomeScreenSections.popularCities:
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          const BannerAdWidget(),
-                                          popularCityProperties(),
-                                        ],
-                                      ),
-                                    );
-                                  case HomeScreenSections.project:
-                                    return buildProjects(home.projectSection);
-                                  case HomeScreenSections.featuredProjects:
-                                    return buildFeaturedProjects(
-                                      home.featuredProjectSection,
-                                    );
-                                }
-                              }),
-                              allProperties(context: context),
-                              const SizedBox(height: 30),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                return SingleChildScrollView(
+                  controller: homeScreenController,
+                  physics: Constant.scrollPhysics,
+                  padding: EdgeInsets.symmetric(
+                    vertical: MediaQuery.of(context).padding.top,
+                  ),
+                  child: Column(
+                    children: [
+                      // Fixed sections that should always be at the top
+                      const HomeSearchField(), // Search section
+                      BlocConsumer<FetchHomePageDataCubit,
+                          FetchHomePageDataState>(
+                        listener: (context, state) {
+                          if (state is FetchHomePageDataSuccess &&
+                              state.refreshing != true &&
+                              state.homePageDataModel
+                                      .homePageLocationDataAvailable ==
+                                  false) {
+                            showNoDataAtLocation(context);
+                          }
+                        },
+                        builder: (homeContext, homeState) {
+                          if (homeState is FetchHomePageDataLoading) {
+                            return const HomeShimmer();
+                          }
+                          if (homeState is FetchHomePageDataSuccess) {
+                            final home = homeState.homePageDataModel;
+                            return BlocProvider(
+                              create: (context) => FetchHomePageDataCubit(),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  sliderWidget(
+                                    home.sliderSection ?? [],
+                                  ), // Slider section
+
+                                  // Dynamic sections from API in their original order
+
+                                  ...(home.originalSections ??
+                                          <HomePageSection>[])
+                                      .mapIndexed<HomePageSection, Widget>(
+                                          (section, index) {
+                                    switch (section.type) {
+                                      case 'premium_properties_section':
+                                        return premiumProperties(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              UiUtils.translate(
+                                                context,
+                                                'premiumProperties',
+                                              ),
+                                          premiumProperties:
+                                              home.premiumProperties ?? [],
+                                        );
+                                      case 'categories_section':
+                                        return categoryWidget(
+                                          categories:
+                                              home.categoriesSection ?? [],
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              'categories'.translate(context),
+                                        );
+                                      case 'featured_properties_section':
+                                        return featuredProperties(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              UiUtils.translate(
+                                                context,
+                                                'promotedProperties',
+                                              ),
+                                          featuredProperties:
+                                              home.featuredSection ?? [],
+                                        );
+                                      case 'most_liked_properties_section':
+                                        return mostLikedProperties(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              UiUtils.translate(
+                                                context,
+                                                'mostLikedProperties',
+                                              ),
+                                          mostLikedProperties:
+                                              home.mostLikedProperties ?? [],
+                                        );
+                                      case 'most_viewed_properties_section':
+                                        return mostViewedProperties(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              UiUtils.translate(
+                                                context,
+                                                'mostViewed',
+                                              ),
+                                          mostViewedProperties:
+                                              home.mostViewedProperties ?? [],
+                                        );
+                                      case 'projects_section':
+                                        return buildProjects(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              'Project section'
+                                                  .translate(context),
+                                          projectSection:
+                                              home.projectSection ?? [],
+                                        );
+                                      case 'agents_list_section':
+                                        return buildAgents(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              UiUtils.translate(
+                                                context,
+                                                'agents',
+                                              ),
+                                          agents: home.agentsList ?? [],
+                                        );
+                                      case 'nearby_properties_section':
+                                        return buildNearByProperties(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              '${UiUtils.translate(
+                                                context,
+                                                "nearByProperties",
+                                              )} (${HiveUtils.getCityName()})',
+                                          nearByProperties:
+                                              home.nearByProperties ?? [],
+                                        );
+                                      case 'featured_projects_section':
+                                        return buildFeaturedProjects(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              'featuredProjects'
+                                                  .translate(context),
+                                          projectSection:
+                                              home.featuredProjectSection ?? [],
+                                        );
+                                      case 'user_recommendations_section':
+                                        return buildPersonalizedProperty(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              'personalizedFeed'
+                                                  .translate(context),
+                                          personalizedProperties:
+                                              home.personalizedProperties ?? [],
+                                        );
+                                      case 'properties_by_cities_section':
+                                        return popularCityProperties(
+                                          title: home.originalSections?[index]
+                                                  .title ??
+                                              'popularCities'
+                                                  .translate(context),
+                                          cities: home.propertiesByCities ?? [],
+                                        );
+                                      default:
+                                        return const SizedBox.shrink();
+                                    }
+                                  }),
+                                ],
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          const BannerAdWidget(),
+                          allProperties(context: context),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
                 );
               },
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Future<void> showNoDataAtLocation(BuildContext context) {
+    if (HiveUtils.isGuest()) return Future.value();
+    if (isAlreadyShowingLocationDialog) return Future.value();
+    isAlreadyShowingLocationDialog = true;
+    return UiUtils.showBlurredDialoge(
+      context,
+      dialog: BlurredDialogBox(
+        title: 'nodatafound'.translate(context),
+        titleColor: context.color.tertiaryColor,
+        titleWeight: FontWeight.w600,
+        showAcceptButton: false,
+        showCancleButton: false,
+        svgImagePath: AppIcons.no_data_found,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CustomText(
+              'noDataFoundAtThisLocation'.translate(context),
+              fontSize: context.font.large,
+              color: context.color.textColorDark,
+              textAlign: TextAlign.center,
+              fontWeight: FontWeight.w500,
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            UiUtils.buildButton(
+              context,
+              buttonTitle: 'changeLocation'.translate(context),
+              height: 42.rh(context),
+              radius: 10,
+              onPressed: () async {
+                isAlreadyShowingLocationDialog = false;
+                Navigator.pop(context);
+                await _onTapChangeLocation();
+              },
+              border: BorderSide(
+                color: context.color.borderColor,
+              ),
+              showElevation: false,
+              buttonColor: context.color.primaryColor,
+              textColor: context.color.tertiaryColor,
+              padding: EdgeInsets.zero,
+            ),
+            const SizedBox(
+              height: 4,
+            ),
+            UiUtils.buildButton(
+              context,
+              buttonTitle: 'continue'.translate(context),
+              height: 42.rh(context),
+              radius: 10,
+              showElevation: false,
+              onPressed: () {
+                isAlreadyShowingLocationDialog = false;
+                Navigator.pop(context);
+              },
+              padding: EdgeInsets.zero,
+            ),
+          ],
         ),
       ),
     );
@@ -333,76 +579,13 @@ class HomeScreenState extends State<HomeScreen>
           const SizedBox.shrink();
         }
         if (state is HomePageInfinityScrollInProgress) {
-          return LayoutBuilder(
-            builder: (context, c) {
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        const ClipRRect(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(15),
-                          ),
-                          child: CustomShimmer(
-                            height: 90,
-                            width: 90,
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              CustomShimmer(
-                                height: 10,
-                                width: c.maxWidth - 100,
-                              ),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              const CustomShimmer(
-                                height: 10,
-                              ),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              CustomShimmer(
-                                height: 10,
-                                width: c.maxWidth / 1.2,
-                              ),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              CustomShimmer(
-                                height: 10,
-                                width: c.maxWidth / 4,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                shrinkWrap: true,
-                itemCount: 6,
-              );
-            },
-          );
+          return UiUtils.buildHorizontalShimmer();
         }
 
         if (state is HomePageInfinityScrollSuccess) {
+          if (state.properties.isEmpty) {
+            return const SizedBox.shrink();
+          }
           return Builder(
             builder: (context) {
               return Column(
@@ -417,8 +600,7 @@ class HomeScreenState extends State<HomeScreen>
                   ),
                   ListView.builder(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 16,
+                      horizontal: sidePadding,
                     ),
                     itemCount: state.properties.length,
                     physics: const NeverScrollableScrollPhysics(),
@@ -431,9 +613,13 @@ class HomeScreenState extends State<HomeScreen>
                   ),
                   if (context
                       .watch<HomePageInfinityScrollCubit>()
-                      .isLoadingMore()) ...[
-                    Center(child: UiUtils.progress()),
-                  ],
+                      .isLoadingMore())
+                    Center(
+                      child: UiUtils.progress(
+                        height: 30.rh(context),
+                        width: 30.rw(context),
+                      ),
+                    ),
                 ],
               );
             },
@@ -444,25 +630,24 @@ class HomeScreenState extends State<HomeScreen>
     );
   }
 
-  bool cityEmpty() {
-    if (context.watch<FetchCityCategoryCubit>().state
-        is FetchCityCategorySuccess) {
-      return (context.watch<FetchCityCategoryCubit>().state
-              as FetchCityCategorySuccess)
-          .cities
-          .isEmpty;
-    }
-    return true;
-  }
-
-  Widget buildProjects(List<ProjectModel> projectSection) {
+  Widget buildProjects({
+    required String title,
+    required List<ProjectModel> projectSection,
+  }) {
     return Column(
       children: [
         if (projectSection.isNotEmpty) ...[
           TitleHeader(
-            title: 'Project section'.translate(context),
+            title: title,
             onSeeAll: () {
-              Navigator.pushNamed(context, Routes.allProjectsScreen);
+              Navigator.pushNamed(
+                context,
+                Routes.allProjectsScreen,
+                arguments: {
+                  'isPromoted': false,
+                  'title': title,
+                },
+              );
             },
           ),
           Container(
@@ -493,125 +678,43 @@ class HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget buildFeaturedProjects(List<ProjectModel> projectSection) {
+  Widget buildFeaturedProjects({
+    required String title,
+    required List<ProjectModel> projectSection,
+  }) {
     return Column(
       children: [
         if (projectSection.isNotEmpty) ...[
           TitleHeader(
-            title: 'featuredProjects'.translate(context),
+            title: title,
             onSeeAll: () {
-              Navigator.pushNamed(context, Routes.allProjectsScreen);
+              Navigator.pushNamed(
+                context,
+                Routes.allProjectsScreen,
+                arguments: {
+                  'isPromoted': true,
+                  'title': title,
+                },
+              );
             },
           ),
           Container(
             alignment: AlignmentDirectional.centerStart,
             height: 250,
-            margin: const EdgeInsets.only(bottom: 8, right: 7),
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: const EdgeInsets.symmetric(horizontal: sidePadding),
               itemCount: projectSection.length,
               physics: Constant.scrollPhysics,
               scrollDirection: Axis.horizontal,
               shrinkWrap: true,
               itemBuilder: (context, index) {
                 final project = projectSection[index];
-                return GestureDetector(
-                  onTap: () async {
-                    GuestChecker.check(
-                      onNotGuest: () async {
-                        final checkPackage = CheckPackage();
-
-                        final packageAvailable =
-                            await checkPackage.checkPackageAvailable(
-                          packageType: PackageType.projectAccess,
-                        );
-                        if (packageAvailable &&
-                            project.addedBy.toString() !=
-                                HiveUtils.getUserId()) {
-                          try {
-                            unawaited(Widgets.showLoader(context));
-                            final projectRepository = ProjectRepository();
-                            final projectDetails =
-                                await projectRepository.getProjectDetails(
-                              id: project.id!,
-                              isMyProject: false,
-                            );
-                            Future.delayed(
-                              Duration.zero,
-                              () {
-                                Widgets.hideLoder(context);
-                                HelperUtils.goToNextPage(
-                                  Routes.projectDetailsScreen,
-                                  context,
-                                  false,
-                                  args: {
-                                    'project': projectDetails,
-                                  },
-                                );
-                              },
-                            );
-                          } catch (e) {
-                            log('Error is $e');
-                            Widgets.hideLoder(context);
-                          }
-                        } else if (project.addedBy.toString() ==
-                            HiveUtils.getUserId()) {
-                          try {
-                            unawaited(Widgets.showLoader(context));
-                            final projectRepository = ProjectRepository();
-                            final projectDetails =
-                                await projectRepository.getProjectDetails(
-                              id: project.id!,
-                              isMyProject: true,
-                            );
-                            Future.delayed(
-                              Duration.zero,
-                              () {
-                                Widgets.hideLoder(context);
-                                HelperUtils.goToNextPage(
-                                  Routes.projectDetailsScreen,
-                                  context,
-                                  false,
-                                  args: {
-                                    'project': projectDetails,
-                                  },
-                                );
-                              },
-                            );
-                          } catch (e) {
-                            log('Error is $e');
-                            Widgets.hideLoder(context);
-                          }
-                        } else {
-                          Widgets.hideLoder(context);
-                          await UiUtils.showBlurredDialoge(
-                            context,
-                            dialoge: BlurredDialogBox(
-                              title: 'Subscription needed',
-                              isAcceptContainesPush: true,
-                              onAccept: () async {
-                                await Navigator.popAndPushNamed(
-                                  context,
-                                  Routes.subscriptionPackageListRoute,
-                                  arguments: {'from': 'home'},
-                                );
-                              },
-                              content: CustomText(
-                                'subscribeToUseThisFeature'.translate(context),
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsetsDirectional.only(
-                      end: 10,
-                    ),
-                    child: ProjectCardBig(
-                      project: project,
-                    ),
+                return Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    end: index == projectSection.length - 1 ? 0 : 10,
+                  ),
+                  child: ProjectCardBig(
+                    project: project,
                   ),
                 );
               },
@@ -622,15 +725,24 @@ class HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget buildAgents(List<AgentModel> agents) {
+  Widget buildAgents({
+    required String title,
+    required List<AgentModel> agents,
+  }) {
     if (agents.isNotEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TitleHeader(
-            title: UiUtils.translate(context, 'agents'),
+            title: title,
             onSeeAll: () {
-              Navigator.pushNamed(context, Routes.agentListScreen);
+              Navigator.pushNamed(
+                context,
+                Routes.agentListScreen,
+                arguments: {
+                  'title': title,
+                },
+              );
             },
           ),
           SizedBox(
@@ -664,63 +776,68 @@ class HomeScreenState extends State<HomeScreen>
     return const SizedBox.shrink();
   }
 
-  Widget popularCityProperties() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!cityEmpty())
+  Widget popularCityProperties({
+    required String title,
+    required List<City> cities,
+  }) {
+    if (cities.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           TitleHeader(
-            title: 'popularCities'.translate(context),
+            title: title,
             onSeeAll: () {
-              Navigator.pushNamed(context, Routes.cityListScreen);
+              Navigator.pushNamed(
+                context,
+                Routes.cityListScreen,
+                arguments: {
+                  'title': title,
+                },
+              );
             },
           ),
-        BlocBuilder<FetchCityCategoryCubit, FetchCityCategoryState>(
-          builder: (context, FetchCityCategoryState state) {
-            if (state is FetchCityCategorySuccess) {
-              final cities = state.cities.take(10).toList();
-              return CustomImageGrid(
-                images: cities.map((e) => e.image).toList(),
-              );
-            }
-            return Container();
-          },
-        ),
-      ],
-    );
+          CustomImageGrid(
+            cities: cities,
+          ),
+        ],
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
   }
 
-  Widget mostViewedProperties(
-    List<PropertyModel> mostViewedProperties,
-    BuildContext context,
-  ) {
+  Widget mostViewedProperties({
+    required String title,
+    required List<PropertyModel> mostViewedProperties,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (mostViewedProperties.isNotEmpty)
           TitleHeader(
-            onSeeAll: _onTapMostViewedSeeAll,
-            title: UiUtils.translate(context, 'mostViewed'),
+            onSeeAll: () async {
+              await _onTapMostViewedSeeAll(title: title);
+            },
+            title: title,
           ),
         buildMostViewedProperties(mostViewedProperties),
       ],
     );
   }
 
-  Widget mostLikedProperties(
-    List<PropertyModel> mostLikedProperties,
-    BuildContext context,
-  ) {
+  Widget mostLikedProperties({
+    required String title,
+    required List<PropertyModel> mostLikedProperties,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (mostLikedProperties.isNotEmpty) ...[
           TitleHeader(
-            onSeeAll: _onTapMostLikedAll,
-            title: UiUtils.translate(
-              context,
-              'mostLikedProperties',
-            ),
+            onSeeAll: () async {
+              await _onTapMostLikedAll(title: title);
+            },
+            title: title,
           ),
           buildMostLikedProperties(mostLikedProperties),
           const SizedBox(
@@ -731,220 +848,26 @@ class HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget featuredProperties(
-    List<PropertyModel> featuredProperties,
-    BuildContext context,
-  ) {
-    if (featuredProperties.isNotEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TitleHeader(
-            onSeeAll: _onTapPromotedSeeAll,
-            title: UiUtils.translate(
-              context,
-              'promotedProperties',
-            ),
-          ),
-          buildPromotedProperties(featuredProperties),
-        ],
-      );
-    }
-    return const SizedBox.shrink();
-  }
-
-  Widget sliderWidget(List<HomeSlider> sliderList) {
-    if (sliderList.isNotEmpty) {
-      return const SliderWidget();
-    }
-    return const SizedBox.shrink();
-  }
-
-  Widget buildCityCard(FetchCityCategorySuccess state, int index) {
-    if (index >= state.cities.length) {
-      return const SizedBox.shrink();
-    }
-    final city = state.cities[index];
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(15),
-      child: GestureDetector(
-        onTap: () {
-          context.read<FetchCityPropertyList>().fetch(
-                cityName: city.name,
-                forceRefresh: true,
-              );
-          Navigator.push(
-            context,
-            BlurredRouter(
-              builder: (context) {
-                return CityPropertiesScreen(
-                  cityName: city.name,
-                );
-              },
-            ),
-          );
-        },
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            UiUtils.getImage(
-              city.image,
-              fit: BoxFit.cover,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.68),
-                    Colors.black.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-            PositionedDirectional(
-              bottom: 8,
-              start: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CustomText(
-                    city.name.firstUpperCase(),
-                    color: context.color.buttonColor,
-                    fontSize: context.font.normal,
-                  ),
-                  const SizedBox(
-                    height: 2,
-                  ),
-                  CustomText(
-                    '${city.count} ${'properties'.translate(context)}',
-                    color: context.color.buttonColor,
-                    fontSize: context.font.small,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildPromotedProperties(List<PropertyModel> promotedProperties) {
-    return SizedBox(
-      height: 280,
-      child: ListView.builder(
-        itemCount: promotedProperties.length.clamp(0, 6),
-        shrinkWrap: true,
-        padding: const EdgeInsets.symmetric(
-          horizontal: sidePadding,
-        ),
-        physics: Constant.scrollPhysics,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) {
-          return BlocProvider(
-            create: (context) {
-              return AddToFavoriteCubitCubit();
-            },
-            child: PropertyCardBig(
-              key: UniqueKey(),
-              isFirst: index == 0,
-              property: promotedProperties[index],
-              onLikeChange: (type) {
-                if (type == FavoriteType.add) {
-                  context
-                      .read<FetchFavoritesCubit>()
-                      .add(promotedProperties[index]);
-                } else {
-                  context
-                      .read<FetchFavoritesCubit>()
-                      .remove(promotedProperties[index].id);
-                }
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget buildMostLikedProperties(List<PropertyModel> mostLiked) {
-    return GridView.builder(
-      shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(
-        horizontal: sidePadding,
-      ),
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCountAndFixedHeight(
-        mainAxisSpacing: 8,
-        crossAxisCount: 2,
-        height: 275,
-        crossAxisSpacing: 6,
-      ),
-      itemCount: mostLiked.length.clamp(0, 4),
-      itemBuilder: (context, index) {
-        final properties = mostLiked[index];
-        return BlocProvider(
-          create: (context) => AddToFavoriteCubitCubit(),
-          child: PropertyCardBig(
-            showEndPadding: false,
-            isFirst: index == 0,
-            onLikeChange: (type) {
-              if (type == FavoriteType.add) {
-                context.read<FetchFavoritesCubit>().add(properties);
-              } else {
-                context.read<FetchFavoritesCubit>().remove(properties.id);
-              }
-            },
-            property: properties,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget buildNearByProperties({
-    required List<PropertyModel> nearByProperties,
+  Widget premiumProperties({
+    required String title,
+    required List<PropertyModel> premiumProperties,
   }) {
-    if (nearByProperties.isEmpty) return const SizedBox.shrink();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TitleHeader(
-          onSeeAll: _onTapNearByPropertiesAll,
-          title: "${UiUtils.translate(
-            context,
-            "nearByProperties",
-          )} (${HiveUtils.getCityName()})",
-        ),
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            shrinkWrap: true,
-            padding: const EdgeInsets.symmetric(
-              horizontal: sidePadding,
-            ),
-            physics: Constant.scrollPhysics,
-            itemCount: nearByProperties.length.clamp(0, 6),
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              var model = nearByProperties[index];
-              model = context.watch<PropertyEditCubit>().get(model);
-              return PropertyGradiendCard(
-                model: model,
-                isFirst: index == 0,
-                showEndPadding: false,
-              );
+        if (premiumProperties.isNotEmpty) ...[
+          TitleHeader(
+            onSeeAll: () async {
+              await _onTapPremiumSeeAll(title: title);
             },
+            title: title,
           ),
-        ),
+          buildPremiumProperties(premiumProperties),
+        ],
       ],
     );
   }
 
-  Widget buildMostViewedProperties(List<PropertyModel> mostViewed) {
+  Widget buildPremiumProperties(List<PropertyModel> premiumProperties) {
     return GridView.builder(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(
@@ -953,17 +876,17 @@ class HomeScreenState extends State<HomeScreen>
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCountAndFixedHeight(
-        mainAxisSpacing: 8,
         crossAxisCount: 2,
-        height: 275,
+        height: 280,
         crossAxisSpacing: 6,
       ),
-      itemCount: mostViewed.length.clamp(0, 4),
+      itemCount: premiumProperties.length.clamp(0, 4),
       itemBuilder: (context, index) {
-        final property = mostViewed[index];
+        final property = premiumProperties[index];
         return BlocProvider(
           create: (context) => AddToFavoriteCubitCubit(),
           child: PropertyCardBig(
+            isFromCompare: false,
             showEndPadding: false,
             isFirst: index == 0,
             onLikeChange: (type) {
@@ -980,308 +903,59 @@ class HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget categoryWidget(List<Category> categories) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        SizedBox(
-          height: 44.rh(context),
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(
-              horizontal: sidePadding,
-            ),
-            physics: Constant.scrollPhysics,
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length.clamp(0, Constant.maxCategoryLength),
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              Constant.propertyFilter = null;
-              if (index == (Constant.maxCategoryLength - 1)) {
-                return Padding(
-                  padding: const EdgeInsetsDirectional.only(start: 5),
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, Routes.categories);
-                    },
-                    child: Container(
-                      constraints: BoxConstraints(
-                        minWidth: 100.rw(context),
-                      ),
-                      height: 44.rh(context),
-                      alignment: Alignment.center,
-                      decoration: DesignConfig.boxDecorationBorder(
-                        color: context.color.secondaryColor,
-                        radius: 10,
-                        borderWidth: 1.5,
-                        borderColor: context.color.borderColor,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: CustomText(UiUtils.translate(context, 'more')),
-                      ),
-                    ),
-                  ),
-                );
-              }
-              return buildCategoryCard(
-                context: context,
-                category: category,
-                frontSpacing: index != 0,
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildCategoryCard({
-    required BuildContext context,
-    required Category category,
-    bool? frontSpacing,
+  Widget featuredProperties({
+    required List<PropertyModel> featuredProperties,
+    required String title,
   }) {
-    return CategoryCard(
-      frontSpacing: frontSpacing ?? false,
-      onTapCategory: (category) {
-        currentVisitingCategoryId = category.id;
-        currentVisitingCategory = category;
-        Navigator.of(context).pushNamed(
-          Routes.propertiesList,
-          arguments: {'catID': category.id, 'catName': category.category},
-        );
-      },
-      category: category,
-    );
+    if (featuredProperties.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TitleHeader(
+            onSeeAll: () async {
+              await _onTapPromotedSeeAll(title: title);
+            },
+            title: title,
+          ),
+          buildPromotedProperties(featuredProperties),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
   }
-}
 
-class PersonalizedPropertyWidget extends StatelessWidget {
-  const PersonalizedPropertyWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<FetchPersonalizedPropertyList,
-        FetchPersonalizedPropertyListState>(
-      builder: (context, state) {
-        if (state is FetchPersonalizedPropertyInProgress) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleHeader(
-                onSeeAll: () {},
-                title: 'personalizedFeed'.translate(context),
-              ),
-              const PromotedPropertiesShimmer(),
-            ],
-          );
-        }
-
-        if (state is FetchPersonalizedPropertySuccess) {
-          if (state.properties.isEmpty) return const SizedBox.shrink();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleHeader(
-                onSeeAll: () {
-                  final stateMap = StateMap<
-                      FetchPersonalizedPropertyInitial,
-                      FetchPersonalizedPropertyInProgress,
-                      FetchPersonalizedPropertySuccess,
-                      FetchPersonalizedPropertyFail>();
-
-                  ViewAllScreen<FetchPersonalizedPropertyList,
-                      FetchPersonalizedPropertyListState>(
-                    title: 'personalizedFeed'.translate(context),
-                    map: stateMap,
-                  ).open(context);
+  Widget sliderWidget(List<HomeSlider> banners) {
+    if (banners.isNotEmpty) {
+      final directionalBanners = Directionality.of(context) == TextDirection.rtl
+          ? banners.reversed.toList()
+          : banners;
+      return Column(
+        children: <Widget>[
+          SizedBox(
+            height: 15.rh(context),
+          ),
+          CarouselSlider(
+            items: directionalBanners.map((e) {
+              return Builder(
+                builder: (context) {
+                  return _buildBanner(e);
                 },
-                title: 'personalizedFeed'.translate(context),
-              ),
-              SizedBox(
-                height: 261,
-                child: ListView.builder(
-                  itemCount: state.properties.length.clamp(0, 6),
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: sidePadding,
-                  ),
-                  physics: Constant.scrollPhysics,
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    var propertymodel = state.properties[index];
-                    propertymodel =
-                        context.watch<PropertyEditCubit>().get(propertymodel);
-                    return BlocProvider(
-                      create: (context) {
-                        return AddToFavoriteCubitCubit();
-                      },
-                      child: PropertyCardBig(
-                        key: UniqueKey(),
-                        isFirst: index == 0,
-                        property: propertymodel,
-                        onLikeChange: (type) {
-                          if (type == FavoriteType.add) {
-                            context
-                                .read<FetchFavoritesCubit>()
-                                .add(propertymodel);
-                          } else {
-                            context
-                                .read<FetchFavoritesCubit>()
-                                .remove(state.properties[index].id);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Container();
-      },
-    );
-  }
-}
-
-class SliderWidget extends StatefulWidget {
-  const SliderWidget({super.key});
-
-  @override
-  State<SliderWidget> createState() => _SliderWidgetState();
-}
-
-class _SliderWidgetState extends State<SliderWidget>
-    with AutomaticKeepAliveClientMixin {
-  final ValueNotifier<int> _bannerIndex = ValueNotifier(0);
-  int bannersLength = 0;
-  late Timer _timer;
-  final PageController _pageController = PageController();
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-
-    context.read<FetchHomePageDataCubit>().fetch(
-          forceRefresh: false,
-        );
-    _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-      if (_bannerIndex.value < bannersLength - 1) {
-        _bannerIndex.value++;
-      } else {
-        _bannerIndex.value = 0;
-      }
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          _bannerIndex.value,
-          duration: const Duration(milliseconds: 1000),
-          curve: Curves.easeIn,
-        );
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _bannerIndex.dispose();
-    _timer.cancel();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return BlocBuilder<FetchHomePageDataCubit, FetchHomePageDataState>(
-      builder: (context, state) {
-        if (state is FetchHomePageDataLoading) {
-          return Column(
-            children: [
-              SizedBox(
-                height: 15.rh(context),
-              ),
-              Container(
-                margin: const EdgeInsets.only(
-                  right: 18,
-                  top: 10,
-                  left: 18,
-                  bottom: 10,
-                ),
-                height: 170.rh(context),
-                child: ListView.builder(
-                  controller: _pageController,
-                  clipBehavior: Clip.antiAlias,
-                  scrollDirection: Axis.horizontal,
-                  physics: Constant.scrollPhysics,
-                  itemCount: 1,
-                  itemBuilder: (context, index) => CustomShimmer(
-                    height: 130.rh(context),
-                    width: context.screenWidth * 0.9,
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 15.rh(context),
-              ),
-            ],
-          );
-        }
-        if (state is FetchHomePageDataSuccess &&
-            state.homePageDataModel.sliderSection.isNotEmpty) {
-          final banners = state.homePageDataModel.sliderSection;
-          bannersLength = state.homePageDataModel.sliderSection.length;
-          return Column(
-            children: <Widget>[
-              SizedBox(
-                height: 15.rh(context),
-              ),
-              CarouselSlider(
-                items: banners.map((e) {
-                  return Builder(
-                    builder: (context) {
-                      return _buildBanner(e);
-                    },
-                  );
-                }).toList(),
-                options: CarouselOptions(
-                  height: 170.rh(context),
-                  viewportFraction: 1,
-                  autoPlay: true,
-                  autoPlayInterval: const Duration(seconds: 3),
-                  enlargeCenterPage: true,
-                  onPageChanged: (index, reason) {
-                    setState(() {
-                      _bannerIndex.value = index;
-                    });
-                  },
-                ),
-              ),
-              // SizedBox(
-              //   height: 170.rh(context),
-              //   child: PageView.builder(
-              //     controller: _pageController,
-              //     clipBehavior: Clip.antiAlias,
-              //     itemCount: state.homePageDataModel.sliderSection.length,
-              //     onPageChanged: (index) {
-              //       _bannerIndex.value = index;
-              //     },
-              //     itemBuilder: (context, index) => _buildBanner(
-              //       state.homePageDataModel.sliderSection[index],
-              //     ),
-              //   ),
-              // ),
-              const SizedBox(
-                height: 10,
-              ),
-            ],
-          );
-        }
-        return const SizedBox.shrink();
-      },
-    );
+              );
+            }).toList(),
+            options: CarouselOptions(
+              height: 170.rh(context),
+              viewportFraction: 1,
+              autoPlay: true,
+              autoPlayInterval: const Duration(seconds: 3),
+              enlargeCenterPage: true,
+              enableInfiniteScroll: false,
+              onPageChanged: (index, reason) {},
+            ),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildBanner(HomeSlider banner) {
@@ -1353,6 +1027,351 @@ class _SliderWidgetState extends State<SliderWidget>
           ),
         ),
       ),
+    );
+  }
+
+  Widget buildCityCard(FetchCityCategorySuccess state, int index) {
+    if (index >= state.cities.length) {
+      return const SizedBox.shrink();
+    }
+    final city = state.cities[index];
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: GestureDetector(
+        onTap: () {
+          context.read<FetchCityPropertyList>().fetch(
+                cityName: city.name,
+                forceRefresh: true,
+              );
+          Navigator.push(
+            context,
+            CupertinoPageRoute<dynamic>(
+              builder: (context) {
+                return CityPropertiesScreen(
+                  cityName: city.name,
+                );
+              },
+            ),
+          );
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            UiUtils.getImage(
+              city.image,
+              fit: BoxFit.cover,
+            ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.68),
+                    Colors.black.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+            PositionedDirectional(
+              bottom: 8,
+              start: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomText(
+                    city.name.firstUpperCase(),
+                    color: context.color.buttonColor,
+                    fontSize: context.font.normal,
+                  ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  CustomText(
+                    '${city.count} ${'properties'.translate(context)}',
+                    color: context.color.buttonColor,
+                    fontSize: context.font.small,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildPromotedProperties(List<PropertyModel> promotedProperties) {
+    return SizedBox(
+      height: 280,
+      child: ListView.builder(
+        itemCount: promotedProperties.length.clamp(0, 6),
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(
+          horizontal: sidePadding,
+        ),
+        physics: Constant.scrollPhysics,
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          return BlocProvider(
+            create: (context) {
+              return AddToFavoriteCubitCubit();
+            },
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 10),
+              child: PropertyCardBig(
+                key: UniqueKey(),
+                isFirst: index == 0,
+                property: promotedProperties[index],
+                isFromCompare: false,
+                onLikeChange: (type) {
+                  if (type == FavoriteType.add) {
+                    context
+                        .read<FetchFavoritesCubit>()
+                        .add(promotedProperties[index]);
+                  } else {
+                    context
+                        .read<FetchFavoritesCubit>()
+                        .remove(promotedProperties[index].id);
+                  }
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget buildMostLikedProperties(List<PropertyModel> mostLiked) {
+    return GridView.builder(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(
+        horizontal: sidePadding,
+      ),
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCountAndFixedHeight(
+        mainAxisSpacing: 8,
+        crossAxisCount: 2,
+        height: 280,
+        crossAxisSpacing: 6,
+      ),
+      itemCount: mostLiked.length.clamp(0, 4),
+      itemBuilder: (context, index) {
+        final properties = mostLiked[index];
+        return BlocProvider(
+          create: (context) => AddToFavoriteCubitCubit(),
+          child: PropertyCardBig(
+            isFromCompare: false,
+            showEndPadding: false,
+            isFirst: index == 0,
+            onLikeChange: (type) {
+              if (type == FavoriteType.add) {
+                context.read<FetchFavoritesCubit>().add(properties);
+              } else {
+                context.read<FetchFavoritesCubit>().remove(properties.id);
+              }
+            },
+            property: properties,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildNearByProperties({
+    required String title,
+    required List<PropertyModel> nearByProperties,
+  }) {
+    if (nearByProperties.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TitleHeader(
+          onSeeAll: () async {
+            await _onTapNearByPropertiesAll(title: title);
+          },
+          title: title,
+        ),
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(
+              horizontal: sidePadding,
+            ),
+            physics: Constant.scrollPhysics,
+            itemCount: nearByProperties.length.clamp(0, 6),
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              var model = nearByProperties[index];
+              model = context.watch<PropertyEditCubit>().get(model);
+              return PropertyGradiendCard(
+                model: model,
+                isFirst: index == 0,
+                showEndPadding: false,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildMostViewedProperties(List<PropertyModel> mostViewed) {
+    return GridView.builder(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(
+        horizontal: sidePadding,
+      ),
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCountAndFixedHeight(
+        mainAxisSpacing: 8,
+        crossAxisCount: 2,
+        height: 280,
+        crossAxisSpacing: 6,
+      ),
+      itemCount: mostViewed.length.clamp(0, 4),
+      itemBuilder: (context, index) {
+        final property = mostViewed[index];
+        return BlocProvider(
+          create: (context) => AddToFavoriteCubitCubit(),
+          child: PropertyCardBig(
+            showEndPadding: false,
+            isFirst: index == 0,
+            onLikeChange: (type) {
+              if (type == FavoriteType.add) {
+                context.read<FetchFavoritesCubit>().add(property);
+              } else {
+                context.read<FetchFavoritesCubit>().remove(property.id);
+              }
+            },
+            isFromCompare: false,
+            property: property,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget categoryWidget({
+    required List<Category> categories,
+    required String title,
+  }) {
+    if (categories.isEmpty) return const SizedBox.shrink();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        TitleHeader(
+          title: title,
+          enableShowAll: true,
+          onSeeAll: () {
+            Navigator.pushNamed(context, Routes.categories);
+          },
+        ),
+        SizedBox(
+          height: 44.rh(context),
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(
+              horizontal: sidePadding,
+            ),
+            physics: Constant.scrollPhysics,
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length.clamp(0, Constant.maxCategoryLength),
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              Constant.propertyFilter = null;
+              return buildCategoryCard(
+                context: context,
+                category: category,
+                frontSpacing: index != 0,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildCategoryCard({
+    required BuildContext context,
+    required Category category,
+    bool? frontSpacing,
+  }) {
+    return CategoryCard(
+      frontSpacing: frontSpacing ?? false,
+      onTapCategory: (category) {
+        currentVisitingCategoryId = category.id;
+        currentVisitingCategory = category;
+        Navigator.of(context).pushNamed(
+          Routes.propertiesList,
+          arguments: {'catID': category.id, 'catName': category.category},
+        );
+      },
+      category: category,
+    );
+  }
+
+  Widget buildPersonalizedProperty({
+    required String title,
+    required List<PropertyModel> personalizedProperties,
+  }) {
+    if (personalizedProperties.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TitleHeader(
+          onSeeAll: () async {
+            await _onTapPersonalizedSeeAll(title: title);
+          },
+          title: title,
+        ),
+        SizedBox(
+          height: 280,
+          child: ListView.builder(
+            itemCount: personalizedProperties.length.clamp(0, 6),
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(
+              horizontal: sidePadding,
+            ),
+            physics: Constant.scrollPhysics,
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              var propertyModel = personalizedProperties[index];
+              propertyModel =
+                  context.watch<PropertyEditCubit>().get(propertyModel);
+              return BlocProvider(
+                create: (context) {
+                  return AddToFavoriteCubitCubit();
+                },
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    end: 10,
+                  ),
+                  child: PropertyCardBig(
+                    key: UniqueKey(),
+                    showEndPadding: true,
+                    isFromCompare: false,
+                    isFirst: index == 0,
+                    property: propertyModel,
+                    onLikeChange: (type) {
+                      if (type == FavoriteType.add) {
+                        context.read<FetchFavoritesCubit>().add(propertyModel);
+                      } else {
+                        context
+                            .read<FetchFavoritesCubit>()
+                            .remove(personalizedProperties[index].id);
+                      }
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

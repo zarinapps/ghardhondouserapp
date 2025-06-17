@@ -16,13 +16,13 @@ class EnquiryIdsLocalCubit extends Cubit<EnquiryIdsLocalState> {
 }
 
 class EnquiryIdsLocalState {
-  List? ids;
+  List<dynamic>? ids;
   EnquiryIdsLocalState({
     this.ids,
   });
 
   EnquiryIdsLocalState copyWith({
-    List? ids,
+    List<dynamic>? ids,
   }) {
     return EnquiryIdsLocalState(
       ids: ids ?? this.ids,

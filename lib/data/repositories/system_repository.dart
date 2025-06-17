@@ -1,7 +1,7 @@
 import 'package:ebroker/exports/main_export.dart';
 
 class SystemRepository {
-  Future<Map> fetchSystemSettings({
+  Future<Map<dynamic, dynamic>> fetchSystemSettings({
     required bool isAnonymouse,
   }) async {
     final parameters = <String, dynamic>{};

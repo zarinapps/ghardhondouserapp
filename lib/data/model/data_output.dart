@@ -8,13 +8,13 @@ class DataOutput<T> {
   DataOutput({required this.total, required this.modelList, this.extraData});
   final int total;
   final List<T> modelList;
-  final ExtraData? extraData;
+  final ExtraData<dynamic>? extraData;
 
   DataOutput<T> copyWith({
     int? total,
     int? offset,
     List<T>? modelList,
-    ExtraData? extraData,
+    ExtraData<dynamic>? extraData,
   }) {
     return DataOutput<T>(
       total: total ?? this.total,

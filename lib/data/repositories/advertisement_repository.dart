@@ -23,8 +23,8 @@ class AdvertisementRepository {
     return result['message']?.toString() ?? '';
   }
 
-  Future deleteAdvertisment(
-    dynamic id,
+  Future<dynamic> deleteAdvertisment(
+    id,
   ) async {
     await Api.post(
       url: Api.deleteAdvertisement,

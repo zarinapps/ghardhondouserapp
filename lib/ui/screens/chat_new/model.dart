@@ -1,9 +1,13 @@
-class ChatMessageModel {
-  ChatMessageModel({
+import 'package:ebroker/utils/hive_utils.dart'; // Add this import
+import 'package:flutter/material.dart';
+
+class ChatMessage {
+  ChatMessage({
+    this.id = '',
+    this.senderId,
+    this.isSentByMe = false,
+    this.isSentNow = false,
     this.date,
-    this.id,
-    this.isSentByMe,
-    this.isSentNow,
     this.propertyTitleImage,
     this.timeAgo,
     this.receiverId,
@@ -13,95 +17,148 @@ class ChatMessageModel {
     this.title,
     this.clickAction,
     this.message,
-    this.senderId,
     this.propertyId,
     this.file,
-    this.chatMessageType,
+    this.chatMessageType = 'text',
     this.audio,
     this.username,
+    this.context,
   });
 
-  ChatMessageModel.fromJson(Map<String, dynamic> json) {
-    id = json['id'].toString();
-    isSentByMe = json['isSentByMe'] as bool? ?? false;
-    isSentNow = json['isSentNow'] as bool? ?? false;
-    date = json['created_at']?.toString() ?? '';
-    propertyTitleImage = json['property_title_image']?.toString() ?? '';
-    timeAgo = json['time_ago']?.toString() ?? '';
-    receiverId = json['receiver_id'].toString();
-    sound = json['sound']?.toString() ?? '';
+  // Serialization
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    final currentUserId = HiveUtils.getUserId() ?? '';
+    final senderId = json['sender_id']?.toString() ?? '';
+    final isSentByMe = senderId == currentUserId;
 
-    userProfile = json['user_profile']?.toString() ?? '';
-    body = json['body']?.toString() ?? '';
-    title = json['title']?.toString() ?? '';
-    clickAction = json['click_action']?.toString() ?? '';
-    message = json['message']?.toString() ?? '';
-    senderId = json['sender_id'].toString();
-
-    propertyId = json['property_id'].toString();
-    file = json['file']?.toString() ?? '';
-    chatMessageType = json['chat_message_type']?.toString() ?? '';
-    audio = json['audio']?.toString() ?? '';
-    username = json['username']?.toString() ?? '';
+    return ChatMessage(
+      id: json['id']?.toString() ?? '',
+      isSentByMe: isSentByMe,
+      isSentNow: json['isSentNow'] as bool? ?? false,
+      date: json['created_at']?.toString(),
+      propertyTitleImage: json['property_title_image']?.toString(),
+      timeAgo: json['time_ago']?.toString(),
+      receiverId: json['receiver_id']?.toString(),
+      senderId: senderId,
+      sound: json['sound']?.toString(),
+      userProfile: json['user_profile']?.toString(),
+      body: json['body']?.toString(),
+      title: json['title']?.toString(),
+      clickAction: json['click_action']?.toString(),
+      message: json['message']?.toString(),
+      propertyId: json['property_id']?.toString(),
+      file: json['file']?.toString(),
+      chatMessageType: json['chat_message_type']?.toString() ?? 'text',
+      audio: json['audio']?.toString(),
+      username: json['username']?.toString(),
+    );
   }
-  String? id;
-  bool? isSentByMe;
-  bool? isSentNow;
 
-  String? date;
-
-  String? propertyTitleImage;
-  String? timeAgo;
-  String? receiverId;
-  String? sound;
-  String? userProfile;
-  String? body;
-  String? title;
-  String? clickAction;
-  String? message;
+  // core metadata
+  String id;
   String? senderId;
-  String? propertyId;
-  String? file;
-  String? chatMessageType;
-  String? audio;
+  bool? isSent;
+  bool isSentByMe;
+  bool isSentNow;
+  String chatMessageType;
+
+  // timestamps
+  String? date;
+  String? timeAgo;
+
+  // UI extras
+  BuildContext? context;
   String? username;
+  String? userProfile;
+  String? sound;
+  String? propertyTitleImage;
 
-  Map<String, dynamic> toJson() {
-    final data = <String, dynamic>{};
+  // payload
+  String? receiverId;
+  String? propertyId;
+  String? title;
+  String? body;
+  String? message;
+  String? clickAction;
+  String? file;
+  String? audio;
 
-    data['created_at'] = date;
+  // Methods
 
-    data['id'] = id;
+  void init() {}
+  void dispose() {}
+  void onRemove() {}
 
-    data['isSentNow'] = isSentNow;
-    data['isSentByMe'] = isSentByMe;
-    data['property_title_image'] = propertyTitleImage;
-    data['time_ago'] = timeAgo;
-    data['receiver_id'] = receiverId;
-    data['sound'] = sound;
-    data['user_profile'] = userProfile;
-    data['body'] = body;
-    data['title'] = title;
-    data['click_action'] = clickAction;
-    data['message'] = message;
-    data['sender_id'] = senderId;
-    data['property_id'] = propertyId;
-    data['file'] = file;
-    data['chat_message_type'] = chatMessageType;
-    data['audio'] = audio;
-    data['username'] = username;
-    return data;
+  void setContext(BuildContext context) {
+    this.context = context;
   }
 
-  Future<void> setId(String id) async => this.id = id;
+  Widget render(BuildContext context) {
+    // Placeholder for now, or inject your RenderMessage widget here
+    return const SizedBox();
+  }
 
-  Future<void> setIsSentByMe(value) async =>
-      isSentByMe = value as bool? ?? false;
-
-  Future<void> setIsSentNow(value) async => isSentNow = value as bool? ?? false;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'sender_id': senderId,
+        'receiver_id': receiverId,
+        'isSentByMe': isSentByMe,
+        'isSentNow': isSentNow,
+        'created_at': date,
+        'property_title_image': propertyTitleImage,
+        'time_ago': timeAgo,
+        'sound': sound,
+        'user_profile': userProfile,
+        'body': body,
+        'title': title,
+        'click_action': clickAction,
+        'message': message,
+        'property_id': propertyId,
+        'file': file,
+        'chat_message_type': chatMessageType,
+        'audio': audio,
+        'username': username,
+      };
 
   @override
   String toString() {
-    return 'ChatMessageModel{date: $date,sentByMe:$isSentByMe, sentNow:$isSentNow  id:$id, propertyTitleImage: $propertyTitleImage, timeAgo: $timeAgo, receiverId: $receiverId, sound: $sound, userProfile: $userProfile, body: $body,title: $title, clickAction: $clickAction, message: $message, senderId: $senderId, propertyId: $propertyId, file: $file, chatMessageType: $chatMessageType, audio: $audio, username: $username}';
+    return 'ChatMessage('
+        'id: $id, '
+        'isSentByMe: $isSentByMe, '
+        'isSentNow: $isSentNow, '
+        'date: $date, '
+        'propertyTitleImage: $propertyTitleImage, '
+        'timeAgo: $timeAgo, '
+        'receiverId: $receiverId, '
+        'senderId: $senderId, '
+        'sound: $sound, '
+        'userProfile: $userProfile, '
+        'body: $body, '
+        'title: $title, '
+        'clickAction: $clickAction, '
+        'message: $message, '
+        'propertyId: $propertyId, '
+        'file: $file, '
+        'chatMessageType: $chatMessageType, '
+        'audio: $audio, '
+        'username: $username, '
+        ')';
   }
+
+  void setIsSentByMe({required bool value}) {
+    isSentByMe = value;
+  }
+}
+
+class MessageAction {
+  MessageAction({required this.action, required this.message});
+  final String action;
+  final ChatMessage message;
+}
+
+class MessageId {
+  MessageId(this.id);
+  factory MessageId.empty(String id) => MessageId(id);
+  factory MessageId.senderId(String id) => MessageId(id);
+  final String id;
 }

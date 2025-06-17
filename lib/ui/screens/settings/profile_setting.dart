@@ -11,9 +11,9 @@ class ProfileSettings extends StatefulWidget {
   @override
   ProfileSettingsState createState() => ProfileSettingsState();
 
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => ProfileSettings(
         title: arguments?['title'] as String,
         param: arguments?['param'] as String,

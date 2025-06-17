@@ -11,8 +11,8 @@ class Notifications extends StatefulWidget {
   @override
   NotificationsState createState() => NotificationsState();
 
-  static Route route(RouteSettings routeSettings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings routeSettings) {
+    return CupertinoPageRoute(
       builder: (_) => const Notifications(),
     );
   }
@@ -79,13 +79,10 @@ class NotificationsState extends State<Notifications> {
               return Column(
                 children: [
                   Expanded(
-                    child: ListView.separated(
+                    child: ListView.builder(
                       controller: _pageScrollController,
                       physics: Constant.scrollPhysics,
                       padding: const EdgeInsets.all(10),
-                      separatorBuilder: (context, index) => const SizedBox(
-                        height: 2,
-                      ),
                       itemCount: state.notificationdata.length,
                       itemBuilder: (context, index) {
                         final notificationData = state.notificationdata[index];
@@ -110,6 +107,7 @@ class NotificationsState extends State<Notifications> {
                               borderColor: context.color.borderColor,
                               radius: 10,
                             ),
+                            margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 8,
@@ -144,36 +142,25 @@ class NotificationsState extends State<Notifications> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: <Widget>[
-                                      Text(
+                                      CustomText(
                                         notificationData.title!
                                             .firstUpperCase(),
                                         maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium!
-                                            .merge(
-                                              const TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
+                                        color: context.color.textColorDark,
+                                        fontSize: context.font.larger,
                                       ),
-                                      Text(
+                                      CustomText(
                                         notificationData.message!
                                             .firstUpperCase(),
                                         maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall,
+                                        fontSize: context.font.small,
+                                        color: context.color.textColorDark,
                                       ),
-                                      Text(
+                                      CustomText(
                                         notificationData.createdAt!
                                             .formatDate(),
-                                        style: TextStyle(
-                                          fontSize: context.font.smaller,
-                                          color: context.color.textLightColor,
-                                        ),
+                                        fontSize: context.font.smaller,
+                                        color: context.color.textLightColor,
                                       ),
                                     ],
                                   ),
@@ -188,7 +175,14 @@ class NotificationsState extends State<Notifications> {
                   if ((context.read<FetchNotificationsCubit>().state
                           as FetchNotificationsSuccess)
                       .isLoadingMore) ...[
-                    Center(child: UiUtils.progress()),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: UiUtils.progress(
+                        height: 24.rh(context),
+                        width: 24.rw(context),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                   ],
                 ],
               );

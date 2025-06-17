@@ -5,7 +5,6 @@ import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/payment/gatways/paystack.dart';
 import 'package:ebroker/utils/payment/lib/payment.dart';
 import 'package:ebroker/utils/payment/lib/purchase_package.dart';
-import 'package:flutter/material.dart';
 
 class Paystack extends Payment {
   SubscriptionPackageModel? _modal;
@@ -17,7 +16,7 @@ class Paystack extends Payment {
     isPaymentGatewayOpen = true;
     Navigator.push<dynamic>(
       context,
-      BlurredRouter(
+      CupertinoPageRoute(
         builder: (context) {
           return PaystackWidget(
             pacakge: _modal!,
@@ -33,7 +32,7 @@ class Paystack extends Payment {
           );
         },
       ),
-    ).then((dynamic value) {
+    ).then((value) {
       isPaymentGatewayOpen = false;
       if (value != null && value is bool) {
         HelperUtils.showSnackBarMessage(
@@ -48,7 +47,7 @@ class Paystack extends Payment {
           () {
             UiUtils.showBlurredDialoge(
               context,
-              dialoge: BlurredDialogBox(
+              dialog: BlurredDialogBox(
                 title: UiUtils.translate(
                   context,
                   value['type'] == 'success' ? 'success' : 'Failed',

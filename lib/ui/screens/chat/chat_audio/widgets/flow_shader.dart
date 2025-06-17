@@ -21,9 +21,9 @@ class FlowShader extends StatefulWidget {
 class FlowShaderState extends State<FlowShader>
     with SingleTickerProviderStateMixin {
   late AnimationController controller;
-  late Animation animation1;
-  late Animation animation2;
-  late Animation animation3;
+  late Animation<dynamic> animation1;
+  late Animation<dynamic> animation2;
+  late Animation<dynamic> animation3;
 
   @override
   void dispose() {

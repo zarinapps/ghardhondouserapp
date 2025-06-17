@@ -2,7 +2,6 @@ import 'package:ebroker/data/cubits/Report/fetch_property_report_reason_list.dar
 import 'package:ebroker/data/cubits/Report/property_report_cubit.dart';
 import 'package:ebroker/data/model/report_property/reason_model.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
-import 'package:ebroker/utils/constant.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
 import 'package:ebroker/utils/helper_utils.dart';
 import 'package:ebroker/utils/ui_utils.dart';
@@ -54,14 +53,9 @@ class _ReportPropertyScreenState extends State<ReportPropertyScreen> {
             const SizedBox(
               height: 15,
             ),
-            ListView.separated(
-              shrinkWrap: true,
-              itemCount: reasons?.length ?? 0,
-              physics: Constant.scrollPhysics,
-              separatorBuilder: (context, index) {
-                return const SizedBox(height: 10);
-              },
-              itemBuilder: (context, index) {
+            ...List.generate(
+              reasons?.length ?? 0,
+              (index) {
                 return InkWell(
                   borderRadius: BorderRadius.circular(10),
                   onTap: () {
@@ -73,6 +67,7 @@ class _ReportPropertyScreenState extends State<ReportPropertyScreen> {
                     setState(() {});
                   },
                   child: Container(
+                    width: MediaQuery.of(context).size.width,
                     decoration: BoxDecoration(
                       color: context.color.primaryColor,
                       borderRadius: BorderRadius.circular(10),

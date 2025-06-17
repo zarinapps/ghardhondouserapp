@@ -63,7 +63,7 @@ class MainActivity extends StatefulWidget {
 
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map? ?? {};
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) =>
           MainActivity(from: arguments['from'] as String? ?? 'main'),
     );
@@ -74,7 +74,7 @@ class MainActivityState extends State<MainActivity>
     with TickerProviderStateMixin {
   int currtab = 0;
   static final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
-  final List _pageHistory = [];
+  final List<dynamic> _pageHistory = [];
   late PageController pageController;
   DateTime? currentBackPressTime;
 
@@ -162,9 +162,10 @@ class MainActivityState extends State<MainActivity>
         city: 'Bhuj',
         state: 'Gujrat',
         country: 'India',
-        longitude: 69.666931,
-        latitude: 23.242001,
+        latitude: AppSettings.latitude,
+        longitude: AppSettings.longitude,
         placeId: 'ChIJF28LAAniUDkRpnQHr1jzd3A',
+        radius: AppSettings.maxRadius,
       );
     }
 
@@ -185,12 +186,17 @@ class MainActivityState extends State<MainActivity>
 
   void addHistory(int index) {
     final stack = navigationStack;
-    // if (stack.length > 5) {
-    //   stack.removeAt(0);
-    // } else {
+
     if (stack.last != index) {
-      stack.add(index);
-      navigationStack = stack;
+      if (index == 1 || index == 3) {
+        if (GuestChecker.value == false) {
+          stack.add(index);
+          navigationStack = stack;
+        }
+      } else {
+        stack.add(index);
+        navigationStack = stack;
+      }
     }
 
     setState(() {});
@@ -257,7 +263,7 @@ class MainActivityState extends State<MainActivity>
             ///This is force update
             UiUtils.showBlurredDialoge(
               context,
-              dialoge: BlurredDialogBox(
+              dialog: BlurredDialogBox(
                 onAccept: () async {
                   if (Platform.isAndroid) {
                     await launchUrl(
@@ -297,7 +303,7 @@ class MainActivityState extends State<MainActivity>
           } else {
             UiUtils.showBlurredDialoge(
               context,
-              dialoge: BlurredDialogBox(
+              dialog: BlurredDialogBox(
                 onAccept: () async {
                   if (Platform.isAndroid) {
                     await launchUrl(
@@ -338,7 +344,7 @@ class MainActivityState extends State<MainActivity>
         () {
           UiUtils.showBlurredDialoge(
             context,
-            dialoge: BlurredDialogBox(
+            dialog: BlurredDialogBox(
               title: UiUtils.translate(context, 'setLocation'),
               content: StatefulBuilder(
                 builder: (context, update) {
@@ -351,6 +357,8 @@ class MainActivityState extends State<MainActivity>
                           context,
                           'setLocationforBetter',
                         ),
+                        maxLines: 3,
+                        textAlign: TextAlign.center,
                       ),
                       Row(
                         children: [
@@ -433,338 +441,352 @@ class MainActivityState extends State<MainActivity>
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion(
-      value: UiUtils.getSystemUiOverlayStyle(context: context),
-      child: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) async {
-          if (didPop) return;
-          final length = navigationStack.length;
-          if (length == 1 && navigationStack[0] == 0) {
-            final now = DateTime.now();
-            if (currentBackPressTime == null ||
-                now.difference(currentBackPressTime!) >
-                    const Duration(seconds: 2)) {
-              currentBackPressTime = now;
-              await Fluttertoast.showToast(
-                msg: 'pressAgainToExit'.translate(context),
-              );
-              return Future.value(false);
-            }
-          } else {
-            //This will put our page on previous page.
-            final secondLast = navigationStack[length - 2];
-            navigationStack.removeLast();
-            pageController.jumpToPage(secondLast);
-            setState(() {});
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final length = navigationStack.length;
+        if (length == 1 && navigationStack[0] == 0) {
+          final now = DateTime.now();
+          if (currentBackPressTime == null ||
+              now.difference(currentBackPressTime!) >
+                  const Duration(seconds: 2)) {
+            currentBackPressTime = now;
+            await Fluttertoast.showToast(
+              msg: 'pressAgainToExit'.translate(context),
+            );
             return Future.value(false);
           }
+        } else {
+          //This will put our page on previous page.
+          final secondLast = navigationStack[length - 2];
+          navigationStack.removeLast();
+          pageController.jumpToPage(secondLast);
+          setState(() {});
+          return Future.value(false);
+        }
 
-          Future.delayed(Duration.zero, () {
-            SystemChannels.platform.invokeMethod('SystemNavigator.pop');
-          });
-        },
-        child: Scaffold(
-          backgroundColor: context.color.primaryColor,
-          bottomNavigationBar:
-              Constant.maintenanceMode == '1' ? null : bottomBar(),
-          body: Stack(
-            children: <Widget>[
-              PageView(
-                physics: const NeverScrollableScrollPhysics(),
-                controller: pageController,
-                onPageChanged: onItemSwipe,
-                children: pages,
+        Future.delayed(Duration.zero, () {
+          SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+        });
+      },
+      child: Scaffold(
+        backgroundColor: context.color.primaryColor,
+        bottomNavigationBar:
+            Constant.maintenanceMode == '1' ? null : bottomBar(),
+        body: Stack(
+          children: <Widget>[
+            PageView(
+              physics: const NeverScrollableScrollPhysics(),
+              controller: pageController,
+              onPageChanged: onItemSwipe,
+              children: pages,
+            ),
+            if (Constant.maintenanceMode == '1')
+              Container(
+                color: Theme.of(context).colorScheme.primaryColor,
               ),
-              if (Constant.maintenanceMode == '1')
-                Container(
-                  color: Theme.of(context).colorScheme.primaryColor,
-                ),
-              SizedBox(
-                width: double.infinity,
-                height: context.screenHeight,
-                child: Stack(
-                  children: [
-                    AnimatedBuilder(
-                      animation: _forRentController,
-                      builder: (context, c) {
-                        return Positioned(
-                          bottom: _rentTween.value,
-                          left: (context.screenWidth / 2) - (181 / 2),
-                          child: GestureDetector(
-                            onTap: () async {
-                              GuestChecker.check(
-                                onNotGuest: () async {
-                                  try {
-                                    if (AppSettings.isVerificationRequired ==
-                                            true &&
-                                        isProfileCompleted != true) {
-                                      await UiUtils.showBlurredDialoge(
-                                        context,
-                                        dialoge: BlurredDialogBox(
-                                          title: 'completeProfile'
-                                              .translate(context),
-                                          isAcceptContainesPush: true,
-                                          onAccept: () async {
-                                            await Navigator.popAndPushNamed(
-                                              context,
-                                              Routes.completeProfile,
-                                              arguments: {
-                                                'from': 'home',
-                                                'navigateToHome': true,
-                                              },
-                                            );
-                                          },
-                                          content: HiveUtils.getUserDetails()
-                                                          .profile ==
-                                                      '' &&
-                                                  (HiveUtils.getUserDetails()
-                                                              .name !=
-                                                          '' &&
-                                                      HiveUtils.getUserDetails()
-                                                              .email !=
-                                                          '' &&
-                                                      HiveUtils.getUserDetails()
-                                                              .address !=
-                                                          '')
-                                              ? CustomText(
-                                                  'uploadProfilePicture'
-                                                      .translate(context),
-                                                )
-                                              : CustomText(
-                                                  'completeProfileFirst'
-                                                      .translate(context),
-                                                ),
-                                        ),
-                                      );
-                                    } else {
-                                      unawaited(Widgets.showLoader(context));
-                                      // final systemRepository = SystemRepository();
-                                      // final settings = await systemRepository
-                                      //     .fetchSystemSettings(
-                                      //   isAnonymouse: false,
-                                      // );
-                                      final checkPackage = CheckPackage();
-
-                                      final packageAvailable =
-                                          await checkPackage
-                                              .checkPackageAvailable(
-                                        packageType: PackageType.propertyList,
-                                      );
-                                      if (packageAvailable) {
-                                        Widgets.hideLoder(context);
-                                        await Navigator.pushNamed(
-                                          context,
-                                          Routes.selectPropertyTypeScreen,
-                                          arguments: {
-                                            'type': PropertyAddType.property,
-                                          },
-                                        );
-                                      } else {
-                                        Widgets.hideLoder(context);
-                                        await UiUtils.showBlurredDialoge(
-                                          context,
-                                          dialoge:
-                                              const BlurredSubscriptionDialogBox(
-                                            packageType: SubscriptionPackageType
-                                                .propertyList,
-                                            isAcceptContainesPush: true,
-                                          ),
-                                        );
-                                      }
-                                      Widgets.hideLoder(context);
-                                    }
-                                  } catch (e) {
-                                    Widgets.hideLoder(context);
-                                    await HelperUtils.showSnackBarMessage(
+            SizedBox(
+              width: double.infinity,
+              height: context.screenHeight,
+              child: Stack(
+                children: [
+                  AnimatedBuilder(
+                    animation: _forRentController,
+                    builder: (context, c) {
+                      return Positioned(
+                        bottom: _rentTween.value,
+                        left: (context.screenWidth / 2) - (181 / 2),
+                        child: GestureDetector(
+                          onTap: () async {
+                            await GuestChecker.check(
+                              onNotGuest: () async {
+                                try {
+                                  if (AppSettings.isVerificationRequired ==
+                                          true &&
+                                      isProfileCompleted != true) {
+                                    await UiUtils.showBlurredDialoge(
                                       context,
-                                      'somethingWentWrng'.translate(context),
-                                    );
-                                  }
-                                },
-                              );
-                            },
-                            child: Container(
-                              width: 181,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: context.color.borderColor,
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: context.color.tertiaryColor
-                                        .withValues(alpha: 0.4),
-                                    offset: const Offset(0, 3),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                                color: context.color.tertiaryColor,
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              alignment: Alignment.center,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  UiUtils.getSvg(
-                                    AppIcons.propertiesIcon,
-                                    color: context.color.buttonColor,
-                                    width: 16,
-                                    height: 16,
-                                  ),
-                                  SizedBox(
-                                    width: 7.rw(context),
-                                  ),
-                                  CustomText(
-                                    'property'.translate(context),
-                                    color: context.color.buttonColor,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    AnimatedBuilder(
-                      animation: _forSellAnimationController,
-                      builder: (context, c) {
-                        return Positioned(
-                          bottom: _sellTween.value,
-                          left: (context.screenWidth / 2) - 128 / 2,
-                          child: GestureDetector(
-                            onTap: () async {
-                              GuestChecker.check(
-                                onNotGuest: () async {
-                                  try {
-                                    if (Constant.isDemoModeOn) {
-                                      await HelperUtils.showSnackBarMessage(
-                                        context,
-                                        'thisActionNotValidDemo'
+                                      dialog: BlurredDialogBox(
+                                        title: 'completeProfile'
                                             .translate(context),
-                                      );
-                                    } else if (AppSettings
-                                                .isVerificationRequired ==
-                                            true &&
-                                        isProfileCompleted != true) {
-                                      await UiUtils.showBlurredDialoge(
-                                        context,
-                                        dialoge: BlurredDialogBox(
-                                          title: 'completeProfile'
-                                              .translate(context),
-                                          isAcceptContainesPush: true,
-                                          onAccept: () async {
-                                            await Navigator.popAndPushNamed(
-                                              context,
-                                              Routes.completeProfile,
-                                              arguments: {
-                                                'from': 'home',
-                                                'navigateToHome': true,
-                                              },
-                                            );
-                                          },
-                                          content: CustomText(
-                                            'completeProfile'
-                                                .translate(context),
-                                          ),
-                                        ),
-                                      );
-                                    } else {
-                                      unawaited(Widgets.showLoader(context));
+                                        isAcceptContainesPush: true,
+                                        onAccept: () async {
+                                          await Navigator.popAndPushNamed(
+                                            context,
+                                            Routes.completeProfile,
+                                            arguments: {
+                                              'from': 'home',
+                                              'navigateToHome': true,
+                                            },
+                                          );
+                                        },
+                                        content: HiveUtils.getUserDetails()
+                                                        .profile ==
+                                                    '' &&
+                                                (HiveUtils.getUserDetails()
+                                                            .name !=
+                                                        '' &&
+                                                    HiveUtils.getUserDetails()
+                                                            .email !=
+                                                        '' &&
+                                                    HiveUtils.getUserDetails()
+                                                            .address !=
+                                                        '')
+                                            ? CustomText(
+                                                'uploadProfilePicture'
+                                                    .translate(context),
+                                              )
+                                            : CustomText(
+                                                'completeProfileFirst'
+                                                    .translate(context),
+                                              ),
+                                      ),
+                                    );
+                                  } else {
+                                    unawaited(Widgets.showLoader(context));
+                                    // final systemRepository = SystemRepository();
+                                    // final settings = await systemRepository
+                                    //     .fetchSystemSettings(
+                                    //   isAnonymouse: false,
+                                    // );
+                                    final checkPackage = CheckPackage();
 
-                                      final checkPackage = CheckPackage();
-
-                                      final packageAvailable =
-                                          await checkPackage
-                                              .checkPackageAvailable(
-                                        packageType: PackageType.projectList,
-                                      );
-                                      if (packageAvailable) {
-                                        Widgets.hideLoder(context);
-                                        GuestChecker.check(
-                                          onNotGuest: () {
-                                            Navigator.pushNamed(
-                                              context,
-                                              Routes.selectPropertyTypeScreen,
-                                              arguments: {
-                                                'type': PropertyAddType.project,
-                                              },
+                                    final packageAvailable = await checkPackage
+                                        .checkPackageAvailable(
+                                      packageType: PackageType.propertyList,
+                                    );
+                                    if (packageAvailable) {
+                                      if (context
+                                          .read<FetchCategoryCubit>()
+                                          .state is! FetchCategorySuccess) {
+                                        await context
+                                            .read<FetchCategoryCubit>()
+                                            .fetchCategories(
+                                              loadWithoutDelay: true,
+                                              forceRefresh: false,
                                             );
-                                          },
-                                        );
-                                      } else {
-                                        Widgets.hideLoder(context);
-                                        await UiUtils.showBlurredDialoge(
-                                          context,
-                                          dialoge:
-                                              const BlurredSubscriptionDialogBox(
-                                            packageType: SubscriptionPackageType
-                                                .projectList,
-                                            isAcceptContainesPush: true,
-                                          ),
-                                        );
                                       }
                                       Widgets.hideLoder(context);
+                                      await Navigator.pushNamed(
+                                        context,
+                                        Routes.selectPropertyTypeScreen,
+                                        arguments: {
+                                          'type': PropertyAddType.property,
+                                        },
+                                      );
+                                    } else {
+                                      Widgets.hideLoder(context);
+                                      await UiUtils.showBlurredDialoge(
+                                        context,
+                                        dialog:
+                                            const BlurredSubscriptionDialogBox(
+                                          packageType: SubscriptionPackageType
+                                              .propertyList,
+                                          isAcceptContainesPush: true,
+                                        ),
+                                      );
                                     }
-                                  } catch (e) {
                                     Widgets.hideLoder(context);
-                                    await HelperUtils.showSnackBarMessage(
-                                      context,
-                                      'somethingWentWrng'.translate(context),
-                                    );
                                   }
-                                },
-                              );
-                            },
-                            child: Container(
-                              width: 128,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: context.color.borderColor,
-                                  width: 1.5,
+                                } catch (e) {
+                                  Widgets.hideLoder(context);
+                                  await HelperUtils.showSnackBarMessage(
+                                    context,
+                                    'somethingWentWrng'.translate(context),
+                                  );
+                                }
+                              },
+                            );
+                          },
+                          child: Container(
+                            width: 181,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: context.color.borderColor,
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.color.tertiaryColor
+                                      .withValues(alpha: 0.4),
+                                  offset: const Offset(0, 3),
+                                  blurRadius: 10,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: context.color.tertiaryColor
-                                        .withValues(alpha: 0.4),
-                                    offset: const Offset(0, 3),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                                color: context.color.tertiaryColor,
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              alignment: Alignment.center,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  UiUtils.getSvg(
-                                    AppIcons.upcomingProject,
-                                    color: context.color.buttonColor,
-                                    width: 16,
-                                    height: 16,
-                                  ),
-                                  SizedBox(
-                                    width: 7.rw(context),
-                                  ),
-                                  CustomText(
-                                    UiUtils.translate(context, 'project'),
-                                    color: context.color.buttonColor,
-                                  ),
-                                ],
-                              ),
+                              ],
+                              color: context.color.tertiaryColor,
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                UiUtils.getSvg(
+                                  AppIcons.propertiesIcon,
+                                  color: context.color.buttonColor,
+                                  width: 16,
+                                  height: 16,
+                                ),
+                                SizedBox(
+                                  width: 7.rw(context),
+                                ),
+                                CustomText(
+                                  'property'.translate(context),
+                                  color: context.color.buttonColor,
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                        ),
+                      );
+                    },
+                  ),
+                  AnimatedBuilder(
+                    animation: _forSellAnimationController,
+                    builder: (context, c) {
+                      return Positioned(
+                        bottom: _sellTween.value,
+                        left: (context.screenWidth / 2) - 128 / 2,
+                        child: GestureDetector(
+                          onTap: () async {
+                            await GuestChecker.check(
+                              onNotGuest: () async {
+                                try {
+                                  if (Constant.isDemoModeOn) {
+                                    await HelperUtils.showSnackBarMessage(
+                                      context,
+                                      'thisActionNotValidDemo'
+                                          .translate(context),
+                                    );
+                                  } else if (AppSettings
+                                              .isVerificationRequired ==
+                                          true &&
+                                      isProfileCompleted != true) {
+                                    await UiUtils.showBlurredDialoge(
+                                      context,
+                                      dialog: BlurredDialogBox(
+                                        title: 'completeProfile'
+                                            .translate(context),
+                                        isAcceptContainesPush: true,
+                                        onAccept: () async {
+                                          await Navigator.popAndPushNamed(
+                                            context,
+                                            Routes.completeProfile,
+                                            arguments: {
+                                              'from': 'home',
+                                              'navigateToHome': true,
+                                            },
+                                          );
+                                        },
+                                        content: CustomText(
+                                          'completeProfile'.translate(context),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    unawaited(Widgets.showLoader(context));
+
+                                    final checkPackage = CheckPackage();
+
+                                    final packageAvailable = await checkPackage
+                                        .checkPackageAvailable(
+                                      packageType: PackageType.projectList,
+                                    );
+                                    if (packageAvailable) {
+                                      if (context
+                                          .read<FetchCategoryCubit>()
+                                          .state is! FetchCategorySuccess) {
+                                        await context
+                                            .read<FetchCategoryCubit>()
+                                            .fetchCategories(
+                                              loadWithoutDelay: true,
+                                              forceRefresh: false,
+                                            );
+                                      }
+                                      Widgets.hideLoder(context);
+                                      await GuestChecker.check(
+                                        onNotGuest: () {
+                                          Navigator.pushNamed(
+                                            context,
+                                            Routes.selectPropertyTypeScreen,
+                                            arguments: {
+                                              'type': PropertyAddType.project,
+                                            },
+                                          );
+                                        },
+                                      );
+                                    } else {
+                                      Widgets.hideLoder(context);
+                                      await UiUtils.showBlurredDialoge(
+                                        context,
+                                        dialog:
+                                            const BlurredSubscriptionDialogBox(
+                                          packageType: SubscriptionPackageType
+                                              .projectList,
+                                          isAcceptContainesPush: true,
+                                        ),
+                                      );
+                                    }
+                                    Widgets.hideLoder(context);
+                                  }
+                                } catch (e) {
+                                  Widgets.hideLoder(context);
+                                  await HelperUtils.showSnackBarMessage(
+                                    context,
+                                    'somethingWentWrng'.translate(context),
+                                  );
+                                }
+                              },
+                            );
+                          },
+                          child: Container(
+                            width: 128,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: context.color.borderColor,
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.color.tertiaryColor
+                                      .withValues(alpha: 0.4),
+                                  offset: const Offset(0, 3),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                              color: context.color.tertiaryColor,
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                UiUtils.getSvg(
+                                  AppIcons.upcomingProject,
+                                  color: context.color.buttonColor,
+                                  width: 16,
+                                  height: 16,
+                                ),
+                                SizedBox(
+                                  width: 7.rw(context),
+                                ),
+                                CustomText(
+                                  UiUtils.translate(context, 'project'),
+                                  color: context.color.buttonColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -816,7 +838,6 @@ class MainActivityState extends State<MainActivity>
     } else {
       currtab = index;
       pageController.jumpToPage(currtab);
-
       setState(() {});
     }
   }
@@ -851,10 +872,10 @@ class MainActivityState extends State<MainActivity>
   BottomAppBar bottomBar() {
     return BottomAppBar(
       // notchMargin: 10.0,
-      color: context.color.primaryColor,
+      color: context.color.secondaryColor,
       shape: const CircularNotchedRectangle(),
       child: ColoredBox(
-        color: context.color.primaryColor,
+        color: context.color.secondaryColor,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
@@ -872,7 +893,7 @@ class MainActivityState extends State<MainActivity>
               transform: Matrix4.identity()..translate(0.toDouble(), -20),
               child: SizedBox(
                 width: 60.rw(context),
-                height: 66,
+                height: 66.rf(context),
                 child: Stack(
                   children: [
                     Center(
@@ -950,9 +971,7 @@ class MainActivityState extends State<MainActivity>
     return Expanded(
       child: Material(
         type: MaterialType.transparency,
-        child: InkWell(
-          highlightColor: Colors.transparent,
-          splashColor: Colors.transparent,
+        child: GestureDetector(
           onTap: () => onItemTapped(index),
           child: Column(
             mainAxisSize: MainAxisSize.min,

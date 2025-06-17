@@ -18,6 +18,6 @@ class FaqsRepository {
         .toList();
 
     return DataOutput(
-        total: result['total'] as int? ?? 0, modelList: modelList);
+        total: result['total'] as int? ?? 0, modelList: modelList,);
   }
 }

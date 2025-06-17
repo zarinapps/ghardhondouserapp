@@ -27,7 +27,7 @@ class ReportPropertyRepository {
     }
   }
 
-  Future<Map> reportProperty({
+  Future<Map<dynamic, dynamic>> reportProperty({
     required int reasonId,
     required int propertyId,
     String? message,

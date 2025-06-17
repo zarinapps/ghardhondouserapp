@@ -23,7 +23,7 @@ class PropertyAddSuccess extends StatelessWidget {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        Navigator.popUntil(context, (Route route) => route.isFirst);
+        Navigator.popUntil(context, (Route<dynamic> route) => route.isFirst);
         return Future.value(false);
       },
       child: Scaffold(
@@ -55,56 +55,58 @@ class PropertyAddSuccess extends StatelessWidget {
                 height: 68,
               ),
               MaterialButton(
-                  elevation: 0,
-                  onPressed: () async {
-                    try {
-                      unawaited(Widgets.showLoader(context));
-                      final fetch = PropertyRepository();
-                      final dataOutput =
-                          await fetch.fetchPropertyFromPropertyId(
-                        id: model.id!,
-                        isMyProperty:
-                            model.addedBy.toString() == HiveUtils.getUserId(),
-                      );
-                      Future.delayed(
-                        Duration.zero,
-                        () {
-                          Widgets.hideLoder(context);
-                          HelperUtils.goToNextPage(
-                            Routes.propertyDetails,
-                            context,
-                            false,
-                            args: {
-                              'propertyData': dataOutput,
-                              'fromMyProperty': true,
-                            },
-                          );
-                        },
-                      );
-                    } catch (e) {
-                      Widgets.hideLoder(context);
-                    }
-                  },
-                  height: 48,
-                  minWidth: MediaQuery.of(context).size.width * 0.6,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: context.color.tertiaryColor),
-                  ),
-                  color: context.color.backgroundColor,
-                  child: CustomText(
-                    'previewProperty'.translate(context),
-                    color: context.color.tertiaryColor,
-                    fontSize: context.font.larger,
-                  ),),
+                elevation: 0,
+                onPressed: () async {
+                  try {
+                    unawaited(Widgets.showLoader(context));
+                    final fetch = PropertyRepository();
+                    final dataOutput = await fetch.fetchPropertyFromPropertyId(
+                      id: model.id!,
+                      isMyProperty:
+                          model.addedBy.toString() == HiveUtils.getUserId(),
+                    );
+                    Future.delayed(
+                      Duration.zero,
+                      () {
+                        Widgets.hideLoder(context);
+                        HelperUtils.goToNextPage(
+                          Routes.propertyDetails,
+                          context,
+                          false,
+                          args: {
+                            'propertyData': dataOutput,
+                            'fromMyProperty': true,
+                          },
+                        );
+                      },
+                    );
+                  } catch (e) {
+                    Widgets.hideLoder(context);
+                  }
+                },
+                height: 48,
+                minWidth: MediaQuery.of(context).size.width * 0.6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: context.color.tertiaryColor),
+                ),
+                color: context.color.backgroundColor,
+                child: CustomText(
+                  'previewProperty'.translate(context),
+                  color: context.color.tertiaryColor,
+                  fontSize: context.font.larger,
+                ),
+              ),
               const SizedBox(
                 height: 15,
               ),
               GestureDetector(
                 onTap: () {
                   Navigator.of(context).pushNamedAndRemoveUntil(
-                      Routes.main, (route) => false,
-                      arguments: {'from': 'propertySuccess'},);
+                    Routes.main,
+                    (route) => false,
+                    arguments: {'from': 'propertySuccess'},
+                  );
                 },
                 child: CustomText(
                   'backToHome'.translate(context),

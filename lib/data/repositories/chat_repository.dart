@@ -1,9 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:ebroker/data/model/chat/chated_user_model.dart';
 import 'package:ebroker/data/model/data_output.dart';
-import 'package:ebroker/ui/screens/chat_new/message_types/blueprint.dart';
-import 'package:ebroker/ui/screens/chat_new/message_types/registerar.dart';
 import 'package:ebroker/ui/screens/chat_new/model.dart';
+import 'package:ebroker/ui/screens/chat_optimisation/registerar.dart';
 import 'package:ebroker/utils/api.dart';
 import 'package:ebroker/utils/constant.dart';
 import 'package:ebroker/utils/hive_utils.dart';
@@ -28,48 +27,113 @@ class ChatRepository {
     }).toList();
 
     return DataOutput(
-        total: int.parse(response['total_page']?.toString() ?? '0'),
-        modelList: modelList);
+      total: int.parse(response['total_page']?.toString() ?? '0'),
+      modelList: modelList,
+    );
   }
 
-  Future<DataOutput<Message>> getMessages({
+  Future<DataOutput<ChatMessage>> getMessages({
     required int page,
     required int userId,
     required int propertyId,
   }) async {
-    final response = await Api.get(
-      url: Api.getMessages,
-      queryParameters: {
-        'user_id': userId,
-        'property_id': propertyId,
-        'page': page,
-        'per_page': Constant.minChatMessages,
-      },
-    );
-    final modelList = (response['data']['data'] as List).map(
-      (result) {
-        //Creating model
-        final chatMessageModel =
-            ChatMessageModel.fromJson(result as Map<String, dynamic>? ?? {});
-        chatMessageModel
-          ..setIsSentByMe(
-            HiveUtils.getUserId() == chatMessageModel.senderId.toString(),
-          )
-          ..setIsSentNow(false)
-          ..date = result?['created_at']?.toString() ?? '';
-        //Creating message widget
-        final message = filterMessageType(chatMessageModel)
-          ..isSentByMe = chatMessageModel.isSentByMe ?? false
-          ..isSentNow = chatMessageModel.isSentNow ?? false
-          ..message = chatMessageModel;
+    try {
+      final response = await Api.get(
+        url: Api.getMessages,
+        queryParameters: {
+          'user_id': userId,
+          'property_id': propertyId,
+          'page': page,
+          'per_page': Constant.minChatMessages,
+        },
+      );
 
-        return message;
-      },
-    ).toList();
+      // Check if data exists and has the expected structure
+      if (response['data'] == null ||
+          response['data']['data'] == null ||
+          response['data']['data'] is! List ||
+          (response['data']['data'] as List).isEmpty) {
+        return DataOutput(total: 0, modelList: []);
+      }
 
-    return DataOutput(
+      final modelList = (response['data']['data'] as List).map<ChatMessage>(
+        (result) {
+          try {
+            // Safely convert to Map
+            final resultMap = result as Map<String, dynamic>? ?? {};
+
+            // Creating model
+            final chatMessageModel = ChatMessage.fromJson(resultMap);
+
+            // Set additional properties
+            chatMessageModel
+              ..setIsSentByMe(
+                value: HiveUtils.getUserId() ==
+                    chatMessageModel.senderId.toString(),
+              )
+              ..isSentNow = false
+              ..date = resultMap['created_at']?.toString() ?? ''
+              ..timeAgo = resultMap['time_ago']?.toString() ?? '';
+
+            // Handle file attachments properly
+            if (resultMap['file'] != null &&
+                resultMap['file'].toString().isNotEmpty) {
+              chatMessageModel.file = resultMap['file'].toString();
+
+              // Set the chat message type based on file extension
+              final fileUrl = resultMap['file'].toString();
+              final fileExt = fileUrl.split('.').last.toLowerCase();
+
+              // Check if there's also a text message
+              if (chatMessageModel.message != null &&
+                  chatMessageModel.message.toString().isNotEmpty) {
+                chatMessageModel.chatMessageType = 'file_and_text';
+              } else if (['jpg', 'jpeg', 'png', 'gif', 'webp']
+                  .contains(fileExt)) {
+                // Override the API's chat_message_type for image files
+                chatMessageModel.chatMessageType = 'image';
+              } else if (['mp3', 'wav', 'ogg', 'm4a'].contains(fileExt)) {
+                chatMessageModel.chatMessageType = 'audio';
+              } else {
+                chatMessageModel.chatMessageType = 'file';
+              }
+            }
+
+            // Creating message widget with proper type handling
+            final message = filterMessageType(chatMessageModel)
+              ..propertyId = chatMessageModel.propertyId
+              ..receiverId = chatMessageModel.receiverId
+              ..senderId = chatMessageModel.senderId
+              ..isSentNow = chatMessageModel.isSentNow
+              ..message = chatMessageModel.message
+              ..file = chatMessageModel.file
+              ..timeAgo = chatMessageModel.timeAgo
+              ..date = chatMessageModel.date
+              ..chatMessageType = chatMessageModel.chatMessageType;
+
+            return message;
+          } catch (e) {
+            // Return an empty message in case of error
+            return ChatMessage()
+              ..setIsSentByMe(value: true)
+              ..isSentNow = false
+              ..message = 'Error loading message';
+          }
+        },
+      ).toList();
+
+      // Filter out any invalid messages
+      final validMessages =
+          modelList.where((msg) => msg.id.isNotEmpty).toList();
+
+      return DataOutput(
         total: int.parse(response['total_page']?.toString() ?? '0'),
-        modelList: modelList);
+        modelList: validMessages,
+      );
+    } catch (e) {
+      // Return empty data on error
+      return DataOutput(total: 0, modelList: []);
+    }
   }
 
   Future<Map<String, dynamic>> sendMessage({
@@ -102,7 +166,6 @@ class ChatRepository {
       parameter: parameters,
     );
 
-    print('Output of send message is : $map');
     return map;
   }
 
@@ -123,7 +186,6 @@ class ChatRepository {
       parameter: parameters,
     );
 
-    print('Output of block user is : $map');
     return map;
   }
 
@@ -142,7 +204,6 @@ class ChatRepository {
       parameter: parameters,
     );
 
-    print('Output of unblock user is : $map');
     return map;
   }
 }

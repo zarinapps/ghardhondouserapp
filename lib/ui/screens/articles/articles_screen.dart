@@ -1,13 +1,14 @@
 import 'package:ebroker/data/model/article_model.dart';
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart' show Html;
 
 class ArticlesScreen extends StatefulWidget {
   const ArticlesScreen({super.key});
 
-  static Route route(RouteSettings settings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings settings) {
+    return CupertinoPageRoute(
       builder: (context) {
         return const ArticlesScreen();
       },
@@ -44,8 +45,7 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      color: context.color.tertiaryColor,
+    return CustomRefreshIndicator(
       onRefresh: () async {
         await context.read<FetchArticlesCubit>().fetchArticles();
       },

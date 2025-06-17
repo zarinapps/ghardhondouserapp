@@ -7,15 +7,20 @@ import 'package:ebroker/utils/sliver_grid_delegate_with_fixed_cross_axis_count_a
 import 'package:flutter/material.dart';
 
 class CityListScreen extends StatefulWidget {
-  const CityListScreen({super.key, this.from});
+  const CityListScreen({super.key, this.from, this.title});
   final String? from;
+  final String? title;
 
   @override
   State<CityListScreen> createState() => _CityListScreenState();
 
-  static Route route(RouteSettings routeSettings) {
-    return BlurredRouter(
-      builder: (_) => const CityListScreen(),
+  static Route<dynamic> route(RouteSettings routeSettings) {
+    final args = routeSettings.arguments as Map<String, dynamic>?;
+    return CupertinoPageRoute(
+      builder: (_) => CityListScreen(
+        from: args?['from'] as String? ?? '',
+        title: args?['title'] as String? ?? '',
+      ),
     );
   }
 }
@@ -52,7 +57,7 @@ class _CityListScreenState extends State<CityListScreen>
       backgroundColor: context.color.primaryColor,
       appBar: UiUtils.buildAppBar(
         context,
-        title: UiUtils.translate(context, 'allCities'),
+        title: widget.title ?? UiUtils.translate(context, 'allCities'),
         showBackButton: true,
       ),
       body: SingleChildScrollView(
@@ -162,9 +167,6 @@ class CityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onLongPress: () async {
-        HelperUtils.share(context, city.count, city.name);
-      },
       onTap: () {
         context.read<FetchCityPropertyList>().fetch(
               cityName: city.name,
@@ -172,7 +174,7 @@ class CityCard extends StatelessWidget {
             );
         Navigator.push(
           context,
-          BlurredRouter(
+          CupertinoPageRoute<dynamic>(
             builder: (context) {
               return CityPropertiesScreen(
                 cityName: city.name,
@@ -185,23 +187,17 @@ class CityCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           color: context.color.secondaryColor,
-          border: Border.all(
-            width: 1.5,
-            color: context.color.borderColor,
-          ),
         ),
         clipBehavior: Clip.antiAlias,
-        width: 155,
-        height: 200,
+        height: MediaQuery.of(context).size.height * 0.35,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               flex: 2,
               child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius:
-                      BorderRadius.vertical(bottom: Radius.circular(8)),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: UiUtils.getImage(
@@ -228,7 +224,7 @@ class CityCard extends StatelessWidget {
                       height: 5,
                     ),
                     CustomText(
-                      'Properties(${city.count})',
+                      '${'properties'.translate(context)} (${city.count})',
                       fontSize: context.font.normal,
                     ),
                   ],

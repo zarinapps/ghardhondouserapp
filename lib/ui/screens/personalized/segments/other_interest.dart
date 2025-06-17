@@ -146,7 +146,7 @@ class _OtherInterestsState extends State<OtherInterests> {
 
   @override
   Widget build(BuildContext context) {
-    final isFirstTime = widget.type == PersonalizedVisitType.FirstTime;
+    final isFirstTime = widget.type == PersonalizedVisitType.firstTime;
     return Scaffold(
       backgroundColor: context.color.primaryColor,
       appBar: UiUtils.buildAppBar(

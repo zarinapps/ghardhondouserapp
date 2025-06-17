@@ -1,5 +1,4 @@
 import 'package:ebroker/exports/main_export.dart';
-import 'package:flutter/material.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 class VideoPlayerWideget extends StatefulWidget {
@@ -16,14 +15,13 @@ class _VideoPlayerWidegetState extends State<VideoPlayerWideget> {
   YoutubeExplode youtubeExplode = YoutubeExplode();
   String? url;
 
-  getYoutubeVideo(url) async {
+  Future<void> getYoutubeVideo(url) async {
     try {
       final video = await youtubeExplode.videos.get(url);
       final manifest =
           await youtubeExplode.videos.streams.getManifest(video.id.value);
 
       final videoQuality = manifest.muxed.sortByVideoQuality().bestQuality;
-      url = videoQuality.url.toString();
       _flickmanager = FlickManager(
         autoPlay: false,
         videoPlayerController:
@@ -35,7 +33,7 @@ class _VideoPlayerWidegetState extends State<VideoPlayerWideget> {
     }
   }
 
-  Future getYoutubeVideoQualityUrls() async {
+  Future<dynamic> getYoutubeVideoQualityUrls() async {
     await YtbRepo().getVideoMetadata('https://youtu.be/lSf5ThEETPk');
   }
 

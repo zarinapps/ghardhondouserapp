@@ -8,12 +8,11 @@ import 'package:dio/dio.dart';
 import 'package:ebroker/app/app_theme.dart';
 import 'package:ebroker/data/cubits/chat_cubits/send_message.dart';
 import 'package:ebroker/data/cubits/system/app_theme_cubit.dart';
-import 'package:ebroker/ui/screens/chat/chat_screen.dart';
+import 'package:ebroker/ui/screens/chat_optimisation/chat_screen_new.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
 import 'package:ebroker/utils/helper_utils.dart';
 import 'package:ebroker/utils/hive_utils.dart';
-import 'package:ebroker/utils/notification/chat_message_handler.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -30,10 +29,10 @@ part 'parts/recordmsg.part.dart';
 ////Please don't make chaneges without sufficent knowledege in this file. otherwise you will be responsable for it
 ///
 //This will store and ensure that msg is already sent so we don't have to send it again
-Set sentMessages = {};
+Set<dynamic> sentMessages = {};
 
-class ChatMessage extends StatefulWidget {
-  const ChatMessage({
+class ChatWidget extends StatefulWidget {
+  const ChatWidget({
     required this.message,
     required this.isSentByMe,
     required this.isChatAudio,
@@ -49,8 +48,8 @@ class ChatMessage extends StatefulWidget {
     this.onHold,
   });
 
-  factory ChatMessage.fromMap(Map json) {
-    final chat = ChatMessage(
+  factory ChatWidget.fromMap(Map<dynamic, dynamic> json) {
+    final chat = ChatWidget(
       key: json['key'] as Key?,
       message: json['message']?.toString() ?? '',
       isSentByMe: json['isSentByMe'] as bool? ?? false,
@@ -79,10 +78,10 @@ class ChatMessage extends StatefulWidget {
   final Function(int id)? onHold;
 
   @override
-  State<ChatMessage> createState() => ChatMessageState();
+  State<ChatWidget> createState() => ChatMessageState();
 
   Map<dynamic, dynamic> toMap() {
-    final data = {};
+    final data = <dynamic, dynamic>{};
     data['key'] = key;
     data['message'] = message;
     data['isSentNow'] = isSentNow;
@@ -99,7 +98,7 @@ class ChatMessage extends StatefulWidget {
   }
 }
 
-class ChatMessageState extends State<ChatMessage>
+class ChatMessageState extends State<ChatWidget>
     with AutomaticKeepAliveClientMixin {
   bool isChatSent = false;
   bool selectedMessage = false;
@@ -110,7 +109,7 @@ class ChatMessageState extends State<ChatMessage>
   void initState() {
     ///isSentNow is for check if we are not appending messages multiple time
     if (widget.isSentByMe &&
-        (widget.isSentNow == true) &&
+        (widget.isSentNow ?? false) &&
         isChatSent == false) {
       if (!sentMessages.contains(widget.key)) {
         context.read<SendMessageCubit>().send(
@@ -150,7 +149,7 @@ class ChatMessageState extends State<ChatMessage>
     return matcher.hasMatch(input);
   }
 
-  List _replaceLink() {
+  List<dynamic> _replaceLink() {
     //This function will make part of text where link starts. we put invisible charector so we can split it with it
     final linkPattern = RegExp(
       r'(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)',
@@ -291,7 +290,8 @@ class ChatMessageState extends State<ChatMessage>
                                               ..onTap = () async {
                                                 await launchUrl(
                                                   Uri.parse(
-                                                      data?.toString() ?? ''),
+                                                    data?.toString() ?? '',
+                                                  ),
                                                 );
                                               },
                                             style: TextStyle(
@@ -305,8 +305,8 @@ class ChatMessageState extends State<ChatMessage>
                                         return TextSpan(
                                           text: '',
                                           children: _matchAstric(
-                                                  data?.toString() ?? '')
-                                              .map((text) {
+                                            data?.toString() ?? '',
+                                          ).map((text) {
                                             if (text.startsWith('*') &&
                                                 text.endsWith('*')) {
                                               return TextSpan(
@@ -350,22 +350,11 @@ class ChatMessageState extends State<ChatMessage>
                               ),
                       ),
                     ),
-                    if (widget.isSentByMe && widget.isSentNow == true) ...[
+                    if (widget.isSentByMe && (widget.isSentNow ?? false)) ...[
                       BlocConsumer<SendMessageCubit, SendMessageState>(
                         listener: (context, state) {
                           if (state is SendMessageSuccess) {
                             isChatSent = true;
-
-                            ///Value which we added locally
-                            final uniqueIdentifier = widget.key! as ValueKey;
-
-                            ////We were added local id so whenit completed we will replace it with server message id
-
-                            ChatMessageHandlerOLD.updateMessageId(
-                              uniqueIdentifier.value?.toString() ?? '',
-                              state.messageId,
-                            );
-
                             WidgetsBinding.instance
                                 .addPostFrameCallback((timeStamp) {
                               if (mounted) setState(() {});

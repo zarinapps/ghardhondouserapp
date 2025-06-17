@@ -9,7 +9,6 @@ import 'package:ebroker/utils/helper_utils.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -107,85 +106,81 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
         Navigator.pop(context);
       },
-      child: SafeArea(
-        child: Scaffold(
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            elevation: 0,
-            actions: [
-              if (widget.showDownloadButton == true &&
-                  widget.provider is NetworkImage)
-                IconButton(
-                  onPressed: () {
-                    downloadFile();
-                    widget.onTapDownload?.call();
-                  },
-                  icon: const Icon(Icons.download),
-                ),
-              const SizedBox(
-                width: 10,
-              ),
-            ],
-            backgroundColor: Colors.transparent,
-            leading: Container(
-              margin: const EdgeInsetsDirectional.only(start: 8),
-              decoration: BoxDecoration(
-                color: context.color.secondaryColor,
-                shape: BoxShape.circle,
-              ),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: UiUtils.buildAppBar(
+          context,
+          actions: [
+            if ((widget.showDownloadButton ?? false) &&
+                widget.provider is NetworkImage)
+              IconButton(
+                onPressed: () {
+                  downloadFile();
+                  widget.onTapDownload?.call();
                 },
-                child: UiUtils.getSvg(
-                  AppIcons.arrowLeft,
-                  matchTextDirection: true,
-                  fit: BoxFit.none,
-                  color: context.color.tertiaryColor,
-                ),
+                icon: const Icon(Icons.download),
+              ),
+            const SizedBox(
+              width: 10,
+            ),
+          ],
+          leading: Container(
+            margin: const EdgeInsetsDirectional.only(start: 8),
+            decoration: BoxDecoration(
+              color: context.color.secondaryColor,
+              shape: BoxShape.circle,
+            ),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+              },
+              child: UiUtils.getSvg(
+                AppIcons.arrowLeft,
+                matchTextDirection: true,
+                fit: BoxFit.none,
+                color: context.color.tertiaryColor,
               ),
             ),
           ),
-          backgroundColor: const Color.fromARGB(17, 0, 0, 0),
-          body: InteractiveViewer(
-            maxScale: 4,
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1 / 1,
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Image(
-                    image: widget.provider,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: context.color.tertiaryColor
-                              .withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: UiUtils.getImage(
-                          appSettings.placeholderLogo!,
-                        ),
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
+        ),
+        backgroundColor: context.color.secondaryColor,
+        body: InteractiveViewer(
+          maxScale: 4,
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: 1 / 1,
+              child: GestureDetector(
+                onTap: () {},
+                child: Image(
+                  image: widget.provider,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color:
+                            context.color.tertiaryColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: UiUtils.getImage(
+                        appSettings.placeholderLogo!,
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
 
-                      return FittedBox(
-                        fit: BoxFit.none,
-                        child: SizedBox(
-                          width: 50,
-                          height: 50,
-                          child: UiUtils.progress(),
-                        ),
-                      );
-                    },
-                  ),
+                    return FittedBox(
+                      fit: BoxFit.none,
+                      child: SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: UiUtils.progress(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

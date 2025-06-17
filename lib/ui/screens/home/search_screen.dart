@@ -3,24 +3,21 @@ import 'dart:developer';
 import 'package:ebroker/data/cubits/Utility/fetch_facilities_cubit.dart';
 import 'package:ebroker/data/helper/filter.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/utils/admob/bannerAdLoadWidget.dart';
+import 'package:ebroker/utils/admob/banner_ad_load_widget.dart';
 import 'package:flutter/material.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
     required this.autoFocus,
-    required this.openFilterScreen,
     super.key,
   });
   final bool autoFocus;
-  final bool openFilterScreen;
-  static Route route(RouteSettings settings) {
+  static Route<dynamic> route(RouteSettings settings) {
     final arguments = settings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return SearchScreen(
           autoFocus: arguments?['autoFocus'] as bool? ?? false,
-          openFilterScreen: arguments?['openFilterScreen'] as bool? ?? false,
         );
       },
     );
@@ -40,18 +37,13 @@ class SearchScreenState extends State<SearchScreen>
   int offset = 0;
   late ScrollController controller;
   List<PropertyModel> propertylist = [];
-  List idlist = [];
+  List<dynamic> idlist = [];
   Timer? _searchDelay;
   FilterApply? selectedFilter;
   bool showContent = true;
   @override
   void initState() {
     super.initState();
-    if (widget.openFilterScreen) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        Navigator.pushNamed(context, Routes.filterScreen);
-      });
-    }
     context.read<SearchPropertyCubit>().searchProperty(
           '',
           offset: 0,
@@ -102,14 +94,14 @@ class SearchScreenState extends State<SearchScreen>
     super.build(context);
     return Scaffold(
       backgroundColor: context.color.primaryColor,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: BackButton(
-          color: context.color.tertiaryColor,
-        ),
-        elevation: 0,
-        backgroundColor: context.color.primaryColor,
-        title: searchTextField(),
+      appBar: UiUtils.buildAppBar(
+        context,
+        showBackButton: true,
+        leading: const SizedBox.shrink(),
+        actions: [
+          searchTextField(),
+        ],
+        // leading: searchTextField(),
       ),
       bottomNavigationBar: const BottomAppBar(
         color: Colors.transparent,
@@ -134,10 +126,7 @@ class SearchScreenState extends State<SearchScreen>
 
   Widget listWidget(SearchPropertyState state) {
     if (state is SearchPropertyFetchProgress) {
-      return Center(
-        child:
-            UiUtils.progress(normalProgressColor: context.color.tertiaryColor),
-      );
+      return UiUtils.buildHorizontalShimmer();
     }
     if (state is SearchPropertyFailure) {
       if (state.errorMessage is NoInternetConnectionError) {
@@ -227,119 +216,89 @@ class SearchScreenState extends State<SearchScreen>
 
   Widget searchTextField() {
     final facilitiesState = context.watch<FetchFacilitiesCubit>().state;
-    return LayoutBuilder(
-      builder: (context, c) {
-        return SizedBox(
-          width: c.maxWidth,
-          child: FittedBox(
-            fit: BoxFit.none,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 270.rw(context),
-                  height: 50.rh(context),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 1.5,
-                      color: context.color.borderColor,
-                    ),
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                    color: context.color.secondaryColor,
-                  ),
-                  child: TextFormField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      border: InputBorder.none, //OutlineInputBorder()
-                      fillColor: Theme.of(context).colorScheme.secondaryColor,
-                      hintText: UiUtils.translate(context, 'searchHintLbl'),
-                      hintStyle: TextStyle(
-                        color:
-                            context.color.inverseSurface.withValues(alpha: 0.5),
-                      ),
-                      prefixIcon: setSearchIcon(),
-                      prefixIconConstraints:
-                          const BoxConstraints(minHeight: 5, minWidth: 5),
-                    ),
-                    onTapOutside: (_) {
-                      isFocused = false;
-                      FocusScope.of(context).unfocus();
-                      setState(() {
-                        isFocused = false;
-                        FocusScope.of(context).unfocus();
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(
-                  width: 5,
-                ),
-                GestureDetector(
-                  onTap: () async {
-                    try {
-                      await context.read<FetchFacilitiesCubit>().fetch();
-                      if (context.read<FetchFacilitiesCubit>().state
-                          is FetchFacilitiesSuccess) {
-                        await Navigator.pushNamed(
-                          context,
-                          Routes.filterScreen,
-                          arguments: {'filter': selectedFilter},
-                        ).then((value) {
-                          if (value != null) {
-                            selectedFilter = value as FilterApply;
-                            context.read<SearchPropertyCubit>().searchProperty(
-                                  searchController.text,
-                                  offset: 0,
-                                  filter: value,
-                                );
-                            setState(() {});
-
-                            // context.read<SearchPropertyCubit>().searchProperty(
-                            //     searchController.text,
-                            //     offset: 0,
-                            //     filter: selectedFilter);
-                          }
-                        });
-                      }
-                    } catch (e, st) {
-                      log('error is $e stack is $st');
-                    }
-                  },
-                  child: Container(
-                    width: 50.rw(context),
-                    height: 50.rh(context),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        width: 1.5,
-                        color: context.color.borderColor,
-                      ),
-                      color: context.color.secondaryColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: facilitiesState is FetchFacilitiesLoading
-                        ? Padding(
-                            padding: const EdgeInsets.all(18),
-                            child: CircularProgressIndicator(
-                              color: context.color.tertiaryColor,
-                            ),
-                          )
-                        : Center(
-                            child: UiUtils.getSvg(
-                              AppIcons.filter,
-                              color: context.color.tertiaryColor,
-                            ),
-                          ),
-                  ),
-                ),
-                SizedBox(
-                  width: c.maxWidth * 0.06,
-                ),
-              ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 250.rw(context),
+          height: 50.rh(context),
+          alignment: Alignment.center,
+          child: TextFormField(
+            controller: searchController,
+            decoration: InputDecoration(
+              border: InputBorder.none, //OutlineInputBorder()
+              fillColor: Theme.of(context).colorScheme.secondaryColor,
+              hintText: UiUtils.translate(context, 'searchHintLbl'),
+              hintStyle: TextStyle(
+                color: context.color.inverseSurface.withValues(alpha: 0.5),
+              ),
+              prefixIcon: setSearchIcon(),
+              prefixIconConstraints:
+                  const BoxConstraints(minHeight: 5, minWidth: 5),
             ),
+            onTapOutside: (_) {
+              isFocused = false;
+              FocusScope.of(context).unfocus();
+              setState(() {
+                isFocused = false;
+                FocusScope.of(context).unfocus();
+              });
+            },
           ),
-        );
-      },
+        ),
+        const SizedBox(
+          width: 5,
+        ),
+        GestureDetector(
+          onTap: () async {
+            try {
+              await context.read<FetchFacilitiesCubit>().fetch();
+              if (context.read<FetchFacilitiesCubit>().state
+                  is FetchFacilitiesSuccess) {
+                await Navigator.pushNamed(
+                  context,
+                  Routes.filterScreen,
+                  arguments: {
+                    'filter': selectedFilter,
+                  },
+                ).then((value) {
+                  if (value != null) {
+                    selectedFilter = value as FilterApply;
+                    context.read<SearchPropertyCubit>().searchProperty(
+                          searchController.text,
+                          offset: 0,
+                          filter: value,
+                        );
+                    setState(() {});
+
+                    // context.read<SearchPropertyCubit>().searchProperty(
+                    //     searchController.text,
+                    //     offset: 0,
+                    //     filter: selectedFilter);
+                  }
+                });
+              }
+            } catch (e, st) {
+              log('error is $e stack is $st');
+            }
+          },
+          child: SizedBox(
+            width: 50.rw(context),
+            height: 50.rh(context),
+            child: facilitiesState is FetchFacilitiesLoading
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: UiUtils.progress(),
+                  )
+                : Center(
+                    child: UiUtils.getSvg(
+                      AppIcons.filter,
+                      color: context.color.tertiaryColor,
+                    ),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 

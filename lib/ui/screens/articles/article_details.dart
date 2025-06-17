@@ -6,9 +6,9 @@ import 'package:flutter_html/flutter_html.dart';
 class ArticleDetails extends StatelessWidget {
   const ArticleDetails({required this.article, super.key});
   final ArticleModel article;
-  static Route route(RouteSettings settings) {
+  static Route<dynamic> route(RouteSettings settings) {
     final arguments = settings.arguments! as Map;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return ArticleDetails(
           article: arguments['model'] as ArticleModel? ?? ArticleModel(),

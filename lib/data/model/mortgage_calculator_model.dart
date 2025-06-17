@@ -8,11 +8,11 @@ class MortgageCalculatorModel {
     return MortgageCalculatorModel(
       mainTotal: json['main_total'] != null
           ? MainTotal.fromJson(
-              json['main_total'] as Map<String, dynamic>? ?? {})
+              json['main_total'] as Map<String, dynamic>? ?? {},)
           : null,
       yearlyTotals: (json['yearly_totals'] as List?)
               ?.map((v) =>
-                  YearlyTotals.fromJson(v as Map<String, dynamic>? ?? {}))
+                  YearlyTotals.fromJson(v as Map<String, dynamic>? ?? {}),)
               .toList() ??
           [],
     );

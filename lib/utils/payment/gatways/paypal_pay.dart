@@ -5,7 +5,6 @@ import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/payment/gatways/paypal.dart';
 import 'package:ebroker/utils/payment/lib/payment.dart';
 import 'package:ebroker/utils/payment/lib/purchase_package.dart';
-import 'package:flutter/material.dart';
 
 class Paypal extends Payment {
   SubscriptionPackageModel? _modal;
@@ -17,7 +16,7 @@ class Paypal extends Payment {
     isPaymentGatewayOpen = true;
     Navigator.push<dynamic>(
       context,
-      BlurredRouter(
+      CupertinoPageRoute(
         builder: (context) {
           return PaypalWidget(
             pacakge: _modal!,
@@ -33,7 +32,7 @@ class Paypal extends Payment {
           );
         },
       ),
-    ).then((dynamic value) {
+    ).then((value) {
       //push and show dialog box about paypal success or failed, after that we call purchase method it will refresh API and check if package is purchased or not
       isPaymentGatewayOpen = false;
       if (value != null) {

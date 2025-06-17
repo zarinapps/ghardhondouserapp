@@ -19,12 +19,14 @@ class GetChatListSuccess extends GetChatListState {
   final bool isLoadingMore;
   final bool hasError;
   final List<ChatedUser> chatedUserList;
+  bool? refreshing;
   GetChatListSuccess({
     required this.total,
     required this.currentPage,
     required this.isLoadingMore,
     required this.hasError,
     required this.chatedUserList,
+    this.refreshing = false,
   });
 
   GetChatListSuccess copyWith({
@@ -33,6 +35,7 @@ class GetChatListSuccess extends GetChatListState {
     bool? isLoadingMore,
     bool? hasError,
     List<ChatedUser>? chatedUserList,
+    bool? refreshing,
   }) {
     return GetChatListSuccess(
       total: total ?? this.total,
@@ -40,6 +43,7 @@ class GetChatListSuccess extends GetChatListState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasError: hasError ?? this.hasError,
       chatedUserList: chatedUserList ?? this.chatedUserList,
+      refreshing: refreshing ?? this.refreshing,
     );
   }
 }
@@ -59,9 +63,15 @@ class GetChatListCubit extends Cubit<GetChatListState> {
     _chatRepostiory.setContext(context);
   }
 
-  Future<void> fetch() async {
+  Future<void> fetch({
+    required bool forceRefresh,
+  }) async {
     try {
-      emit(GetChatListInProgress());
+      if (forceRefresh) {
+        emit((state as GetChatListSuccess).copyWith(refreshing: true));
+      } else {
+        emit(GetChatListInProgress());
+      }
 
       final result = await _chatRepostiory.fetchChatList(1);
 

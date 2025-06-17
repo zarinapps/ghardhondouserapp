@@ -30,7 +30,7 @@ class _PaypalWidgetState extends State<PaypalWidget> {
     super.initState();
   }
 
-  webViewInitiliased() {
+  void webViewInitiliased() {
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
       params = WebKitWebViewControllerCreationParams(

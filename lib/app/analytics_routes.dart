@@ -13,6 +13,6 @@ class AnalyticsRoutes {
   static const String articlesScreen = 'Articles Screen';
   static const String favoriteScreen = 'Favorite Screen';
   static const String subscriptionScreen = 'Subscription Pacakge Screen';
-  static const String MyAdvertisementScreen = 'My Advertisment Screen';
+  static const String myAdvertisementScreen = 'My Advertisment Screen';
   static const String areaConverterScreen = 'Area Converter Screen';
 }

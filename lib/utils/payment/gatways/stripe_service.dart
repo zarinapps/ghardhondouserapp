@@ -108,12 +108,14 @@ class StripeService {
       await Stripe.instance.presentPaymentSheet();
 
       // After successful presentation, retrieve the payment intent status
-      final response = await Dio().get(
+      final response = await Dio().get<dynamic>(
         '${StripeService.paymentApiUrl}/$paymentIntentId',
         options: Options(headers: getHeaders()),
       );
 
-      final getdata = Map.from(response.data as Map<String, dynamic>? ?? {});
+      final getdata = Map<String, dynamic>.from(
+        response.data as Map<String, dynamic>? ?? {},
+      );
       final statusOfTransaction = getdata['status'];
       log('--stripe response $getdata');
 
@@ -182,14 +184,13 @@ class StripeService {
     required String paymentTransactionID,
   }) async {
     try {
-      final response = await Api.post(
+      await Api.post(
         url: Api.paymentTransactionFail,
         useAuthToken: true,
         parameter: {
           'payment_transaction_id': paymentTransactionID,
         },
       );
-      print('paymentTransactionFail $response');
     } catch (e) {
       log('Failed to cancel payment transaction: $e');
     }
@@ -278,6 +279,6 @@ Future<void> openStripePaymentGateway({
     }
   } catch (e) {
     log('ERROR IS $e');
-    onError.call("Payment failed: $e");
+    onError.call('Payment failed: $e');
   }
 }

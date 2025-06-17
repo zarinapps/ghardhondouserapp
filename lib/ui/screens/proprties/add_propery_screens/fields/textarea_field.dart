@@ -7,7 +7,7 @@ import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/cupertino.dart';
 
-class CustomTextAreaField extends CustomField {
+class CustomTextAreaField extends CustomField<dynamic> {
   @override
   String type = 'textarea';
   TextEditingController? controller;

@@ -32,7 +32,7 @@ class HomeSearchField extends StatelessWidget {
               Navigator.pushNamed(
                 context,
                 Routes.searchScreenRoute,
-                arguments: {'autoFocus': true, 'openFilterScreen': false},
+                arguments: {'autoFocus': true},
               );
             },
             child: AbsorbPointer(

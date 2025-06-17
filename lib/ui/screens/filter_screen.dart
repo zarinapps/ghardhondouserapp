@@ -6,7 +6,7 @@ import 'package:ebroker/data/model/category.dart';
 import 'package:ebroker/data/model/propery_filter_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/widgets/bottom_sheets/choose_location_bottomsheet.dart';
-import 'package:ebroker/utils/admob/bannerAdLoadWidget.dart';
+import 'package:ebroker/utils/admob/banner_ad_load_widget.dart';
 import 'package:flutter/material.dart';
 
 dynamic city = '';
@@ -26,9 +26,9 @@ class FilterScreen extends StatefulWidget {
   @override
   FilterScreenState createState() => FilterScreenState();
 
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => FilterScreen(
         selectedFilter: arguments?['filter'] as FilterApply? ?? FilterApply(),
         showPropertyType: arguments?['showPropertyType'] as bool? ?? false,
@@ -95,7 +95,6 @@ class FilterScreenState extends State<FilterScreen> {
       selectedCategory = defaultCategory;
       selectedFacilities = [];
       Constant.filterFacilities = [];
-      print('----->$selectedFacilities /n ------>${Constant.filterFacilities}');
 
       minController.clear();
       maxController.clear();
@@ -118,7 +117,7 @@ class FilterScreenState extends State<FilterScreen> {
 
   Future<void> _onTapChooseLocation() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    final result = await showModalBottomSheet(
+    final result = await showModalBottomSheet<dynamic>(
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
@@ -149,7 +148,6 @@ class FilterScreenState extends State<FilterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('>>>${Constant.propertyFilter?.propertyType}');
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -210,14 +208,18 @@ class FilterScreenState extends State<FilterScreen> {
                 }
               }
 
-              filter.addOrUpdate(
-                MinMaxBudget(min: minController.text, max: maxController.text),
-              );
-              filter.addOrUpdate(
-                facilitiesFilter(
-                  selectedFacilities,
-                ),
-              );
+              filter
+                ..addOrUpdate(
+                  MinMaxBudget(
+                    min: minController.text,
+                    max: maxController.text,
+                  ),
+                )
+                ..addOrUpdate(
+                  FacilitiesFilter(
+                    selectedFacilities,
+                  ),
+                );
               Navigator.pop(context, filter);
             },
             buttonTitle: UiUtils.translate(context, 'applyFilter'),
@@ -560,7 +562,7 @@ class FilterScreenState extends State<FilterScreen> {
                         fontSize: context.font.large,
                         buttonTitle: UiUtils.translate(
                           context,
-                          UiUtils.translate(context, 'forSaleLbl'),
+                          UiUtils.translate(context, 'forSell'),
                         ),
                       ),
                     ),
@@ -600,7 +602,7 @@ class FilterScreenState extends State<FilterScreen> {
                         fontSize: context.font.large,
                         buttonTitle: UiUtils.translate(
                           context,
-                          UiUtils.translate(context, 'forRentLbl'),
+                          UiUtils.translate(context, 'forRent'),
                         ),
                       ),
                     ),
@@ -947,10 +949,6 @@ class FilterScreenState extends State<FilterScreen> {
                           selectedFacilities.add(facilities[index].id!);
                         }
                         Constant.filterFacilities = selectedFacilities;
-                        print('selectedFacilities are $selectedFacilities');
-                        print(
-                          'Constant.filterFacilities are ${Constant.filterFacilities}',
-                        );
                         setState(() {});
                       },
                       child: Container(

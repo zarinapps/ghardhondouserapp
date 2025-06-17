@@ -17,9 +17,9 @@ class SubscriptionScreen extends StatefulWidget {
   });
   SubscriptionPackageModel pacakge;
   final bool isPackageAlready;
-  static Route route(RouteSettings settings) {
+  static Route<dynamic> route(RouteSettings settings) {
     final arguments = settings.arguments! as Map;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return SubscriptionScreen(
           pacakge: arguments['package'] as SubscriptionPackageModel? ??
@@ -32,6 +32,7 @@ class SubscriptionScreen extends StatefulWidget {
                 createdAt: DateTime.now(),
                 features: [],
                 iosProductId: '',
+                packageStatus: '',
               ),
           isPackageAlready: arguments['isPackageAlready'] as bool? ?? false,
         );
@@ -53,10 +54,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     3: _openRazorPay,
   };
 
-  _openPaypal() {
+  void _openPaypal() {
     Navigator.push<dynamic>(
       context,
-      BlurredRouter(
+      CupertinoPageRoute(
         builder: (context) {
           return PaypalWidget(
             pacakge: widget.pacakge,
@@ -89,14 +90,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           () {
             UiUtils.showBlurredDialoge(
               context,
-              dialoge: BlurredDialogBox(
+              dialog: BlurredDialogBox(
                 title: UiUtils.translate(
                   context,
                   value['type'] == 'success' ? 'success' : 'Failed',
                 ),
                 onAccept: () async {
                   if (value['type'] == 'success') {
-                    _purchase();
+                    await _purchase();
                   }
                 },
                 onCancel: () {
@@ -114,7 +115,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     });
   }
 
-  _purchase() async {
+  Future<void> _purchase() async {
     try {
       Future.delayed(
         Duration.zero,
@@ -143,7 +144,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  getPaypalURL() async {
+  Future<void> getPaypalURL() async {
     await Api.get(
       url: Api.paypal,
       queryParameters: {
@@ -153,7 +154,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  _openRazorPay() async {
+  Future<void> _openRazorPay() async {
     final options = {
       'key': Constant.razorpayKey,
       'amount': widget.pacakge.price * 100,
@@ -192,7 +193,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  _paystack() async {}
+  Future<void> _paystack() async {}
 
   String generateReference(String email) {
     late String platform;
@@ -206,7 +207,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return reference;
   }
 
-  _onTapSubscribe() async {
+  Future<void> _onTapSubscribe() async {
     paymentMethodIndex[selectedPaymentMethod]?.call();
   }
 
@@ -256,7 +257,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 value: 1,
                 groupValue: selectedPaymentMethod,
                 onChanged: (v) {
-                  selectedPaymentMethod = v as int;
+                  selectedPaymentMethod = v!;
                   setState(
                     () {},
                   );

@@ -14,7 +14,7 @@ extension StringPriceFormat on String {
       final numericValue = double.parse(this);
 
       // When enabled is true, use custom abbreviation formatting
-      if (enabled == true && currencyCode.isNotEmpty) {
+      if ((enabled ?? false) && currencyCode.isNotEmpty) {
         final config = CurrencyAbbreviationConfig.getForCurrency(
           currencyCode.toUpperCase(),
         );
@@ -25,7 +25,7 @@ extension StringPriceFormat on String {
           if (numericValue >= rule.threshold) {
             final dividedValue = numericValue / rule.threshold;
             final formattedValue = dividedValue.toStringAsFixed(2);
-            return '$currencySymbol$formattedValue${rule.suffix}';
+            return '$currencySymbol $formattedValue ${rule.suffix}';
           }
         }
       }

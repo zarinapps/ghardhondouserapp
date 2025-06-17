@@ -3,8 +3,8 @@ import 'package:ebroker/utils/strings.dart';
 class Validator {
   static String slugIdPattern = r'^[a-zA-Z0-9-_]+$';
   static String? validateSlugId(String? slugId) {
-    if ((slugId ??= '').trim().isNotEmpty &&
-        !RegExp(slugIdPattern).hasMatch(slugId)) {
+    if ((slugId ?? '').trim().isNotEmpty &&
+        !RegExp(slugIdPattern).hasMatch(slugId ?? '')) {
       return Strings.invalidSlugIdMessage;
     } else {
       return null;
@@ -14,9 +14,9 @@ class Validator {
   static String emailPattern =
       r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
   static String? validateEmail(String? email) {
-    if ((email ??= '').trim().isEmpty) {
+    if ((email ?? '').trim().isEmpty) {
       return Strings.emptyEmailMessage;
-    } else if (!RegExp(emailPattern).hasMatch(email)) {
+    } else if (!RegExp(emailPattern).hasMatch(email ?? '')) {
       return Strings.invalidEmailMessage;
     } else {
       return null;
@@ -41,7 +41,7 @@ class Validator {
     String? value, {
     String? errmsg = Strings.emptyValueMessage,
   }) {
-    return (value ??= '').trim().isEmpty ? errmsg : null;
+    return (value ?? '').trim().isEmpty ? errmsg : null;
   }
 
   static String? validatePhoneNumber(String? value) {
@@ -64,9 +64,9 @@ class Validator {
     String? errmsg = Strings.emptyValueMessage,
   }) {
     final pattern = RegExp(r'^[a-zA-Z ]+$');
-    if ((value ??= '').trim().isEmpty) {
+    if ((value ?? '').trim().isEmpty) {
       return errmsg;
-    } else if (!pattern.hasMatch(value)) {
+    } else if (!pattern.hasMatch(value ?? '')) {
       return Strings.invalidNameMessage;
     } else {
       return null;

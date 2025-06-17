@@ -20,7 +20,7 @@ class DeleteAdvertismentCubit extends Cubit<DeleteAdvertismentState> {
   final AdvertisementRepository _advertisementRepository;
 
   Future<void> delete(
-    dynamic id,
+    id,
   ) async {
     try {
       emit(DeleteAdvertismentInProgress());

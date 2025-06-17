@@ -8,7 +8,7 @@ import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
-class CustomNumberField extends CustomField {
+class CustomNumberField extends CustomField<dynamic> {
   @override
   String type = 'number';
   TextEditingController? controller;

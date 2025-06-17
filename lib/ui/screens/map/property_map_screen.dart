@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 class PropertyMapScreen extends StatefulWidget {
   const PropertyMapScreen({super.key});
 
-  static Route route(RouteSettings settings) {
+  static Route<dynamic> route(RouteSettings settings) {
     // Map? arguments = settings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return const PropertyMapScreen();
       },
@@ -19,12 +19,13 @@ class PropertyMapScreen extends StatefulWidget {
 }
 
 class _PropertyMapScreenState extends State<PropertyMapScreen> {
+  late String _darkMapStyle;
   final TextEditingController _searchController = TextEditingController();
   String previouseSearchQuery = '';
   LatLng? citylatLong;
   Timer? _timer;
   Set<Marker> marker = {};
-  Map map = {};
+  Map<dynamic, dynamic> map = {};
   GoogleMapController? _googleMapController;
   Completer<GoogleMapController> completer = Completer();
   bool isMapCreated = false;
@@ -34,6 +35,7 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
   int? propertyId;
   ValueNotifier<bool> isLoadingProperty = ValueNotifier<bool>(false);
   PropertyModel? activePropertyModal;
+  List<PropertyModel>? activePropertiesList;
   ValueNotifier<bool> loadintCitiesInProgress = ValueNotifier<bool>(false);
   bool showSellRentLables = false;
   bool showGoogleMap = true;
@@ -43,6 +45,10 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
   double iconWidth = 24;
   double iconHeight = 46;
   String? assetName;
+  Future<void> _loadMapStyles() async {
+    _darkMapStyle =
+        await rootBundle.loadString('assets/map_styles/dark_map.json');
+  }
 
   Future<void> searchDelayTimer() async {
     if (_timer?.isActive ?? false) {
@@ -76,6 +82,7 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
 
   @override
   void initState() {
+    _loadMapStyles();
     _loadCustomRentIcon();
     _loadCustomSelectedIcon();
     _loadCustomSellIcon();
@@ -84,19 +91,30 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     super.initState();
   }
 
-  LatLng cameraPosition = const LatLng(
-    42.42345651793833,
-    23.906250000000004,
+  LatLng cameraPosition = LatLng(
+    double.parse(AppSettings.latitude),
+    double.parse(AppSettings.longitude),
   );
 
   Future<void> loadAll() async {
-    final pointList = await GMap.getNearByProperty(
-      '',
-      '',
-      '',
-    );
-    //Animate camera to location
-    await loopMarker(pointList);
+    try {
+      isLoadingProperty.value = true;
+      final pointList = await GMap.getNearByProperty(
+        '',
+        '',
+        '',
+      );
+      activePropertiesList = pointList;
+
+      //Animate camera to location
+      await loopMarker(pointList);
+      isLoadingProperty.value = false;
+    } catch (e) {
+      isLoadingProperty.value = false;
+      await HelperUtils.showSnackBarMessage(context, '$e'.translate(context));
+    } finally {
+      isLoadingProperty.value = false;
+    }
   }
 
   Future<void> onTapCity(int index) async {
@@ -182,14 +200,14 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     setState(() {});
   }
 
-  Future<void> loopMarker(List<MapPoint> pointList) async {
+  Future<void> loopMarker(List<PropertyModel> pointList) async {
     marker.clear(); // Clear existing markers
     for (var i = 0; i < pointList.length; i++) {
       final element = pointList[i];
 
       if (selectedMarker == i) {
         assetName = 'assets/location_pin_red.png';
-      } else if (element.propertyType == '0') {
+      } else if (element.properyType == '0') {
         assetName = 'assets/location_pin_green.png';
       } else {
         assetName = 'assets/location_pin_orange.png';
@@ -197,54 +215,53 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
 
       // Create a custom icon for each marker with its property name
 
-      marker.add(
-        Marker(
-          icon: selectedMarker == i
-              ? customIconSelected
-              : element.propertyType == '0'
-                  ? customIconSell
-                  : customIconRent,
-          markerId: MarkerId('$i'),
-          onTap: () async {
-            selectedMarker = i;
-            propertyId = element.propertyId;
-            await loopMarker(pointList);
-            setState(() {});
-            await fetchProperty(
-              id: element.propertyId,
-              isMyProperty: element.addedBy == HiveUtils.getUserId(),
-            );
-          },
-          position: LatLng(
-            double.parse(element.latitude),
-            double.parse(element.longitude),
+      // Safely parse latitude and longitude with error handling
+      double? lat;
+      double? lng;
+
+      try {
+        lat = element.latitude!.isNotEmpty
+            ? double.parse(element.latitude!)
+            : null;
+        lng = element.longitude!.isNotEmpty
+            ? double.parse(element.longitude!)
+            : null;
+      } catch (e) {
+        // Skip this marker if parsing fails
+        continue;
+      }
+
+      // Only add marker if both lat and lng are valid
+      if (lat != null && lng != null) {
+        marker.add(
+          Marker(
+            icon: selectedMarker == i
+                ? customIconSelected
+                : element.properyType.toString().toLowerCase() == 'sell'
+                    ? customIconSell
+                    : customIconRent,
+            markerId: MarkerId('$i'),
+            onTap: () async {
+              try {
+                selectedMarker = i;
+                propertyId = element.id;
+
+                activePropertyModal = element;
+                await loopMarker(pointList);
+                setState(() {});
+              } catch (e) {
+                await HelperUtils.showSnackBarMessage(
+                  context,
+                  '$e'.translate(context),
+                );
+              }
+            },
+            position: LatLng(lat, lng),
           ),
-        ),
-      );
+        );
+      }
     }
     setState(() {});
-  }
-
-  Future<void> fetchProperty({
-    required int id,
-    required bool isMyProperty,
-  }) async {
-    try {
-      isLoadingProperty.value = true;
-      final result = await PropertyRepository().fetchPropertyFromPropertyId(
-        id: id,
-        isMyProperty: isMyProperty,
-      );
-
-      activePropertyModal = result;
-
-      setState(() {});
-      isLoadingProperty.value = false;
-    } catch (e) {
-      isLoadingProperty.value = false;
-
-      await HelperUtils.showSnackBarMessage(context, '$e'.translate(context));
-    }
   }
 
   Future<LatLng?>? getCityLatLongByIndex(index) async {
@@ -263,7 +280,9 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
     );
 
     final citylatLong = LatLng(
-        rawCityLatLong['lat'] as double, rawCityLatLong['lng'] as double);
+      rawCityLatLong['lat'] as double,
+      rawCityLatLong['lng'] as double,
+    );
     return citylatLong;
   }
 
@@ -391,6 +410,9 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
           children: [
             if (showGoogleMap)
               GoogleMap(
+                style: context.color.brightness == Brightness.dark
+                    ? _darkMapStyle
+                    : null,
                 markers: marker,
                 onMapCreated: (controller) {
                   if (!completer.isCompleted) {
@@ -442,66 +464,52 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
                 ),
               ),
             PositionedDirectional(
-              bottom: 0,
+              top: 0,
+              end: 0,
               child: ValueListenableBuilder(
                 valueListenable: isLoadingProperty,
-                builder: (context, val, child) {
-                  if (cities != null) {
+                builder: (context, va, c) {
+                  if (va == false) {
                     return const SizedBox.shrink();
                   }
-                  if (val == true) {
-                    return SizedBox(
-                      width: MediaQuery.of(context).size.width,
-                      child: const Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Row(
-                          children: [
-                            CustomShimmer(
-                              width: 100,
-                              height: 110,
-                            ),
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Expanded(
-                              child: CustomShimmer(
-                                height: 110,
-                              ),
-                            ),
-                          ],
-                        ),
+                  return Container(
+                    margin: const EdgeInsetsDirectional.only(
+                      end: 8,
+                      top: 8,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color.lerp(
+                        context.color.tertiaryColor,
+                        context.color.secondaryColor,
+                        0.8,
                       ),
-                    );
-                  } else {
-                    if (activePropertyModal != null) {
-                      return SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                Routes.propertyDetails,
-                                arguments: {
-                                  'propertyData': activePropertyModal,
-                                  'fromMyProperty': true,
-                                },
-                              );
-                            },
+                    ),
+                    child: UiUtils.progress(
+                      height: 20.rh(context),
+                      width: 20.rw(context),
+                    ),
+                  );
+                },
+              ),
+            ),
+            PositionedDirectional(
+              bottom: 0,
+              child: cities != null
+                  ? const SizedBox.shrink()
+                  : activePropertyModal != null
+                      ? SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
                             child: PropertyHorizontalCard(
                               showLikeButton: false,
                               property: activePropertyModal!,
                             ),
                           ),
-                        ),
-                      );
-                    } else {
-                      return Container();
-                    }
-                  }
-                },
-              ),
+                        )
+                      : const SizedBox.shrink(),
             ),
           ],
         ),
@@ -535,7 +543,10 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
                 const SizedBox(
                   width: 3,
                 ),
-                CustomText('Sell', color: context.color.inverseSurface),
+                CustomText(
+                  'sell'.translate(context),
+                  color: context.color.inverseSurface,
+                ),
               ],
             ),
           ),
@@ -563,7 +574,10 @@ class _PropertyMapScreenState extends State<PropertyMapScreen> {
                 const SizedBox(
                   width: 3,
                 ),
-                CustomText('Rent', color: context.color.inverseSurface),
+                CustomText(
+                  'rent'.translate(context),
+                  color: context.color.inverseSurface,
+                ),
               ],
             ),
           ),

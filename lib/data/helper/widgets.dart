@@ -5,38 +5,60 @@ import 'package:flutter/material.dart';
 
 class Widgets {
   static bool isLoaderShowing = false;
-  static Future<void> showLoader(BuildContext context) async {
-    if (isLoaderShowing == true) return;
-    FocusScope.of(context).unfocus();
-    isLoaderShowing = true;
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: PopScope(
-            canPop: false,
-            child: Center(
-              child: UiUtils.progress(
-                normalProgressColor: context.color.tertiaryColor,
+
+  static Future<void> showLoader(BuildContext? context) async {
+    if (context == null || !context.mounted || isLoaderShowing) return;
+
+    try {
+      isLoaderShowing = true;
+
+      await showDialog<dynamic>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          return SafeArea(
+            child: PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, _) async {
+                if (didPop) return;
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: Center(
+                child: UiUtils.progress(
+                  normalProgressColor: context.color.tertiaryColor,
+                ),
               ),
             ),
-            onPopInvokedWithResult: (didPop, _) async {
-              if (didPop) return;
-              return Future(
-                () => false,
-              );
-            },
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('Error showing loader: $e');
+      isLoaderShowing = false;
+    }
   }
 
-  static void hideLoder(BuildContext context) {
-    if (!isLoaderShowing) return;
-    FocusScope.of(context).unfocus();
-    isLoaderShowing = false;
-    Navigator.of(context).pop();
+  static void hideLoader(BuildContext? context) {
+    if (context == null || !context.mounted || !isLoaderShowing) return;
+
+    try {
+      isLoaderShowing = false;
+      // Use Navigator.of(context, rootNavigator: true) to ensure we're closing the dialog
+      // regardless of nested navigator contexts
+      if (Navigator.canPop(context)) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    } catch (e) {
+      debugPrint('Error hiding loader: $e');
+      isLoaderShowing = false;
+    }
+  }
+
+  // Keeping old method for backward compatibility
+  static void hideLoder(BuildContext? context) {
+    hideLoader(context);
   }
 
   static Center noDataFound(String errorMsg) {

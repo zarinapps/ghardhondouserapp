@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class ProjectModel {
   ProjectModel({
     this.id,
@@ -30,6 +32,7 @@ class ProjectModel {
     this.requestStatus,
     this.isPromoted,
     this.isFeatureAvailable,
+    this.rejectReason,
   });
 
   factory ProjectModel.fromMap(Map<String, dynamic> map) {
@@ -76,6 +79,11 @@ class ProjectModel {
       requestStatus: map['request_status'] as String? ?? '',
       isPromoted: map['is_promoted'] as bool? ?? false,
       isFeatureAvailable: map['is_feature_available'] as bool? ?? false,
+      rejectReason: map['reject_reason'] == null
+          ? null
+          : RejectReason.fromMap(
+              map['reject_reason'] as Map<String, dynamic>,
+            ),
     );
   }
   int? id;
@@ -108,6 +116,7 @@ class ProjectModel {
   String? requestStatus;
   bool? isFeatureAvailable;
   bool? isPromoted;
+  RejectReason? rejectReason;
 
   Map<String, dynamic> toMap() {
     return {
@@ -141,6 +150,7 @@ class ProjectModel {
       'request_status': requestStatus,
       'is_feature_available': isFeatureAvailable,
       'is_promoted': isPromoted,
+      'reject_reason': rejectReason,
     };
   }
 
@@ -292,4 +302,50 @@ class ProjectCategory {
       'image': image,
     };
   }
+}
+
+class RejectReason {
+  RejectReason({
+    this.id,
+    this.propertyId,
+    this.projectId,
+    this.reason,
+  });
+
+  factory RejectReason.fromJson(String str) =>
+      RejectReason.fromMap(json.decode(str) as Map<String, dynamic>);
+
+  factory RejectReason.fromMap(Map<String, dynamic> json) => RejectReason(
+        id: json['id'] as int?,
+        propertyId: json['property_id'] as int?,
+        projectId: json['project_id'] as int?,
+        reason: json['reason']?.toString(),
+      );
+
+  final int? id;
+  final int? propertyId;
+  final int? projectId;
+  final String? reason;
+
+  RejectReason copyWith({
+    int? id,
+    int? propertyId,
+    int? projectId,
+    String? reason,
+  }) =>
+      RejectReason(
+        id: id ?? this.id,
+        propertyId: propertyId ?? this.propertyId,
+        projectId: projectId ?? this.projectId,
+        reason: reason ?? this.reason,
+      );
+
+  String toJson() => json.encode(toMap());
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'property_id': propertyId,
+        'project_id': projectId,
+        'reason': reason,
+      };
 }

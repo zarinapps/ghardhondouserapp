@@ -19,7 +19,7 @@ class AppLocalization {
   }
 
   //to load json(language) from assets
-  Future loadJson() async {
+  Future<dynamic> loadJson() async {
     // String languageJsonName = locale.countryCode == null
     //     ? locale.languageCode
     //     : "${locale.languageCode}-${locale.countryCode}";
@@ -34,7 +34,8 @@ class AppLocalization {
       mappedJson = json.decode(jsonStringValues) as Map<String, dynamic>;
     } else {
       mappedJson = Map<String, dynamic>.from(
-          HiveUtils.getLanguage()['data'] as Map<dynamic, dynamic>);
+        HiveUtils.getLanguage()['data'] as Map<dynamic, dynamic>,
+      );
     }
     _localizedValues =
         mappedJson.map((key, value) => MapEntry(key, value.toString()));

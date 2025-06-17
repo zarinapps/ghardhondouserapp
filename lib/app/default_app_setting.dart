@@ -1,7 +1,6 @@
 import 'dart:developer';
 
 import 'package:ebroker/exports/main_export.dart';
-import 'package:flutter/cupertino.dart';
 
 AppSettingsDataModel fallbackSettingAppSettings = AppSettingsDataModel(
   appHomeScreen: AppIcons.fallbackHomeLogo,
@@ -16,7 +15,7 @@ AppSettingsDataModel fallbackSettingAppSettings = AppSettingsDataModel(
 
 ///DO not touch this
 class LoadAppSettings {
-  Future<void> load(initBox) async {
+  Future<void> load({required bool initBox}) async {
     try {
       try {
         if (initBox == true) {
@@ -65,11 +64,9 @@ class LoadAppSettings {
     }
   }
 
-  dynamic loadHomeLogo(String homeLogoURL) {
+  Widget loadHomeLogo(String homeLogoURL) {
     return UiUtils.getImage(
       appSettings.appHomeScreen ?? homeLogoURL,
-      width: 90,
-      height: 45,
       fit: BoxFit.scaleDown,
     );
   }

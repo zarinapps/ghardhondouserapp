@@ -19,6 +19,6 @@ class CitiesRepository {
         .map<City>(City.fromMap)
         .toList();
     return DataOutput(
-        total: response['total'] as int? ?? 0, modelList: modelList);
+        total: response['total'] as int? ?? 0, modelList: modelList,);
   }
 }

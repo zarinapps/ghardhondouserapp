@@ -34,7 +34,7 @@ class SendMessageCubit extends Cubit<SendMessageState> {
     required String message,
     required String proeprtyId,
     String? audio,
-    dynamic attachment,
+    attachment,
   }) async {
     try {
       emit(SendMessageInProgress());
@@ -65,14 +65,14 @@ class SendMessageCubit extends Cubit<SendMessageState> {
         audio: audioFile,
       );
 
-      emit(SendMessageSuccess(messageId: result['id'] as int));
+      emit(SendMessageSuccess(messageId: int.parse(result['id'].toString())));
     } catch (e) {
       emit(SendMessageFailed(e.toString()));
     }
   }
 
 //This will check if given file like audio recording or attachment is local or it is coming from remote server
-  bool isRemoteFile(dynamic file) {
+  bool isRemoteFile(file) {
     if (file is String) {
       return true;
     } else {

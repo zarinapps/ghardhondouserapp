@@ -8,11 +8,17 @@ import 'package:flutter/material.dart';
 class AgentListScreen extends StatefulWidget {
   const AgentListScreen({
     super.key,
+    this.title,
   });
 
-  static Route route(RouteSettings routeSettings) {
-    return BlurredRouter(
-      builder: (_) => const AgentListScreen(),
+  final String? title;
+
+  static Route<dynamic> route(RouteSettings routeSettings) {
+    final args = routeSettings.arguments as Map<String, dynamic>? ?? {};
+    return CupertinoPageRoute(
+      builder: (_) => AgentListScreen(
+        title: args['title'] as String? ?? '',
+      ),
     );
   }
 
@@ -49,24 +55,16 @@ class _AgentListScreenState extends State<AgentListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(body: buildAgentsList(context));
   }
-}
 
-Widget buildAgentsList(BuildContext context) {
-  return Scaffold(
-    backgroundColor: context.color.primaryColor,
-    appBar: UiUtils.buildAppBar(
-      context,
-      title: UiUtils.translate(context, 'agents'),
-      showBackButton: true,
-    ),
-    body: RefreshIndicator(
-      color: context.color.tertiaryColor,
-      onRefresh: () async {
-        await context.read<FetchAgentsCubit>().fetchAgents(
-              forceRefresh: true,
-            );
-      },
-      child: SingleChildScrollView(
+  Widget buildAgentsList(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.color.primaryColor,
+      appBar: UiUtils.buildAppBar(
+        context,
+        title: widget.title ?? UiUtils.translate(context, 'agents'),
+        showBackButton: true,
+      ),
+      body: SingleChildScrollView(
         physics: Constant.scrollPhysics,
         controller: agentsListScreenController,
         child: Column(
@@ -149,6 +147,6 @@ Widget buildAgentsList(BuildContext context) {
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }

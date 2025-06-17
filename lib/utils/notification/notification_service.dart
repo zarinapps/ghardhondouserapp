@@ -2,14 +2,49 @@ import 'dart:math';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/chat/chat_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:ebroker/ui/screens/chat_optimisation/chat_screen_new.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final AwesomeNotifications _awesomeNotifications =
       AwesomeNotifications();
+
+  // Stream controller for chat messages
+  static final StreamController<Map<String, dynamic>> _chatMessageController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  // Track active chat to prevent notifications when already in chat
+  static String? _activeChatUserId;
+  static String? _activeChatPropertyId;
+
+  // Method to set active chat
+  static void setActiveChat(String userId, String propertyId) {
+    _activeChatUserId = userId;
+    _activeChatPropertyId = propertyId;
+  }
+
+  // Method to clear active chat
+  static void clearActiveChat() {
+    _activeChatUserId = null;
+    _activeChatPropertyId = null;
+  }
+
+  // Check if a message is for the active chat
+  static bool isForActiveChat(Map<String, dynamic> messageData) {
+    if (_activeChatUserId == null || _activeChatPropertyId == null) {
+      return false;
+    }
+
+    final senderId = messageData['sender_id']?.toString() ?? '';
+    final propertyId = messageData['property_id']?.toString() ?? '';
+
+    return senderId == _activeChatUserId && propertyId == _activeChatPropertyId;
+  }
+
+  // Stream getter for chat messages
+  static Stream<Map<String, dynamic>> get chatMessageStream =>
+      _chatMessageController.stream;
 
   // Initialize notification services
   static Future<void> init(BuildContext context) async {
@@ -52,7 +87,11 @@ class NotificationService {
       // Check if this notification has already been shown
       final isDuplicate = await _checkDuplicateNotification(uniqueId);
 
-      if (!isDuplicate) {}
+      if (!isDuplicate) {
+        // Add this to handle background messages
+        // Note: This won't update UI in background, but will be useful when app resumes
+        _chatMessageController.add(message.data);
+      }
     }
   }
 
@@ -74,7 +113,9 @@ class NotificationService {
     if (lastNotificationTime == null) {
       // First time seeing this notification
       await prefs.setInt(
-          'last_notification_$uniqueId', DateTime.now().millisecondsSinceEpoch);
+        'last_notification_$uniqueId',
+        DateTime.now().millisecondsSinceEpoch,
+      );
       return false;
     }
 
@@ -145,7 +186,15 @@ class NotificationService {
     final isChat = message.data['type'] == 'chat';
 
     if (isChat) {
-      _createChatNotification(message);
+      // Broadcast the chat message to listeners
+      _chatMessageController.add(message.data);
+
+      // Only show notification if not in active chat
+      if (!isForActiveChat(message.data)) {
+        _createChatNotification(message);
+        final context = Constant.navigatorKey.currentContext;
+        context!.read<GetChatListCubit>().fetch(forceRefresh: true);
+      } else {}
     } else {
       _createGeneralNotification(message);
     }
@@ -201,13 +250,13 @@ class NotificationService {
 
     Navigator.push(
       Constant.navigatorKey.currentContext!,
-      MaterialPageRoute(
+      CupertinoPageRoute<dynamic>(
         builder: (context) => MultiBlocProvider(
           providers: [
             BlocProvider(create: (context) => LoadChatMessagesCubit()),
             BlocProvider(create: (context) => DeleteMessageCubit()),
           ],
-          child: ChatScreen(
+          child: ChatScreenNew(
             profilePicture: payload['user_profile']?.toString() ?? '',
             userName: payload['username']?.toString() ?? '',
             propertyImage: payload['property_title_image']?.toString() ?? '',
@@ -253,7 +302,8 @@ class NotificationService {
   }
 
   // Dispose listeners
-  void dispose() {
+  static void dispose() {
     _awesomeNotifications.dispose();
+    _chatMessageController.close();
   }
 }

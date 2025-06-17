@@ -46,7 +46,7 @@ class ChangePropertyStatusCubit extends Cubit<ChangePropertyStatusState> {
         emit(ChangePropertyStatusFailure(result['message']?.toString() ?? ''));
       } else {
         emit(ChangePropertyStatusSuccess(
-            message: result['message']?.toString() ?? ''));
+            message: result['message']?.toString() ?? '',),);
       }
     } catch (e) {
       emit(ChangePropertyStatusFailure(e.toString()));

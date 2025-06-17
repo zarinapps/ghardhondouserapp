@@ -4,7 +4,7 @@ import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:panorama/panorama.dart';
+import 'package:panorama_viewer/panorama_viewer.dart';
 
 class PanaromaImageScreen extends StatelessWidget {
   const PanaromaImageScreen({
@@ -42,9 +42,7 @@ class PanaromaImageScreen extends StatelessWidget {
         ),
       ),
       backgroundColor: Colors.transparent,
-      body: Panorama(
-        sensitivity: 2,
-        latitude: 4,
+      body: PanoramaViewer(
         child: (isFileImage ?? false)
             ? Image.file(File(imageUrl))
             : Image.network(

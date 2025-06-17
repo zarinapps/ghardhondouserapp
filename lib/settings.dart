@@ -8,12 +8,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AppSettings {
   ///Basic Settings
-  static const String applicationName = 'Ghar Dhondho';
-  static const String androidPackageName = 'ghardhondho.zarin.solutions';
+  static const String applicationName = 'eBroker';
+  static const String androidPackageName = 'com.ebroker.wrteam';
 
   ///API Setting
-  static const String hostUrl = 'https://admin.ghardhondo.com/';
-  // ghardhondo.zarin.solutions
+  static const String hostUrl = 'https://ebroker.wrteam.me/';
+  // ebroker.wrteam.me
+
   static const int apiDataLoadLimit = 10;
   static const int maxCategoryShowLengthInHomeScreen = 5;
 
@@ -31,14 +32,9 @@ it will call API in background without showing the process and when data availab
   static String? priceFormat =
       'en'; //keep null if you want to use default one supported: [en,hi,ar_EN,ar]
 
-  ///supported
-
-  ///Native deep link
+  ///Deep link
   static const String shareNavigationWebUrl = 'ebrokerweb.wrteam.me';
   //ebrokerweb.wrteam.me
-
-  ///set anything you want
-  static const String deepLinkName = 'ebroker.com'; //deeplink demo.com
 
   static const MapType googleMapType =
       MapType.normal; //none , normal , satellite , terrain , hybrid
@@ -70,7 +66,6 @@ it will call API in background without showing the process and when data availab
     HomeScreenSections.mostViewed,
     HomeScreenSections.popularCities,
   ]; //[Note: We Recommend default setting you can make arrangement by your choice or you can hide any section if you do not want]
-  static const String shareAppText = 'Share this App';
 
   ///Lottie animation
   ///Put your loading json file in [lib/assets/lottie/] folder
@@ -114,6 +109,13 @@ it will call API in background without showing the process and when data availab
   // static String currencyName = '';
   static String currencyCode = '';
   static String currencySymbol = '';
+
+  static String latitude = '';
+  static String longitude = '';
+  static String minRadius = '';
+  static String maxRadius = '';
+
+  static List<Map<String, dynamic>> bankTransferDetails = [];
 }
 
 enum HomeScreenSections {
@@ -131,4 +133,4 @@ enum HomeScreenSections {
   featuredProjects,
 }
 
-enum DeepLinkType { firebase, native }
+enum DeepLinkType { native }

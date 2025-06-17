@@ -73,7 +73,7 @@ class FetchMyPromotedPropertysCubit
     }
   }
 
-  void delete(dynamic id) {
+  void delete(id) {
     if (state is FetchMyPromotedPropertysSuccess) {
       final propertymodel = (state as FetchMyPromotedPropertysSuccess)
           .advertisement

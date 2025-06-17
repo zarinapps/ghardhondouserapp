@@ -18,6 +18,7 @@ class GetApiKeysCubit extends Cubit<GetApiKeysState> {
       );
 
       final data = result['data'] as List;
+      final bankTransferStatus = _getDataFromKey(data, 'bank_transfer_status');
       final flutterwaveStatus = _getDataFromKey(data, 'flutterwave_status');
       final razorpayKey = _getDataFromKey(data, 'razor_key');
       final razorPaySecret = _getDataFromKey(data, 'razor_secret');
@@ -29,7 +30,6 @@ class GetApiKeysCubit extends Cubit<GetApiKeysState> {
           _getDataFromKey(data, 'stripe_publishable_key');
       final stripeSecretKey = _getDataFromKey(data, 'stripe_secret_key');
       var enabledGatway = '';
-
       if (_getDataFromKey(data, 'paypal_gateway') == '1') {
         enabledGatway = 'paypal';
       } else if (_getDataFromKey(data, 'razorpay_gateway') == '1') {
@@ -44,6 +44,7 @@ class GetApiKeysCubit extends Cubit<GetApiKeysState> {
 
       emit(
         GetApiKeysSuccess(
+          bankTransferStatus: bankTransferStatus?.toString() ?? '',
           razorPayKey: razorpayKey?.toString() ?? '',
           enabledPaymentGatway: enabledGatway,
           razorPaySecret: razorPaySecret?.toString() ?? '',
@@ -100,6 +101,7 @@ class GetApiKeysInitial extends GetApiKeysState {}
 class GetApiKeysInProgress extends GetApiKeysState {}
 
 class GetApiKeysSuccess extends GetApiKeysState {
+  final String bankTransferStatus;
   final String razorPayKey;
   final String razorPaySecret;
   final String paystackPublicKey;
@@ -111,6 +113,7 @@ class GetApiKeysSuccess extends GetApiKeysState {
   final String stripeSecretKey;
   final String flutterwaveStatus;
   GetApiKeysSuccess({
+    required this.bankTransferStatus,
     required this.razorPayKey,
     required this.razorPaySecret,
     required this.paystackPublicKey,

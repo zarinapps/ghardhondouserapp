@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 class AreaCalculator extends StatefulWidget {
   const AreaCalculator({super.key});
-  static Route route(RouteSettings settings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings settings) {
+    return CupertinoPageRoute(
       builder: (context) {
         return const AreaCalculator();
       },
@@ -19,8 +19,8 @@ class AreaCalculator extends StatefulWidget {
 class _AreaCalculatorState extends State<AreaCalculator> {
   List<String> values = UnitTypes.values.map((e) => e.name).toList();
 
-  late final ValueNotifier _from = ValueNotifier(values[0]);
-  late final ValueNotifier _to = ValueNotifier(values[1]);
+  late final ValueNotifier<dynamic> _from = ValueNotifier(values[0]);
+  late final ValueNotifier<dynamic> _to = ValueNotifier(values[1]);
 
   final TextEditingController _fromTextController = TextEditingController();
   final TextEditingController _toTextController = TextEditingController();
@@ -72,7 +72,7 @@ class _AreaCalculatorState extends State<AreaCalculator> {
                   height: 3.rh(context),
                 ),
                 CustomText(
-                  'Enter the value and select desired unit',
+                  'enterValueOrSelectUnit'.translate(context),
                   fontSize: context.font.small,
                   color: context.color.textLightColor,
                 ),
@@ -87,7 +87,7 @@ class _AreaCalculatorState extends State<AreaCalculator> {
                       controller: _fromTextController,
                       value: value,
                       hint: 'from',
-                      valueListanable: _from,
+                      valueListnable: _from,
                     );
                   },
                 ),
@@ -102,8 +102,8 @@ class _AreaCalculatorState extends State<AreaCalculator> {
                       controller: _toTextController,
                       isReadOnly: true,
                       value: value,
-                      hint: 'to',
-                      valueListanable: _to,
+                      hint: 'to'.translate(context),
+                      valueListnable: _to,
                     );
                   },
                 ),
@@ -149,8 +149,8 @@ class _AreaCalculatorState extends State<AreaCalculator> {
 
   Widget buildField(
     BuildContext context, {
-    required dynamic value,
-    required ValueNotifier valueListanable,
+    required value,
+    required ValueNotifier<dynamic> valueListnable,
     required TextEditingController controller,
     bool? isReadOnly,
     String? hint,
@@ -169,7 +169,7 @@ class _AreaCalculatorState extends State<AreaCalculator> {
         controller: controller,
         isReadOnly: isReadOnly,
         onChange: (value) {
-          valueListanable.value = value;
+          valueListnable.value = value;
         },
         value: value,
       ),
@@ -182,7 +182,7 @@ class _AreaCalculatorState extends State<AreaCalculator> {
     required TextEditingController controller,
     String? hint,
     bool? isReadOnly,
-    dynamic value,
+    value,
   }) {
     return Row(
       children: [
@@ -210,6 +210,7 @@ class _AreaCalculatorState extends State<AreaCalculator> {
         ),
         Expanded(
           child: DropdownButton<String>(
+            dropdownColor: context.color.secondaryColor,
             value: value?.toString() ?? '',
             isExpanded: true,
             underline: const SizedBox.shrink(),

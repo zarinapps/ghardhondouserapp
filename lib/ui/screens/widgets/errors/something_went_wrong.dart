@@ -1,6 +1,7 @@
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -50,7 +51,7 @@ class ErrorScreen extends StatelessWidget {
 
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute<dynamic>(
         builder: (context) => ErrorDetailScreen(stackLines: filteredStackLines),
       ),
     );

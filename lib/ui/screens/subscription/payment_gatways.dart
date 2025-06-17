@@ -4,12 +4,11 @@ import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/payment/gatways/flutterwave.dart';
 import 'package:ebroker/utils/payment/gatways/paypal.dart';
 import 'package:ebroker/utils/payment/gatways/stripe_service.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class PaymentGatways {
-  static openEnabled(
-      BuildContext context, price, SubscriptionPackageModel package) {
+  static void openEnabled(
+      BuildContext context, price, SubscriptionPackageModel package,) {
     if (AppSettings.enabledPaymentGatway == 'paystack') {
     } else if (AppSettings.enabledPaymentGatway == 'paypal') {
       paypal(context, package);
@@ -57,7 +56,7 @@ class PaymentGatways {
   static void paypal(BuildContext context, SubscriptionPackageModel package) {
     Navigator.push<dynamic>(
       context,
-      BlurredRouter(
+      CupertinoPageRoute(
         builder: (context) {
           return PaypalWidget(
             pacakge: package,
@@ -78,7 +77,7 @@ class PaymentGatways {
           () {
             UiUtils.showBlurredDialoge(
               context,
-              dialoge: BlurredDialogBox(
+              dialog: BlurredDialogBox(
                 title: UiUtils.translate(
                   context,
                   value['type'] == 'success' ? 'success' : 'Failed',
@@ -104,10 +103,10 @@ class PaymentGatways {
   }
 
   static void flutterwave(
-      BuildContext context, SubscriptionPackageModel package) {
+      BuildContext context, SubscriptionPackageModel package,) {
     Navigator.push<dynamic>(
       context,
-      BlurredRouter(
+      CupertinoPageRoute(
         builder: (context) {
           return FlutterwaveWidget(
             pacakge: package,
@@ -128,7 +127,7 @@ class PaymentGatways {
           () {
             UiUtils.showBlurredDialoge(
               context,
-              dialoge: BlurredDialogBox(
+              dialog: BlurredDialogBox(
                 title: UiUtils.translate(
                   context,
                   value['type'] == 'success' ? 'success' : 'Failed',

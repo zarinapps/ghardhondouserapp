@@ -1,5 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 
+import 'dart:developer';
+
 import 'package:ebroker/data/repositories/auth_repository.dart';
 import 'package:ebroker/utils/hive_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -32,7 +34,7 @@ class LoginCubit extends Cubit<LoginState> {
     required String? phoneNumber,
     required String uniqueId,
     required LoginType type,
-    required countryCode,
+    required dynamic countryCode,
     String? email,
     String? name,
     String? password,
@@ -56,16 +58,6 @@ class LoginCubit extends Cubit<LoginState> {
       ///Storing data to local database {HIVE}
       await HiveUtils.setJWT(result['token']?.toString() ?? '');
 
-      // if (result['data']['name'] == '' ||
-      //     result['data']['email'] == '' ||
-      //     result['data']['phone'] == '') {
-      //   await HiveUtils.setProfileNotCompleted();
-      //   isProfileIsCompleted = false;
-      //   final data = result['data'];
-      //   data['countryCode'] = countryCode;
-      //   data['type'] = type.name;
-      //   await HiveUtils.setUserData(data);
-      // } else {
       isProfileIsCompleted = true;
       final data = result['data'] as Map;
       data['countryCode'] = countryCode;
@@ -75,7 +67,8 @@ class LoginCubit extends Cubit<LoginState> {
       // }
 
       emit(LoginSuccess(isProfileCompleted: isProfileIsCompleted));
-    } catch (e) {
+    } catch (e, st) {
+      log(st.toString(), name: 'login');
       emit(LoginFailure(e.toString()));
     }
   }

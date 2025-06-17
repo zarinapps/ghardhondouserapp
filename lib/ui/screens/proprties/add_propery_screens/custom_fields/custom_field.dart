@@ -1,5 +1,4 @@
 import 'package:ebroker/exports/main_export.dart';
-import 'package:flutter/material.dart';
 
 abstract class CustomField<T> {
   ///id
@@ -12,7 +11,7 @@ abstract class CustomField<T> {
   late void Function(VoidCallback fn) update;
 
   ///data
-  Map data = {};
+  Map<String, dynamic> data = {};
 
   ///init field
   void init() {}
@@ -35,8 +34,8 @@ class RenderCustomFields extends StatefulWidget {
     super.key,
   });
   final int index;
-  final CustomField field;
-  final Map data;
+  final CustomField<dynamic> field;
+  final Map<String, dynamic> data;
   final bool isRequired;
 
   dynamic getId() {
@@ -83,7 +82,7 @@ class _RenderCustomFieldsState extends State<RenderCustomFields> {
   }
 }
 
-class BlankField extends CustomField {
+class BlankField extends CustomField<dynamic> {
   @override
   String type = 'blank';
 
@@ -99,7 +98,7 @@ class BlankField extends CustomField {
 }
 
 class KRegisteredFields {
-  final List _fields = [
+  final List<dynamic> _fields = [
     CustomTextField(),
     CustomNumberField(),
     CustomTextAreaField(),
@@ -109,9 +108,9 @@ class KRegisteredFields {
     CustomFileField(),
   ];
 
-  CustomField? get(String type) {
-    CustomField? selectedField;
-    for (final CustomField field in _fields.cast<CustomField>()) {
+  CustomField<dynamic>? get(String type) {
+    CustomField<dynamic>? selectedField;
+    for (final field in _fields.cast<CustomField<dynamic>>()) {
       if (field.type == type) {
         selectedField = field;
       }

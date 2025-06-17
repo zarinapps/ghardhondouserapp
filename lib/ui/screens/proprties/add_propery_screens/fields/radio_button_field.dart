@@ -6,7 +6,7 @@ import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 
-class CustomRadioField extends CustomField {
+class CustomRadioField extends CustomField<dynamic> {
   @override
   String type = 'radiobutton';
   String? selectedRadioValue;

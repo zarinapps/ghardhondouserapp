@@ -1,11 +1,12 @@
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
 
-  static Route route(RouteSettings settings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings settings) {
+    return CupertinoPageRoute(
       builder: (context) => BlocProvider(
         create: (context) => FetchFavoritesCubit(),
         child: const FavoritesScreen(),
@@ -121,8 +122,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return RefreshIndicator(
-      color: context.color.tertiaryColor,
+    return CustomRefreshIndicator(
       onRefresh: () async {
         await context.read<FetchFavoritesCubit>().fetchFavorites();
       },
@@ -147,8 +147,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                 );
               }
 
-              return RefreshIndicator(
-                color: context.color.tertiaryColor,
+              return CustomRefreshIndicator(
                 onRefresh: () async {
                   await context.read<FetchFavoritesCubit>().fetchFavorites();
                 },
@@ -163,7 +162,9 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                         physics: Constant.scrollPhysics,
                         itemBuilder: (context, index) {
                           final property = state.propertymodel[index];
-                          context.read<LikedPropertiesCubit>().add(property.id);
+                          context
+                              .read<LikedPropertiesCubit>()
+                              .add(id: property.id!);
 
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -183,11 +184,6 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                                 create: (context) => AddToFavoriteCubitCubit(),
                                 child: PropertyHorizontalCard(
                                   property: property,
-                                  onLikeChange: (type) {
-                                    context
-                                        .read<FetchFavoritesCubit>()
-                                        .remove(property.id);
-                                  },
                                 ),
                               ),
                             ),

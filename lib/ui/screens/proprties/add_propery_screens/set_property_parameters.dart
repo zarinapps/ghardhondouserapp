@@ -22,7 +22,7 @@ class SetProeprtyParametersScreen extends StatefulWidget {
   static Route<dynamic> route(RouteSettings settings) {
     final argument = settings.arguments as Map<dynamic, dynamic>?;
 
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return SetProeprtyParametersScreen(
           propertyDetails: argument?['details'] as Map<dynamic, dynamic>? ?? {},
@@ -144,14 +144,12 @@ class _SetProeprtyParametersScreenState
               }
               return previousValue;
             });
-            print('parameterValues are $parameterValues');
             apiParameters?.addAll(Map.from(parameterValues));
 
             // Check if all required parameters are filled
             var allRequiredParamsFilled = true;
 
             for (final element in paramaeterUI) {
-              print('element is $element');
               if (element.isRequired) {
                 if (element.data['image'] == '' ||
                     element.data['image'] == null ||
@@ -202,7 +200,7 @@ class _SetProeprtyParametersScreenState
               return; // Exit the function early if required params are not filled
             }
             // UiUtils.translate(context, 'pleaseFillRequiredFields')
-            final gallery = [];
+            final gallery = <MultipartFile>[];
             await Future.forEach(
               galleryImage,
               (item) async {
@@ -282,7 +280,7 @@ class _SetProeprtyParametersScreenState
                   () {
                     Navigator.pushReplacement(
                       context,
-                      ScaleUpRouter(
+                      ScaleUpRouter<dynamic>(
                         builder: (context) {
                           return PropertyAddSuccess(
                             model: state.propertyModel!,
@@ -311,7 +309,7 @@ class _SetProeprtyParametersScreenState
                       () {
                         Navigator.push(
                           context,
-                          ScaleUpRouter(
+                          ScaleUpRouter<dynamic>(
                             builder: (context) {
                               return PropertyAddSuccess(
                                 model: state.propertyModel!,

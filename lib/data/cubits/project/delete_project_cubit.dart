@@ -19,7 +19,7 @@ class DeleteProjectFail extends DeleteProjectState {
 class DeleteProjectCubit extends Cubit<DeleteProjectState> {
   DeleteProjectCubit() : super(DeleteProjectInitial());
 
-  delete(
+  Future<void> delete(
     int id,
   ) async {
     try {

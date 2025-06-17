@@ -1,9 +1,10 @@
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 
 FetchMyPropertiesCubit? cubitReference;
 dynamic propertyType;
-Map ref = {};
+Map<String, dynamic> ref = {};
 
 class SellRentScreen extends StatefulWidget {
   const SellRentScreen({
@@ -79,8 +80,7 @@ class _SellRentScreenState extends State<SellRentScreen>
       ref['rented'] = context.read<FetchMyPropertiesCubit>();
     }
 
-    return RefreshIndicator(
-      color: context.color.tertiaryColor,
+    return CustomRefreshIndicator(
       onRefresh: () async {
         // await context.read<FetchMyPropertiesCubit>().fetchMyProperties(
         //       type: widget.type,

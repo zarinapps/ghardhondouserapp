@@ -1,4 +1,3 @@
-import 'package:ebroker/data/cubits/home_page_data_cubit.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/firebase_options.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +33,7 @@ Future<void> initApp() async {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
     );
-    await LoadAppSettings().load(false);
+    await LoadAppSettings().load(initBox: false);
     runApp(const EntryPoint());
   });
 }
@@ -64,7 +63,7 @@ class _AppState extends State<App> {
       () {
         ///THIS WILL be CALLED WHEN USER WILL LOGIN FROM ANONYMOUS USER.
         context.read<LikedPropertiesCubit>().emptyCubit();
-        context.read<GetApiKeysCubit>().fetch();
+
         loadInitialData(
           context,
           loadWithoutDelay: true,
@@ -75,7 +74,6 @@ class _AppState extends State<App> {
     UiUtils.setContext(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       DeepLinkManager.initDeepLinks(context);
-      print('deep link is initialized at LAST');
     });
     super.initState();
   }
@@ -97,7 +95,6 @@ class _AppState extends State<App> {
       child: BlocBuilder<LanguageCubit, LanguageState>(
         builder: (context, languageState) {
           return MaterialApp(
-            scrollBehavior: RemoveGlow(),
             initialRoute: Routes.splash,
             // App will start from here splash screen is first screen,
             navigatorKey: Constant.navigatorKey,
@@ -167,9 +164,6 @@ void loadInitialData(
           forceRefresh: forceRefresh,
         );
   }
-  context.read<FetchHomePageDataCubit>().fetch(
-        forceRefresh: true,
-      );
   context.read<FetchNearbyPropertiesCubit>().fetch(
         loadWithoutDelay: loadWithoutDelay,
         forceRefresh: forceRefresh,
@@ -181,7 +175,7 @@ void loadInitialData(
 
   if (context.read<AuthenticationCubit>().isAuthenticated()) {
     context.read<GetChatListCubit>().setContext(context);
-    context.read<GetChatListCubit>().fetch();
+    context.read<GetChatListCubit>().fetch(forceRefresh: forceRefresh ?? false);
     context.read<FetchPersonalizedPropertyList>().fetch(
           loadWithoutDelay: loadWithoutDelay,
           forceRefresh: forceRefresh,

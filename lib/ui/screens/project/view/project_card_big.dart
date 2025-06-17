@@ -1,105 +1,84 @@
-import 'dart:ui';
-
 import 'package:ebroker/data/model/project_model.dart';
 import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/data/repositories/project_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:flutter/material.dart';
 
 class ProjectCardBig extends StatelessWidget {
   const ProjectCardBig({
     required this.project,
     this.color,
+    this.disableTap,
+    this.showFeatured,
     super.key,
   });
   final ProjectModel project;
   final Color? color;
+  final bool? disableTap;
+  final bool? showFeatured;
 
   @override
   Widget build(BuildContext context) {
+    final isMyProject = project.addedBy.toString() == HiveUtils.getUserId();
     return GestureDetector(
       onTap: () async {
+        if (disableTap ?? false) return;
+
         try {
-          GuestChecker.check(
+          await GuestChecker.check(
             onNotGuest: () async {
-              unawaited(Widgets.showLoader(context));
+              if (!isMyProject) {
+                unawaited(Widgets.showLoader(context));
 
-              if (project.addedBy.toString() == HiveUtils.getUserId()) {
-                try {
-                  unawaited(Widgets.showLoader(context));
-                  final projectRepository = ProjectRepository();
-                  final projectDetails = await projectRepository
-                      .getProjectDetails(id: project.id!, isMyProject: true);
-                  Future.delayed(
-                    Duration.zero,
-                    () {
-                      Widgets.hideLoder(context);
-                      HelperUtils.goToNextPage(
-                        Routes.projectDetailsScreen,
-                        context,
-                        false,
-                        args: {
-                          'project': projectDetails,
-                        },
-                      );
-                    },
-                  );
-                } catch (e) {
-                  Widgets.hideLoder(context);
-                }
-              } else if (project.addedBy.toString() != HiveUtils.getUserId()) {
+                // Check package availability for non-owner users
                 final checkPackage = CheckPackage();
-
                 final packageAvailable =
                     await checkPackage.checkPackageAvailable(
                   packageType: PackageType.projectAccess,
                 );
-                if (packageAvailable) {
-                  try {
-                    unawaited(Widgets.showLoader(context));
-                    final projectRepository = ProjectRepository();
-                    final projectDetails = await projectRepository
-                        .getProjectDetails(id: project.id!, isMyProject: false);
-                    Future.delayed(
-                      Duration.zero,
-                      () {
-                        Widgets.hideLoder(context);
-                        HelperUtils.goToNextPage(
-                          Routes.projectDetailsScreen,
-                          context,
-                          false,
-                          args: {
-                            'project': projectDetails,
-                          },
-                        );
-                      },
-                    );
-                  } catch (e) {
-                    Widgets.hideLoder(context);
-                  }
-                } else {
+
+                if (!packageAvailable) {
+                  Widgets.hideLoder(context);
                   await UiUtils.showBlurredDialoge(
                     context,
-                    dialoge: const BlurredSubscriptionDialogBox(
+                    dialog: const BlurredSubscriptionDialogBox(
                       packageType: SubscriptionPackageType.projectAccess,
                       isAcceptContainesPush: true,
                     ),
                   );
-                  Widgets.hideLoder(context);
+                  return;
                 }
               }
-              Widgets.hideLoder(context);
+
+              try {
+                final projectRepository = ProjectRepository();
+                final projectDetails =
+                    await projectRepository.getProjectDetails(
+                  id: project.id!,
+                  isMyProject: isMyProject,
+                );
+
+                Widgets.hideLoder(context);
+                HelperUtils.goToNextPage(
+                  Routes.projectDetailsScreen,
+                  context,
+                  false,
+                  args: {
+                    'project': projectDetails,
+                  },
+                );
+              } catch (e) {
+                // Error handled in the finally block
+                Widgets.hideLoder(context);
+              }
             },
           );
-          Widgets.hideLoder(context);
         } catch (e) {
-          Widgets.hideLoder(context);
+          // Error handled in the finally block
         } finally {
           Widgets.hideLoder(context);
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
         width: MediaQuery.of(context).size.width * 0.7,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
@@ -132,7 +111,7 @@ class ProjectCardBig extends StatelessWidget {
                       height: 24,
                     ),
                   ),
-                  if (project.isPromoted ?? false)
+                  if ((project.isPromoted ?? false) || (showFeatured ?? false))
                     PositionedDirectional(
                       bottom: 0,
                       end: 0,
@@ -192,7 +171,7 @@ class ProjectCardBig extends StatelessWidget {
                         ),
                       ),
                       CustomText(
-                        project.type.toString().firstUpperCase(),
+                        project.type!.translate(context),
                         maxLines: 1,
                         fontSize: context.font.small,
                         fontWeight: FontWeight.w600,

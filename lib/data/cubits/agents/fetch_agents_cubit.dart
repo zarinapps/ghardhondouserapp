@@ -1,6 +1,6 @@
-import 'package:bloc/bloc.dart';
 import 'package:ebroker/data/model/agent/agent_model.dart';
 import 'package:ebroker/data/repositories/agents_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class FetchAgentsState {}
 

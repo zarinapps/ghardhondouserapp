@@ -2,7 +2,7 @@ import 'dart:developer';
 
 class Adapter {
   ///String to int
-  static int? forceInt(dynamic value) {
+  static int? forceInt(value) {
     if (value == null) {
       return null;
     }
@@ -21,7 +21,7 @@ class Adapter {
     return null;
   }
 
-  double? forceDouble(dynamic value) {
+  double? forceDouble(value) {
     if (value == null) {
       return null;
     }

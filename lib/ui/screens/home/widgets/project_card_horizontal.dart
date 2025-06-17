@@ -7,105 +7,86 @@ import 'package:flutter/material.dart';
 class ProjectHorizontalCard extends StatelessWidget {
   const ProjectHorizontalCard({
     required this.project,
+    required this.isRejected,
     super.key,
     this.useRow,
     this.statusButton,
     this.addBottom,
     this.additionalHeight,
     this.additionalImageWidth,
+    this.disableTap,
+    this.showFeatured,
   });
   final ProjectModel project;
+  final bool isRejected;
   final List<Widget>? addBottom;
   final StatusButton? statusButton;
   final double? additionalHeight;
   final bool? useRow;
   final double? additionalImageWidth;
-
+  final bool? disableTap;
+  final bool? showFeatured;
   @override
   Widget build(BuildContext context) {
+    final isMyProject = project.addedBy.toString() == HiveUtils.getUserId();
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.5),
       child: GestureDetector(
         onTap: () async {
+          if (disableTap ?? false) return;
+
           try {
-            GuestChecker.check(
+            await GuestChecker.check(
               onNotGuest: () async {
-                unawaited(Widgets.showLoader(context));
+                if (!isMyProject) {
+                  unawaited(Widgets.showLoader(context));
 
-                if (project.addedBy.toString() == HiveUtils.getUserId()) {
-                  try {
-                    unawaited(Widgets.showLoader(context));
-                    final projectRepository = ProjectRepository();
-                    final projectDetails = await projectRepository
-                        .getProjectDetails(id: project.id!, isMyProject: true);
-                    Future.delayed(
-                      Duration.zero,
-                      () {
-                        Widgets.hideLoder(context);
-                        HelperUtils.goToNextPage(
-                          Routes.projectDetailsScreen,
-                          context,
-                          false,
-                          args: {
-                            'project': projectDetails,
-                          },
-                        );
-                      },
-                    );
-                  } catch (e) {
-                    Widgets.hideLoder(context);
-                  }
-                } else if (project.addedBy.toString() !=
-                    HiveUtils.getUserId()) {
+                  // Check package availability for non-owner users
                   final checkPackage = CheckPackage();
-
                   final packageAvailable =
                       await checkPackage.checkPackageAvailable(
                     packageType: PackageType.projectAccess,
                   );
-                  if (packageAvailable) {
-                    try {
-                      unawaited(Widgets.showLoader(context));
-                      final projectRepository = ProjectRepository();
-                      final projectDetails =
-                          await projectRepository.getProjectDetails(
-                        id: project.id!,
-                        isMyProject: false,
-                      );
-                      Future.delayed(
-                        Duration.zero,
-                        () {
-                          Widgets.hideLoder(context);
-                          HelperUtils.goToNextPage(
-                            Routes.projectDetailsScreen,
-                            context,
-                            false,
-                            args: {
-                              'project': projectDetails,
-                            },
-                          );
-                        },
-                      );
-                    } catch (e) {
-                      Widgets.hideLoder(context);
-                    }
-                  } else {
+
+                  if (!packageAvailable) {
+                    Widgets.hideLoder(context);
                     await UiUtils.showBlurredDialoge(
                       context,
-                      dialoge: const BlurredSubscriptionDialogBox(
+                      dialog: const BlurredSubscriptionDialogBox(
                         packageType: SubscriptionPackageType.projectAccess,
                         isAcceptContainesPush: true,
                       ),
                     );
-                    Widgets.hideLoder(context);
+                    return;
                   }
                 }
-                Widgets.hideLoder(context);
+
+                try {
+                  final projectRepository = ProjectRepository();
+                  final projectDetails =
+                      await projectRepository.getProjectDetails(
+                    id: project.id!,
+                    isMyProject: isMyProject,
+                  );
+
+                  Widgets.hideLoder(context);
+                  HelperUtils.goToNextPage(
+                    Routes.projectDetailsScreen,
+                    context,
+                    false,
+                    args: {
+                      'project': projectDetails,
+                    },
+                  );
+                } catch (e) {
+                  // Error handled in the finally block
+                  Widgets.hideLoder(context);
+                }
               },
             );
-            Widgets.hideLoder(context);
           } catch (e) {
-            Widgets.hideLoder(context);
+            // Error handled in the finally block
           } finally {
             Widgets.hideLoder(context);
           }
@@ -144,7 +125,8 @@ class ProjectHorizontalCard extends StatelessWidget {
                                   height: 24,
                                 ),
                               ),
-                              if (project.isPromoted ?? false)
+                              if ((project.isPromoted ?? false) ||
+                                  (showFeatured ?? false))
                                 PositionedDirectional(
                                   bottom: 0,
                                   end: 0,
@@ -224,26 +206,55 @@ class ProjectHorizontalCard extends StatelessWidget {
                                 ],
                                 if (statusButton != null) ...[
                                   const Spacer(),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 3,
-                                      horizontal: 3,
-                                    ),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      if (isRejected) {
+                                        await UiUtils.showBlurredDialoge(
+                                          context,
+                                          dialog: BlurredDialogBox(
+                                            acceptTextColor:
+                                                context.color.buttonColor,
+                                            showCancleButton: false,
+                                            title: statusButton!.lable,
+                                            content: CustomText(
+                                              project.rejectReason?.reason
+                                                      .toString() ??
+                                                  '',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                     child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: statusButton!.color,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
-                                      width: 80,
-                                      height: 120 - 90 - 8,
-                                      child: Center(
-                                        child: CustomText(
-                                          statusButton!.lable,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: context.font.small,
-                                          color: statusButton?.textColor ??
-                                              Colors.black,
-                                        ),
+                                      child: Row(
+                                        children: [
+                                          CustomText(
+                                            statusButton!.lable,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: context.font.small,
+                                            color: statusButton?.textColor ??
+                                                Colors.black,
+                                          ),
+                                          if (isRejected) ...[
+                                            const SizedBox(
+                                              width: 2,
+                                            ),
+                                            UiUtils.getSvg(
+                                              AppIcons.info,
+                                              width: 16,
+                                              height: 16,
+                                              color: statusButton!.textColor,
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -297,7 +308,7 @@ class ProjectHorizontalCard extends StatelessWidget {
 
               if (useRow == false || useRow == null) ...addBottom ?? [],
 
-              if (useRow == true) ...{Row(children: addBottom ?? [])},
+              if (useRow ?? false) ...{Row(children: addBottom ?? [])},
 
               // ...addBottom ?? []
             ],

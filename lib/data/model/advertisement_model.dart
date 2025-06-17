@@ -12,26 +12,24 @@ class AdvertisementProperty {
       AdvertisementProperty(
         id: json['id'] as int,
         status: json['status'] as int? ?? 0,
-        startDate: DateTime.parse(json['start_date']?.toString() ?? ''),
-        endDate: DateTime.parse(json['end_date']?.toString() ?? ''),
+        startDate: json['start_date']?.toString() ?? '',
+        endDate: json['end_date']?.toString() ?? '',
         propertyId: json['property_id'] as int,
         property:
             Property.fromJson(json['property'] as Map<String, dynamic>? ?? {}),
       );
   final int id;
   final int status;
-  final DateTime startDate;
-  final DateTime endDate;
+  final String startDate;
+  final String endDate;
   final int propertyId;
   final Property property;
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'status': status,
-        'start_date':
-            "${startDate.year.toString().padLeft(4, '0')}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}",
-        'end_date':
-            "${endDate.year.toString().padLeft(4, '0')}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}",
+        'start_date': startDate,
+        'end_date': endDate,
         'property_id': propertyId,
         'property': property.toJson(),
       };
@@ -145,26 +143,24 @@ class AdvertisementProject {
       AdvertisementProject(
         id: json['id'] as int,
         status: json['status'] as int? ?? 0,
-        startDate: DateTime.parse(json['start_date']?.toString() ?? ''),
-        endDate: DateTime.parse(json['end_date']?.toString() ?? ''),
+        startDate: json['start_date']?.toString() ?? '',
+        endDate: json['end_date']?.toString() ?? '',
         projectId: json['project_id'] as int,
         project:
             Project.fromJson(json['project'] as Map<String, dynamic>? ?? {}),
       );
   final int id;
   final int status;
-  final DateTime startDate;
-  final DateTime endDate;
+  final String startDate;
+  final String endDate;
   final int projectId;
   final Project project;
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'status': status,
-        'start_date':
-            "${startDate.year.toString().padLeft(4, '0')}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}",
-        'end_date':
-            "${endDate.year.toString().padLeft(4, '0')}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}",
+        'start_date': startDate,
+        'end_date': endDate,
         'project_id': projectId,
         'Project': project.toJson(),
       };

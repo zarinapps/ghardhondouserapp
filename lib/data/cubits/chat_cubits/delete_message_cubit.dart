@@ -38,8 +38,7 @@ class DeleteMessageCubit extends Cubit<DeleteMessageState> {
         'receiver_id': receiverId,
         'sender_id': senderId,
         'property_id': propertyId,
-      };
-      parameters.removeWhere((key, value) => value == '');
+      }..removeWhere((key, value) => value == '');
       await Api.post(
         url: Api.deleteChatMessage,
         parameter: parameters,

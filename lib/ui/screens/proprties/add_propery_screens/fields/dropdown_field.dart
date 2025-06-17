@@ -8,7 +8,7 @@ import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
-class CustomDropdownField extends CustomField {
+class CustomDropdownField extends CustomField<dynamic> {
   @override
   String type = 'dropdown';
 
@@ -122,7 +122,7 @@ class CustomDropdownField extends CustomField {
                         ),
                       )
                       .toList(),
-                  onChanged: (dynamic v) {
+                  onChanged: (v) {
                     value = v;
                     update(() {});
                   },

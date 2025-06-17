@@ -1,11 +1,9 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:convert';
 
-import 'package:ebroker/utils/Extensions/extensions.dart';
-import 'package:ebroker/utils/api.dart';
+import 'package:ebroker/exports/main_export.dart';
 
 class GMap {
-  static Future<List<MapPoint>> getNearByProperty(
+  static Future<List<PropertyModel>> getNearByProperty(
     String city,
     String latitude,
     String longitude,
@@ -22,7 +20,7 @@ class GMap {
       );
       response.mlog('City response');
       final points = (response['data'] as List).map((e) {
-        return MapPoint.fromMap(e as Map<String, dynamic>? ?? {});
+        return PropertyModel.fromMap(e as Map<String, dynamic>? ?? {});
       }).toList();
       return points;
     } catch (e) {
@@ -31,50 +29,50 @@ class GMap {
   }
 }
 
-class MapPoint {
-  final String price;
-  final String latitude;
-  final String longitude;
-  final int propertyId;
-  final String propertyType;
-  final String addedBy;
-  MapPoint({
-    required this.price,
-    required this.latitude,
-    required this.longitude,
-    required this.propertyId,
-    required this.propertyType,
-    required this.addedBy,
-  });
+// class MapPoint {
+//   final String price;
+//   final String latitude;
+//   final String longitude;
+//   final int propertyId;
+//   final String propertyType;
+//   final String addedBy;
+//   MapPoint({
+//     required this.price,
+//     required this.latitude,
+//     required this.longitude,
+//     required this.propertyId,
+//     required this.propertyType,
+//     required this.addedBy,
+//   });
 
-  @override
-  String toString() {
-    return 'MapPoint(price: $price, latitude: $latitude, longitude: $longitude, propertyId: $propertyId, propertyType: $propertyType)';
-  }
+//   @override
+//   String toString() {
+//     return 'MapPoint(price: $price, latitude: $latitude, longitude: $longitude, propertyId: $propertyId, propertyType: $propertyType)';
+//   }
 
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'price': price,
-      'latitude': latitude,
-      'longitude': longitude,
-      'id': propertyId,
-      'property_type': propertyType,
-    };
-  }
+//   Map<String, dynamic> toMap() {
+//     return <String, dynamic>{
+//       'price': price,
+//       'latitude': latitude,
+//       'longitude': longitude,
+//       'id': propertyId,
+//       'property_type': propertyType,
+//     };
+//   }
 
-  factory MapPoint.fromMap(Map<String, dynamic> map) {
-    return MapPoint(
-      price: map['price'].toString(),
-      latitude: map['latitude'].toString(),
-      longitude: map['longitude'].toString(),
-      propertyId: map['id'] as int,
-      propertyType: map['property_type'].toString(),
-      addedBy: map['added_by'].toString(),
-    );
-  }
+//   factory MapPoint.fromMap(Map<String, dynamic> map) {
+//     return MapPoint(
+//       price: map['price'].toString(),
+//       latitude: map['latitude'].toString(),
+//       longitude: map['longitude'].toString(),
+//       propertyId: map['id'] as int,
+//       propertyType: map['property_type'].toString(),
+//       addedBy: map['added_by'].toString(),
+//     );
+//   }
 
-  String toJson() => json.encode(toMap());
+//   String toJson() => json.encode(toMap());
 
-  factory MapPoint.fromJson(String source) =>
-      MapPoint.fromMap(json.decode(source) as Map<String, dynamic>);
-}
+//   factory MapPoint.fromJson(String source) =>
+//       MapPoint.fromMap(json.decode(source) as Map<String, dynamic>);
+// }

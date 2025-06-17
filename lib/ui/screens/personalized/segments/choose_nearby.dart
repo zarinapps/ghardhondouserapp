@@ -34,7 +34,7 @@ class _NearbyInterestState extends State<NearbyInterest>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isFirstTime = widget.type == PersonalizedVisitType.FirstTime;
+    final isFirstTime = widget.type == PersonalizedVisitType.firstTime;
     final facilityList =
         context.watch<FetchOutdoorFacilityListCubit>().getList();
     final facilityLength = facilityList.length;
@@ -65,7 +65,7 @@ class _NearbyInterestState extends State<NearbyInterest>
       ),
       body: SingleChildScrollView(
         child: Container(
-          margin: const   EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

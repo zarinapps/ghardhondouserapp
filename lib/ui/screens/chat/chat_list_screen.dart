@@ -1,5 +1,6 @@
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/chat/chat_screen.dart';
+import 'package:ebroker/ui/screens/chat_optimisation/chat_screen_new.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -7,7 +8,7 @@ class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
   static Route<dynamic> route(RouteSettings settings) {
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return const ChatListScreen();
       },
@@ -30,7 +31,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       }
     });
     if (context.read<GetChatListCubit>().state is! GetChatListSuccess) {
-      context.read<GetChatListCubit>().fetch();
+      context.read<GetChatListCubit>().fetch(forceRefresh: false);
     }
     super.initState();
   }
@@ -38,53 +39,57 @@ class _ChatListScreenState extends State<ChatListScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Scaffold(
-      backgroundColor: context.color.backgroundColor,
-      appBar: UiUtils.buildAppBar(
-        context,
-        title: UiUtils.translate(context, 'message'),
-      ),
-      body: RefreshIndicator(
-        color: context.color.tertiaryColor,
-        onRefresh: () async {
-          await context.read<GetChatListCubit>().fetch();
-        },
-        child: BlocBuilder<GetChatListCubit, GetChatListState>(
-          builder: (context, state) {
-            if (state is GetChatListFailed) {
-              if (state.error is NoInternetConnectionError) {
-                return NoInternet(
-                  onRetry: () {
-                    context.read<GetChatListCubit>().fetch();
-                  },
-                );
-              } else {
-                return ScrollConfiguration(
-                  behavior: RemoveGlow(),
-                  child: SingleChildScrollView(
-                    physics: Constant.scrollPhysics,
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.6,
-                      child: const SomethingWentWrong(),
+    return AnnotatedRegion(
+      value: UiUtils.getSystemUiOverlayStyle(context: context),
+      child: Scaffold(
+        backgroundColor: context.color.backgroundColor,
+        appBar: UiUtils.buildAppBar(
+          context,
+          title: UiUtils.translate(context, 'message'),
+        ),
+        body: CustomRefreshIndicator(
+          onRefresh: () async {
+            await context.read<GetChatListCubit>().fetch(forceRefresh: true);
+          },
+          child: BlocBuilder<GetChatListCubit, GetChatListState>(
+            builder: (context, state) {
+              if (state is GetChatListFailed) {
+                if (state.error is NoInternetConnectionError) {
+                  return NoInternet(
+                    onRetry: () {
+                      context
+                          .read<GetChatListCubit>()
+                          .fetch(forceRefresh: false);
+                    },
+                  );
+                } else {
+                  return ScrollConfiguration(
+                    behavior: RemoveGlow(),
+                    child: SingleChildScrollView(
+                      physics: Constant.scrollPhysics,
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        child: const SomethingWentWrong(),
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               }
-            }
-            if (state is GetChatListInProgress) {
-              return buildChatListLoadingShimmer();
-            }
-            if (state is GetChatListSuccess) {
-              if (state.chatedUserList.isEmpty) {
-                return SingleChildScrollView(
-                  physics: Constant.scrollPhysics,
-                  child: Container(
+              if (state is GetChatListInProgress) {
+                return buildChatListLoadingShimmer();
+              }
+              if (state is GetChatListSuccess) {
+                if (state.chatedUserList.isEmpty) {
+                  return Container(
                     alignment: Alignment.center,
                     height: MediaQuery.of(context).size.height * 0.7,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SvgPicture.asset(AppIcons.no_chat_found),
+                        SvgPicture.asset(
+                          AppIcons.no_chat_found,
+                          height: MediaQuery.of(context).size.height * 0.35,
+                        ),
                         const SizedBox(
                           height: 20,
                         ),
@@ -102,41 +107,63 @@ class _ChatListScreenState extends State<ChatListScreen>
                           textAlign: TextAlign.center,
                           fontSize: context.font.large,
                         ),
+                        const SizedBox(
+                          height: 14,
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            context
+                                .read<GetChatListCubit>()
+                                .fetch(forceRefresh: false);
+                          },
+                          child: SizedBox(
+                            height: 50.rh(context),
+                            child: Center(
+                              child: CustomText(
+                                'retry'.translate(context),
+                                fontWeight: FontWeight.bold,
+                                fontSize: context.font.normal,
+                                color: context.color.tertiaryColor,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
+                  );
+                }
+                return ListView.builder(
+                  physics: Constant.scrollPhysics,
+                  controller: chatScreenController,
+                  itemCount: state.chatedUserList.length,
+                  padding: const EdgeInsetsDirectional.all(16),
+                  itemBuilder: (
+                    context,
+                    index,
+                  ) {
+                    final chatedUser = state.chatedUserList[index];
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 9),
+                      child: ChatTile(
+                        id: chatedUser.userId.toString(),
+                        propertyId: chatedUser.propertyId.toString(),
+                        profilePicture: chatedUser.profile ?? '',
+                        userName: chatedUser.name ?? '',
+                        propertyPicture: chatedUser.titleImage ?? '',
+                        propertyName: chatedUser.title ?? '',
+                        pendingMessageCount:
+                            chatedUser.unreadCount?.toString() ?? '',
+                        isBlockedByMe: chatedUser.isBlockedByMe ?? false,
+                        isBlockedByUser: chatedUser.isBlockedByUser ?? false,
+                      ),
+                    );
+                  },
                 );
               }
-              return ListView.builder(
-                physics: Constant.scrollPhysics,
-                controller: chatScreenController,
-                itemCount: state.chatedUserList.length,
-                padding: const EdgeInsetsDirectional.all(16),
-                itemBuilder: (
-                  context,
-                  index,
-                ) {
-                  final chatedUser = state.chatedUserList[index];
-
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 9),
-                    child: ChatTile(
-                      id: chatedUser.userId.toString(),
-                      propertyId: chatedUser.propertyId.toString(),
-                      profilePicture: chatedUser.profile ?? '',
-                      userName: chatedUser.name ?? '',
-                      propertyPicture: chatedUser.titleImage ?? '',
-                      propertyName: chatedUser.title ?? '',
-                      pendingMessageCount: '5',
-                      isBlockedByMe: chatedUser.isBlockedByMe ?? false,
-                      isBlockedByUser: chatedUser.isBlockedByUser ?? false,
-                    ),
-                  );
-                },
-              );
-            }
-            return const SizedBox.shrink();
-          },
+              return const SizedBox.shrink();
+            },
+          ),
         ),
       ),
     );
@@ -268,7 +295,7 @@ class ChatTile extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          BlurredRouter(
+          CupertinoPageRoute<dynamic>(
             builder: (context) {
               return MultiBlocProvider(
                 providers: [
@@ -281,7 +308,7 @@ class ChatTile extends StatelessWidget {
                 ],
                 child: Builder(
                   builder: (context) {
-                    return ChatScreen(
+                    return ChatScreenNew(
                       profilePicture: profilePicture,
                       proeprtyTitle: propertyName,
                       userId: id,
@@ -382,6 +409,21 @@ class ChatTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (pendingMessageCount != '0')
+                  Container(
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: context.color.tertiaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: CustomText(
+                      pendingMessageCount,
+                      color: context.color.buttonColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
               ],
             ),
           ),

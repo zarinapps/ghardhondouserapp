@@ -3,12 +3,19 @@ import 'package:ebroker/ui/screens/home/widgets/project_card_horizontal.dart';
 import 'package:flutter/material.dart';
 
 class AllProjectsScreen extends StatefulWidget {
-  const AllProjectsScreen({super.key});
-
-  static Route route(RouteSettings settings) {
-    return BlurredRouter(
+  const AllProjectsScreen({required this.isPromoted, super.key, this.title});
+  final bool isPromoted;
+  final String? title;
+  static Route<dynamic> route(RouteSettings settings) {
+    final args = settings.arguments as Map?;
+    final isPromoted = args?['isPromoted'] as bool;
+    final title = args?['title'] as String? ?? '';
+    return CupertinoPageRoute(
       builder: (context) {
-        return const AllProjectsScreen();
+        return AllProjectsScreen(
+          isPromoted: isPromoted,
+          title: title,
+        );
       },
     );
   }
@@ -21,9 +28,17 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
   final ScrollController _controller = ScrollController();
   @override
   void initState() {
-    context.read<FetchMyProjectsListCubit>().fetch();
+    fetchProjects();
     addPageScrollListener();
     super.initState();
+  }
+
+  Future<void> fetchProjects() async {
+    if (widget.isPromoted) {
+      await context.read<FetchMyProjectsListCubit>().fetchPromotedProjects();
+    } else {
+      await context.read<FetchMyProjectsListCubit>().fetch();
+    }
   }
 
   void addPageScrollListener() {
@@ -35,7 +50,9 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
     if (_controller.isEndReached()) {
       if (mounted) {
         if (context.read<FetchMyProjectsListCubit>().hasMoreData()) {
-          context.read<FetchMyProjectsListCubit>().fetchMore();
+          context
+              .read<FetchMyProjectsListCubit>()
+              .fetchMore(isPromoted: widget.isPromoted);
         }
       }
     }
@@ -43,55 +60,57 @@ class _AllProjectsScreenState extends State<AllProjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appBarTitle = widget.title != ''
+        ? widget.title
+        : widget.isPromoted
+            ? UiUtils.translate(context, 'featuredProjects')
+            : UiUtils.translate(context, 'projects');
     return Scaffold(
       backgroundColor: context.color.primaryColor,
       appBar: UiUtils.buildAppBar(
         context,
         showBackButton: true,
-        title: UiUtils.translate(context, 'projects'),
+        title: appBarTitle,
       ),
-      body: RefreshIndicator(
-        color: context.color.tertiaryColor,
-        onRefresh: () async {
-          await context.read<FetchMyProjectsListCubit>().fetchMyProjects();
-        },
-        child: SingleChildScrollView(
-          controller: _controller,
-          physics: Constant.scrollPhysics,
-          child:
-              BlocBuilder<FetchMyProjectsListCubit, FetchMyProjectsListState>(
-            builder: (context, state) {
-              if (state is FetchMyProjectsListSuccess) {
-                return Container(
-                  margin: const EdgeInsets.only(left: 16, right: 16),
-                  child: Column(
-                    children: [
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: state.projects.length,
-                        itemBuilder: (context, index) {
-                          final project = state.projects[index];
-                          return ProjectHorizontalCard(
-                            project: project,
-                          );
-                        },
-                      ),
-                      if (context
-                          .watch<FetchMyProjectsListCubit>()
-                          .hasMoreData()) ...[
-                        Center(child: UiUtils.progress()),
-                      ],
-                      const SizedBox(
-                        height: 30,
-                      ),
+      body: SingleChildScrollView(
+        controller: _controller,
+        physics: Constant.scrollPhysics,
+        child: BlocBuilder<FetchMyProjectsListCubit, FetchMyProjectsListState>(
+          builder: (context, state) {
+            if (state is FetchMyProjectsListInProgress) {
+              return UiUtils.buildHorizontalShimmer();
+            }
+            if (state is FetchMyProjectsListSuccess) {
+              return Container(
+                margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+                child: Column(
+                  children: [
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: state.projects.length,
+                      itemBuilder: (context, index) {
+                        final project = state.projects[index];
+                        return ProjectHorizontalCard(
+                          project: project,
+                          isRejected: false,
+                        );
+                      },
+                    ),
+                    if (context
+                        .watch<FetchMyProjectsListCubit>()
+                        .hasMoreData()) ...[
+                      Center(child: UiUtils.progress()),
                     ],
-                  ),
-                );
-              }
-              return Container();
-            },
-          ),
+                    const SizedBox(
+                      height: 30,
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Container();
+          },
         ),
       ),
     );

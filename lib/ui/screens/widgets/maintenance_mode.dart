@@ -4,8 +4,8 @@ import 'package:lottie/lottie.dart';
 
 class MaintenanceMode extends StatelessWidget {
   const MaintenanceMode({super.key});
-  static Route route(RouteSettings settings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings settings) {
+    return CupertinoPageRoute(
       builder: (context) {
         return const MaintenanceMode();
       },

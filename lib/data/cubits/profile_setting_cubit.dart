@@ -32,7 +32,7 @@ class ProfileSettingCubit extends Cubit<ProfileSettingState> {
   }) async {
     if (forceRefresh != true) {
       if (state is ProfileSettingFetchSuccess) {
-        await Future.delayed(
+        await Future<dynamic>.delayed(
           const Duration(seconds: AppSettings.hiddenAPIProcessDelay),
         );
       } else {
@@ -42,7 +42,7 @@ class ProfileSettingCubit extends Cubit<ProfileSettingState> {
       emit(ProfileSettingFetchProgress());
     }
 
-    if (forceRefresh == true) {
+    if (forceRefresh ?? false) {
       await fetchProfileSettingFromDb(context, title).then((value) {
         emit(ProfileSettingFetchSuccess(data: value ?? ''));
       }).catchError((e, stack) {

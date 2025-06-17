@@ -8,16 +8,14 @@ import 'package:ebroker/ui/screens/agents/agents_list_screen.dart';
 import 'package:ebroker/ui/screens/auth/email_registration_form.dart';
 import 'package:ebroker/ui/screens/auth/otp_screen.dart';
 import 'package:ebroker/ui/screens/home/home_screen.dart';
-import 'package:ebroker/ui/screens/home/view_promoted_properties.dart';
 import 'package:ebroker/ui/screens/home/widgets/city_list_screen.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/compare_property_screen.dart';
 import 'package:ebroker/ui/screens/settings/faqs_screen.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 class Routes {
   //private constructor
   Routes._();
-
+  static const comparePropertiesScreen = '/comparePropertiesScreen';
   static const agentVerificationForm = '/agentVerificationForm';
   static const agentDetailsScreen = '/agentDetailsScreen';
   static const agentListScreen = '/agentListScreen';
@@ -49,10 +47,6 @@ class Routes {
   static const subscriptionScreen = 'subscriptionScreen';
   static const maintenanceMode = '/maintenanceMode';
   static const favoritesScreen = '/favoritescreen';
-  static const createAdvertismentPopupRoute = '/createAdvertisment';
-  static const promotedPropertiesScreen = '/promotedPropertiesScreen';
-  static const mostLikedPropertiesScreen = '/mostLikedPropertiesScreen';
-  static const mostViewedPropertiesScreen = '/mostViewedPropertiesScreen';
   static const articleDetailsScreenRoute = '/articleDetailsScreenRoute';
   static const areaConvertorScreen = '/areaCalculatorScreen';
   // static const mortgageCalculatorScreen = '/mortgageCalculatorScreen';
@@ -82,7 +76,7 @@ class Routes {
 
   ///View project
   static const projectDetailsScreen = '/projectDetailsScreen';
-  static const projectListScreen = '/projectListScreen';
+  static const myProjects = '/myProjects';
 
   //Sandbox[test]
   static const playground = 'playground';
@@ -93,29 +87,37 @@ class Routes {
 
   static Route<dynamic>? onGenerateRouted(RouteSettings routeSettings) {
     if (routeSettings.name!.contains('/properties-details/')) {
-      final providerSlug = routeSettings.name!.split('/').last;
-      if (previousCustomerRoute.isEmpty) {
-        globalProviderSlugForDeeplink = providerSlug;
-        return BlurredRouter(builder: (context) => const SplashScreen());
+      final splitURL = routeSettings.name!.split('/');
+      final providerSlug = splitURL[splitURL.length - 2];
+
+      // If app is already initialized, let the DeepLinkManager handle it
+      if (Constant.navigatorKey.currentState != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Use deeplink manager to handle the link when navigatorKey is available
+          final uri = Uri.parse(routeSettings.name!);
+          DeepLinkManager.handleDeepLinks(
+            Constant.navigatorKey.currentContext!,
+            uri,
+            providerSlug,
+          );
+        });
+        return null;
       } else {
-        print(
-            'previousCustomerRoute: $previousCustomerRoute \n currentRoute: $currentRoute');
-        if (previousCustomerRoute == propertyDetails) {
-          Constant.navigatorKey.currentState?.pop();
-        }
+        // If app is not initialized yet, store the slug for later use
+        globalProviderSlugForDeeplink = providerSlug;
+        return CupertinoPageRoute(builder: (context) => const SplashScreen());
       }
     }
 
     if (currentRoute.startsWith('https')) {
       if (currentRoute == splash) {
-        return BlurredRouter(builder: (context) => const SplashScreen());
+        return CupertinoPageRoute(builder: (context) => const SplashScreen());
       }
       return null;
     }
     previousCustomerRoute = currentRoute;
     currentRoute = routeSettings.name ?? '';
     log('CURRENT ROUTE $currentRoute');
-    print('current route is $currentRoute');
 
     ///This is to prevent infinity loading while login browser
     if (currentRoute.contains('/link?')) {
@@ -127,7 +129,7 @@ class Routes {
         break;
 
       case splash:
-        return BlurredRouter(builder: (context) => const SplashScreen());
+        return CupertinoPageRoute(builder: (context) => const SplashScreen());
       case onboarding:
         return CupertinoPageRoute(
           builder: (context) => const OnboardingScreen(),
@@ -176,8 +178,6 @@ class Routes {
         return ChooseLocationMap.route(routeSettings);
       case articlesScreenRoute:
         return ArticlesScreen.route(routeSettings);
-      case mostLikedPropertiesScreen:
-        return MostLikedPropertiesScreen.route(routeSettings);
       case areaConvertorScreen:
         return AreaCalculator.route(routeSettings);
       // case mortgageCalculatorScreen:
@@ -190,13 +190,6 @@ class Routes {
         return SubscriptionScreen.route(routeSettings);
       case favoritesScreen:
         return FavoritesScreen.route(routeSettings);
-      case createAdvertismentPopupRoute:
-        return CreateAdvertisementPopup.route(routeSettings);
-      case promotedPropertiesScreen:
-        return PromotedPropertiesScreen.route(routeSettings);
-      case mostViewedPropertiesScreen:
-        return MostViewedPropertiesScreen.route(routeSettings);
-
       case selectPropertyTypeScreen:
         return SelectPropertyType.route(routeSettings);
 
@@ -231,8 +224,8 @@ class Routes {
 
       case manageFloorPlansScreen:
         return ManageFloorPlansScreen.route(routeSettings);
-      case projectListScreen:
-        return ProjectListScreen.route(routeSettings);
+      case myProjects:
+        return MyProjects.route(routeSettings);
       case allProjectsScreen:
         return AllProjectsScreen.route(routeSettings);
       case agentListScreen:
@@ -244,6 +237,8 @@ class Routes {
         return AgentVerificationForm.route(routeSettings);
       case faqsScreen:
         return FaqsScreen.route(routeSettings);
+      case comparePropertiesScreen:
+        return ComparePropertyScreen.route(routeSettings);
       //sandBox//Playground
       // case playground:
       //   return PlayGround.route(routeSettings);

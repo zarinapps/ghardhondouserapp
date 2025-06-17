@@ -1,9 +1,9 @@
 import 'package:ebroker/data/cubits/favorite/add_to_favorite_cubit.dart';
 import 'package:ebroker/data/cubits/property/fetch_my_properties_cubit.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:ebroker/ui/screens/home/widgets/property_horizontal_card.dart';
 import 'package:ebroker/ui/screens/widgets/errors/no_data_found.dart';
 import 'package:ebroker/ui/screens/widgets/errors/something_went_wrong.dart';
-import 'package:ebroker/ui/screens/widgets/shimmerLoadingContainer.dart';
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/constant.dart';
@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 int propertyScreenCurrentPage = 0;
-ValueNotifier<Map> emptyCheckNotifier =
+ValueNotifier<Map<String, dynamic>> emptyCheckNotifier =
     ValueNotifier({'isSellEmpty': false, 'isRentEmpty': false});
 
 class PropertiesScreen extends StatefulWidget {
@@ -51,7 +51,7 @@ class MyPropertyState extends State<PropertiesScreen>
     super.initState();
   }
 
-  addScrollListener() {
+  void addScrollListener() {
     controller.addListener(() {
       if (controller.position.pixels == controller.position.maxScrollExtent) {
         if (context.read<FetchMyPropertiesCubit>().hasMoreData()) {
@@ -99,87 +99,91 @@ class MyPropertyState extends State<PropertiesScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.color.backgroundColor,
-      appBar: UiUtils.buildAppBar(
-        context,
-        title: UiUtils.translate(context, 'myProperty'),
-        hideTopBorder: true,
-        actions: [
-          GestureDetector(
-            onTap: show,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: UiUtils.getSvg(
-                AppIcons.filter,
-                width: 24,
-                height: 24,
+    return AnnotatedRegion(
+      value: UiUtils.getSystemUiOverlayStyle(context: context),
+      child: Scaffold(
+        backgroundColor: context.color.backgroundColor,
+        appBar: UiUtils.buildAppBar(
+          context,
+          title: UiUtils.translate(context, 'myProperty'),
+          hideTopBorder: true,
+          actions: [
+            GestureDetector(
+              onTap: show,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: UiUtils.getSvg(
+                  AppIcons.filter,
+                  width: 24,
+                  height: 24,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        color: context.color.tertiaryColor,
-        onRefresh: () async {
-          await fetchMyProperties();
-        },
-        child: BlocBuilder<FetchMyPropertiesCubit, FetchMyPropertiesState>(
-          builder: (context, state) {
-            if (state is FetchMyPropertiesInProgress) {
-              return buildMyPropertyShimmer();
-            }
-            if (state is FetchMyPropertiesFailure) {}
-            if (state is FetchMyPropertiesSuccess && state.myProperty.isEmpty) {
-              return NoDataFound(
-                onTap: fetchMyProperties,
-              );
-            }
-            if (state is FetchMyPropertiesSuccess &&
-                state.myProperty.isNotEmpty) {
-              return ListView.separated(
-                physics: Constant.scrollPhysics,
-                controller: controller,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
-                itemCount:
-                    state.myProperty.length + (state.isLoadingMore ? 1 : 0),
-                separatorBuilder: (context, index) {
-                  return const SizedBox(
-                    height: 2,
-                  );
-                },
-                itemBuilder: (context, index) {
-                  if (index >= state.myProperty.length) {
-                    if (state.isLoadingMore) {
-                      return Center(
-                        child: UiUtils.progress(),
-                      );
-                    }
-                    return const SizedBox();
-                  }
-                  final property = state.myProperty[index];
-                  final status = property.requestStatus.toString() == 'approved'
-                      ? property.status.toString()
-                      : property.requestStatus.toString();
-                  return BlocProvider(
-                    create: (context) => AddToFavoriteCubitCubit(),
-                    child: PropertyHorizontalCard(
-                      property: property,
-                      showLikeButton: false,
-                      statusButton: StatusButton(
-                        lable: statusText(status),
-                        color: statusColor(status).withValues(alpha: 0.2),
-                        textColor: statusColor(status),
-                      ),
-                      // useRow: true,
-                    ),
-                  );
-                },
-              );
-            }
-            return const SomethingWentWrong();
+          ],
+        ),
+        body: CustomRefreshIndicator(
+          onRefresh: () async {
+            await fetchMyProperties();
           },
+          child: BlocBuilder<FetchMyPropertiesCubit, FetchMyPropertiesState>(
+            builder: (context, state) {
+              if (state is FetchMyPropertiesInProgress) {
+                return UiUtils.buildHorizontalShimmer();
+              }
+              if (state is FetchMyPropertiesFailure) {}
+              if (state is FetchMyPropertiesSuccess &&
+                  state.myProperty.isEmpty) {
+                return NoDataFound(
+                  onTap: fetchMyProperties,
+                );
+              }
+              if (state is FetchMyPropertiesSuccess &&
+                  state.myProperty.isNotEmpty) {
+                return ListView.separated(
+                  physics: Constant.scrollPhysics,
+                  controller: controller,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
+                  itemCount:
+                      state.myProperty.length + (state.isLoadingMore ? 1 : 0),
+                  separatorBuilder: (context, index) {
+                    return const SizedBox(
+                      height: 2,
+                    );
+                  },
+                  itemBuilder: (context, index) {
+                    if (index >= state.myProperty.length) {
+                      if (state.isLoadingMore) {
+                        return Center(
+                          child: UiUtils.progress(),
+                        );
+                      }
+                      return const SizedBox();
+                    }
+                    final property = state.myProperty[index];
+                    final status =
+                        property.requestStatus.toString() == 'approved'
+                            ? property.status.toString()
+                            : property.requestStatus.toString();
+                    return BlocProvider(
+                      create: (context) => AddToFavoriteCubitCubit(),
+                      child: PropertyHorizontalCard(
+                        property: property,
+                        showLikeButton: false,
+                        statusButton: StatusButton(
+                          lable: statusText(status),
+                          color: statusColor(status).withValues(alpha: 0.2),
+                          textColor: statusColor(status),
+                        ),
+                        // useRow: true,
+                      ),
+                    );
+                  },
+                );
+              }
+              return const SomethingWentWrong();
+            },
+          ),
         ),
       ),
     );
@@ -208,14 +212,14 @@ class MyPropertyState extends State<PropertiesScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CustomText(
-                    'Filter',
+                    'filterTitle'.translate(context),
                     color: context.color.inverseSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
                   const SizedBox(height: 16),
                   CustomText(
-                    'Status',
+                    'status'.translate(context),
                     color: context.color.inverseSurface,
                     fontWeight: FontWeight.bold,
                   ),
@@ -224,28 +228,28 @@ class MyPropertyState extends State<PropertiesScreen>
                     runSpacing: 8,
                     children: [
                       buildFilterCheckbox(
-                        'All',
+                        'all'.translate(context),
                         tempSelectedStatus,
                         '',
                         FilterType.status,
                         setModalState,
                       ),
                       buildFilterCheckbox(
-                        'Approved',
+                        'approved'.translate(context),
                         tempSelectedStatus,
                         'approved',
                         FilterType.status,
                         setModalState,
                       ),
                       buildFilterCheckbox(
-                        'Rejected',
+                        'rejected'.translate(context),
                         tempSelectedStatus,
                         'rejected',
                         FilterType.status,
                         setModalState,
                       ),
                       buildFilterCheckbox(
-                        'Pending',
+                        'pending'.translate(context),
                         tempSelectedStatus,
                         'pending',
                         FilterType.status,
@@ -255,7 +259,7 @@ class MyPropertyState extends State<PropertiesScreen>
                   ),
                   const SizedBox(height: 16),
                   CustomText(
-                    'Type',
+                    'type'.translate(context),
                     color: context.color.inverseSurface,
                     fontWeight: FontWeight.bold,
                   ),
@@ -264,35 +268,35 @@ class MyPropertyState extends State<PropertiesScreen>
                     runSpacing: 8,
                     children: [
                       buildFilterCheckbox(
-                        'All',
+                        'all'.translate(context),
                         tempSelectedType,
                         '',
                         FilterType.propertyType,
                         setModalState,
                       ),
                       buildFilterCheckbox(
-                        'Sell',
+                        'sell'.translate(context),
                         tempSelectedType,
                         'sell',
                         FilterType.propertyType,
                         setModalState,
                       ),
                       buildFilterCheckbox(
-                        'Rent',
+                        'rent'.translate(context),
                         tempSelectedType,
                         'rent',
                         FilterType.propertyType,
                         setModalState,
                       ),
                       buildFilterCheckbox(
-                        'Sold',
+                        'sold'.translate(context),
                         tempSelectedType,
                         'sold',
                         FilterType.propertyType,
                         setModalState,
                       ),
                       buildFilterCheckbox(
-                        'Rented',
+                        'rented'.translate(context),
                         tempSelectedType,
                         'rented',
                         FilterType.propertyType,
@@ -371,79 +375,6 @@ class MyPropertyState extends State<PropertiesScreen>
           fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
         ),
       ),
-    );
-  }
-
-  Widget buildMyPropertyShimmer() {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(
-        vertical: 26,
-        horizontal: 16,
-      ),
-      itemCount: 15,
-      separatorBuilder: (context, index) {
-        return const SizedBox(
-          height: 12,
-        );
-      },
-      itemBuilder: (context, index) {
-        return Container(
-          width: double.maxFinite,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const ClipRRect(
-                borderRadius: BorderRadius.all(Radius.circular(15)),
-                child: CustomShimmer(height: 90, width: 90),
-              ),
-              const SizedBox(
-                width: 10,
-              ),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    CustomShimmer(
-                      height: 10,
-                      width: context.screenWidth - 50,
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    const CustomShimmer(
-                      height: 10,
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    CustomShimmer(
-                      height: 10,
-                      width: context.screenWidth / 1.2,
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    CustomShimmer(
-                      height: 10,
-                      width: context.screenWidth / 4,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

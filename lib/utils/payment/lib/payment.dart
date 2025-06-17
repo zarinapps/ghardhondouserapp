@@ -42,7 +42,7 @@ abstract class PaymentStatus {}
 
 class Success extends PaymentStatus {
   final String message;
-  final Map? extraData;
+  final Map<dynamic, dynamic>? extraData;
   Success({
     required this.message,
     this.extraData,
@@ -51,7 +51,7 @@ class Success extends PaymentStatus {
 
 class Failure extends PaymentStatus {
   final String message;
-  final Map? extraData;
+  final Map<dynamic, dynamic>? extraData;
   Failure({
     required this.message,
     this.extraData,

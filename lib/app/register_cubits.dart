@@ -10,12 +10,16 @@ import 'package:ebroker/data/cubits/agents/fetch_projects_cubit.dart';
 import 'package:ebroker/data/cubits/agents/fetch_property_by_agent_cubit.dart';
 import 'package:ebroker/data/cubits/agents/fetch_property_cubit.dart';
 import 'package:ebroker/data/cubits/fetch_faqs_cubit.dart';
-import 'package:ebroker/data/cubits/home_page_data_cubit.dart';
+import 'package:ebroker/data/cubits/fetch_home_page_data_cubit.dart';
 import 'package:ebroker/data/cubits/project/change_project_status_cubit.dart';
 import 'package:ebroker/data/cubits/project/fetch_my_promoted_projects.dart';
 import 'package:ebroker/data/cubits/property/change_property_status_cubit.dart';
+import 'package:ebroker/data/cubits/property/create_advertisement_cubit.dart';
 import 'package:ebroker/data/cubits/property/fetch_city_property_list.dart';
+import 'package:ebroker/data/cubits/property/fetch_compare_properties_cubit.dart';
 import 'package:ebroker/data/cubits/property/fetch_my_promoted_propertys_cubit.dart';
+import 'package:ebroker/data/cubits/property/fetch_premium_properties_cubit.dart';
+import 'package:ebroker/data/cubits/property/fetch_similar_properties_cubit.dart';
 import 'package:ebroker/data/cubits/property/home_infinityscroll_cubit.dart';
 import 'package:ebroker/data/cubits/subscription/flutterwave_cubit.dart';
 import 'package:ebroker/exports/main_export.dart';
@@ -24,11 +28,15 @@ import 'package:nested/nested.dart';
 class RegisterCubits {
   List<SingleChildWidget> register() {
     return [
+      BlocProvider(create: (context) => FetchPremiumPropertiesCubit()),
+      BlocProvider(create: (context) => FetchComparePropertiesCubit()),
+      BlocProvider(create: (context) => FetchSimilarPropertiesCubit()),
       BlocProvider(create: (context) => FetchMyPromotedProjectsCubit()),
       BlocProvider(create: (context) => ChangeProjectStatusCubit()),
       BlocProvider(create: (context) => ChangePropertyStatusCubit()),
       BlocProvider(create: (context) => FetchFacilitiesCubit()),
       BlocProvider(create: (context) => FlutterwaveCubit()),
+      BlocProvider(create: (context) => CreateAdvertisementCubit()),
       BlocProvider(
         create: (context) => MortgageCalculatorCubit(),
       ),
@@ -61,7 +69,6 @@ class RegisterCubits {
       BlocProvider(create: (context) => NotificationCubit()),
       BlocProvider(create: (context) => AppThemeCubit()),
       BlocProvider(create: (context) => AuthenticationCubit()),
-      BlocProvider(create: (context) => FetchTopRatedPropertiesCubit()),
       BlocProvider(create: (context) => FetchMyPropertiesCubit()),
       BlocProvider(create: (context) => FetchPropertyFromCategoryCubit()),
       BlocProvider(create: (context) => FetchNotificationsCubit()),
@@ -83,7 +90,6 @@ class RegisterCubits {
       BlocProvider(create: (context) => RemoveFavoriteCubit()),
       BlocProvider(create: (context) => GetApiKeysCubit()),
       BlocProvider(create: (context) => FetchCityCategoryCubit()),
-      BlocProvider(create: (context) => SetPropertyViewCubit()),
       BlocProvider(create: (context) => GetChatListCubit()),
       BlocProvider(create: (context) => FetchPropertyReportReasonsListCubit()),
       BlocProvider(create: (context) => FetchMostLikedPropertiesCubit()),

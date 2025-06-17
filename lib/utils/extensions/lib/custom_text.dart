@@ -1,5 +1,4 @@
 import 'package:ebroker/exports/main_export.dart';
-import 'package:flutter/material.dart';
 
 class CustomText extends StatelessWidget {
   const CustomText(
@@ -11,7 +10,7 @@ class CustomText extends StatelessWidget {
     this.fontStyle,
     this.fontSize,
     this.textAlign,
-    this.maxLines,
+    this.maxLines = 10,
     this.height,
     this.showUnderline = false,
     this.underlineOrLineColor,
@@ -26,7 +25,7 @@ class CustomText extends StatelessWidget {
   final double? fontSize;
   final double? height;
   final TextAlign? textAlign;
-  final int? maxLines;
+  final int maxLines;
   final bool showLineThrough;
   final bool showUnderline;
   final Color? underlineOrLineColor;
@@ -56,8 +55,8 @@ class CustomText extends StatelessWidget {
     return Text(
       text,
       maxLines: maxLines,
-      overflow: maxLines != null ? TextOverflow.ellipsis : null,
-      softWrap: maxLines != null,
+      overflow: TextOverflow.ellipsis,
+      softWrap: true,
       style: style,
       textAlign: textAlign,
       textScaler: TextScaler.noScaling,

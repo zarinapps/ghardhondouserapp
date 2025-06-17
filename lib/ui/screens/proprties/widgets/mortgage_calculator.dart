@@ -1,8 +1,8 @@
 import 'package:ebroker/data/cubits/Utility/mortgage_calculator_cubit.dart';
 import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/proprties/widgets/donutChart.dart';
-import 'package:ebroker/ui/screens/proprties/widgets/yearlyBreakdownScreen.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/donut_chart.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/yearly_breakdown_screen.dart';
 import 'package:flutter/material.dart';
 
 class MortgageCalculator extends StatefulWidget {
@@ -50,7 +50,8 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
       return SingleChildScrollView(
         child: Form(
           key: _formKey,
-          child: Padding(
+          child: Container(
+            color: context.color.secondaryColor,
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,10 +116,16 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
     return TextFormField(
       controller: _downPaymentController,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      style: TextStyle(
+        color: context.color.textColorDark,
+      ),
       decoration: InputDecoration(
         hintText: isPercentage
             ? '${'downPaymentDescription'.translate(context)} 10%'
             : '${'downPaymentDescription'.translate(context)} ${(price * 0.1).toStringAsFixed(2)}',
+        hintStyle: TextStyle(
+          color: context.color.textColorDark.withValues(alpha: 0.7),
+        ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
             width: 2,
@@ -263,7 +270,6 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
                     is MortgageCalculatorLoading
                 ? Center(
                     child: UiUtils.progress(
-                      showWhite: true,
                       height: 14,
                     ),
                   )
@@ -311,7 +317,6 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
   Widget _buildMortgageCalculatorOutput() {
     return BlocBuilder<MortgageCalculatorCubit, MortgageCalculatorState>(
       builder: (context, state) {
-        bool? isMortgageCalculatorAvailable;
         if (state is MortgageCalculatorLoading) {
           return Center(
             child: UiUtils.progress(),
@@ -420,12 +425,11 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
                               await checkPackage.checkPackageAvailable(
                             packageType: PackageType.mortgageCalculatorDetail,
                           );
-                          isMortgageCalculatorAvailable = packageAvailable;
 
                           if (packageAvailable) {
                             await Navigator.push(
                               context,
-                              BlurredRouter(
+                              CupertinoPageRoute<dynamic>(
                                 builder: (context) {
                                   return YearlyBreakdownScreen(
                                     mortgageCalculatorModel:
@@ -437,7 +441,7 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
                           } else {
                             await UiUtils.showBlurredDialoge(
                               context,
-                              dialoge: const BlurredSubscriptionDialogBox(
+                              dialog: const BlurredSubscriptionDialogBox(
                                 packageType: SubscriptionPackageType
                                     .mortgageCalculatorDetail,
                                 isAcceptContainesPush: true,
@@ -447,15 +451,6 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
                         },
                       );
                     },
-                    prefixWidget: isMortgageCalculatorAvailable ?? false
-                        ? null
-                        : Container(
-                            margin: const EdgeInsetsDirectional.only(end: 8),
-                            child: Icon(
-                              Icons.lock,
-                              color: context.color.buttonColor,
-                            ),
-                          ),
                     buttonTitle: 'yearlyBreakdown'.translate(context),
                     fontSize: context.font.large,
                     radius: 5,
@@ -486,9 +481,14 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
       readOnly: readOnly,
       controller: controller,
       keyboardType: keyboardType,
+      style: TextStyle(
+        color: context.color.textColorDark,
+      ),
       decoration: InputDecoration(
         hintText: label,
-        focusColor: context.color.tertiaryColor,
+        hintStyle: TextStyle(
+          color: context.color.textColorDark.withValues(alpha: 0.7),
+        ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
             width: 2,
@@ -499,8 +499,6 @@ class _MortgageCalculatorState extends State<MortgageCalculator> {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        filled: true,
-        fillColor: context.color.secondaryColor.withValues(alpha: 0.1),
       ),
       validator: _validateNumber,
     );

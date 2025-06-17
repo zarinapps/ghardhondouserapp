@@ -1,8 +1,6 @@
 import 'package:ebroker/data/model/subscription_pacakage_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/subscription/widget/package_tile.dart';
-import 'package:ebroker/utils/constant.dart';
-import 'package:ebroker/utils/extensions/lib/custom_text.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -122,7 +120,7 @@ class CurrentPackageTileCard extends StatelessWidget {
             color: context.color.buttonColor.withValues(alpha: 0.5),
           ),
           CustomText(
-            '${package.duration} ${'days'.translate(context)}',
+            '${getDuration(duration: package.duration, context: context)} ${'days'.translate(context)}',
             fontSize: context.font.normal,
             fontWeight: FontWeight.w400,
             color: context.color.buttonColor.withValues(alpha: 0.9),
@@ -130,6 +128,11 @@ class CurrentPackageTileCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String getDuration({required int duration, required BuildContext context}) {
+    final days = duration ~/ 24;
+    return '$days';
   }
 
   // Modified method to find features by ID or create placeholder if not found
@@ -208,12 +211,6 @@ class CurrentPackageTileCard extends StatelessWidget {
               ],
             ),
           );
-  }
-
-  // Placeholder for the translate function
-  String translate(String key) {
-    // Replace with your actual translation logic
-    return key;
   }
 
   Widget _buildProgressItem(
@@ -489,8 +486,12 @@ class CurrentPackageTileCard extends StatelessWidget {
     final end = endDate;
     final timeDiff = end.difference(now).inMilliseconds;
 
-    if (timeDiff <= 0) return "0 ${"timeLeft".translate(context)}";
-
+    if (timeDiff <= 0) return "NO ${"timeLeft".translate(context)}";
+    //If duration is in minutes (less than 60 minutes)
+    if (timeDiff < (1000 * 60 * 60)) {
+      final remainingMinutes = (timeDiff / (1000 * 60)).ceil();
+      return "$remainingMinutes ${"minutesLeft".translate(context)}";
+    }
     // If duration is in hours (less than 24 hours)
     if (timeDiff < (1000 * 60 * 60 * 24)) {
       final remainingHours = (timeDiff / (1000 * 60 * 60)).ceil();

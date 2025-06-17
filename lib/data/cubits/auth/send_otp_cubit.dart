@@ -94,7 +94,6 @@ class SendOtpCubit extends Cubit<SendOtpState> {
         password: password,
         confirmPassword: confirmPassword,
       );
-      print(result);
       if (result['error'] == true) {
         emit(SendOtpFailure(result['message']?.toString() ?? ''));
       } else {

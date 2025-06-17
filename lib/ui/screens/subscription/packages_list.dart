@@ -4,22 +4,28 @@ import 'package:ebroker/data/cubits/subscription/assign_free_package.dart';
 import 'package:ebroker/data/cubits/subscription/assign_package.dart';
 import 'package:ebroker/data/model/subscription_pacakage_model.dart';
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/subscription/widget/bank_transfer.dart';
 import 'package:ebroker/ui/screens/subscription/widget/my_packages_tile.dart';
 import 'package:ebroker/ui/screens/subscription/widget/package_tile.dart';
-import 'package:ebroker/utils/AdMob/bannerAdLoadWidget.dart';
-import 'package:ebroker/utils/AdMob/interstitialAdManager.dart';
-import 'package:ebroker/utils/payment/in_app_purchase/inAppPurchaseManager.dart';
+import 'package:ebroker/utils/admob/banner_ad_load_widget.dart';
+import 'package:ebroker/utils/admob/interstitial_ad_manager.dart';
+import 'package:ebroker/utils/payment/in_app_purchase/in_app_purchase_manager.dart';
 import 'package:ebroker/utils/payment/lib/payment.dart';
 import 'package:ebroker/utils/payment/lib/payment_service.dart';
 import 'package:flutter/material.dart';
 
 class SubscriptionPackageListScreen extends StatefulWidget {
-  const SubscriptionPackageListScreen({super.key, this.from});
+  const SubscriptionPackageListScreen({
+    required this.isBankTransferEnabled,
+    super.key,
+    this.from,
+  });
   final String? from;
+  final bool isBankTransferEnabled;
 
   static Route<dynamic> route(RouteSettings settings) {
     final arguments = settings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return MultiBlocProvider(
           providers: [
@@ -35,6 +41,8 @@ class SubscriptionPackageListScreen extends StatefulWidget {
           ],
           child: SubscriptionPackageListScreen(
             from: arguments?['from']?.toString() ?? '',
+            isBankTransferEnabled:
+                arguments?['isBankTransferEnabled'] as bool? ?? false,
           ),
         );
       },
@@ -43,23 +51,32 @@ class SubscriptionPackageListScreen extends StatefulWidget {
 
   @override
   State<SubscriptionPackageListScreen> createState() =>
-      _SubscriptionPackageListScreenState();
+      SubscriptionPackageListScreenState();
 }
 
-class _SubscriptionPackageListScreenState
+class SubscriptionPackageListScreenState
     extends State<SubscriptionPackageListScreen>
     with SingleTickerProviderStateMixin {
   InterstitialAdManager interstitialAdManager = InterstitialAdManager();
   InAppPurchaseManager inAppPurchase = InAppPurchaseManager();
   final ScrollController _scrollController = ScrollController();
   late TabController _tabController;
+  String? _selectedPaymentMethod;
+  bool? isBankTransferActive;
+  bool? isOnlinePaymentActive;
+  // Bank transfer related state variables have been moved to bank_transfer.dart
 
   @override
   void initState() {
+    final state = context.read<GetApiKeysCubit>().state as GetApiKeysSuccess;
+    isBankTransferActive = widget.isBankTransferEnabled;
+    isOnlinePaymentActive = state.enabledPaymentGatway.isNotEmpty &&
+        state.enabledPaymentGatway != '';
+    _selectedPaymentMethod = 'online';
     // Initialize tab controller with 2 tabs
     _tabController = TabController(length: 2, vsync: this);
     _tabController.index = 1;
-
+    context.read<FetchSubscriptionPackagesCubit>().fetchPackages();
     _scrollController.addListener(() {
       if (_scrollController.isEndReached()) {
         if (context.read<FetchSubscriptionPackagesCubit>().hasMore()) {
@@ -67,8 +84,6 @@ class _SubscriptionPackageListScreenState
         }
       }
     });
-
-    context.read<FetchSubscriptionPackagesCubit>().fetchPackages();
     interstitialAdManager.load();
     InAppPurchaseManager.getPendings();
     inAppPurchase.listenIAP(context);
@@ -78,7 +93,6 @@ class _SubscriptionPackageListScreenState
 
   @override
   void dispose() {
-    // Dispose the tab controller
     _tabController.dispose();
     super.dispose();
   }
@@ -108,34 +122,6 @@ class _SubscriptionPackageListScreenState
     return false;
   }
 
-  Future<void> _onTapSubscribe(
-    SubscriptionPackageModel subscriptionPackage,
-  ) async {
-    log('######## ${AppSettings.enabledPaymentGatway}----${AppSettings.razorpayKey}');
-
-    if (subscriptionPackage.price == 0) {
-      await context.read<AssignFreePackageCubit>().assign(
-            subscriptionPackage.id,
-          );
-      return;
-    }
-    if (Platform.isIOS) {
-      await inAppPurchase.buy(
-        subscriptionPackage.iosProductId,
-        subscriptionPackage.id.toString(),
-      );
-      return;
-    }
-    if (isPaymentGatewayOpen == false) {
-      final paymentService = PaymentService()
-        ..targetGatwayKey = AppSettings.enabledPaymentGatway
-        ..attachedGatways(gatways)
-        ..setContext(context)
-        ..setPackage(subscriptionPackage);
-      await paymentService.pay();
-    } else {}
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,6 +136,7 @@ class _SubscriptionPackageListScreenState
             controller: _tabController,
             indicatorColor: context.color.tertiaryColor,
             labelColor: context.color.tertiaryColor,
+            dividerColor: Colors.transparent,
             unselectedLabelColor: context.color.textColorDark,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             tabs: [
@@ -162,130 +149,191 @@ class _SubscriptionPackageListScreenState
       bottomNavigationBar: const BottomAppBar(
         child: BannerAdWidget(bannerSize: AdSize.banner),
       ),
-      body: RefreshIndicator(
-        backgroundColor: context.color.primaryColor,
-        color: context.color.tertiaryColor,
-        onRefresh: () async {
-          await context.read<FetchSubscriptionPackagesCubit>().fetchPackages();
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          await interstitialAdManager.show();
+          Future.delayed(
+            Duration.zero,
+            () {
+              Navigator.pop(context);
+            },
+          );
         },
-        child: PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, _) async {
-            if (didPop) return;
-            await interstitialAdManager.show();
-            Future.delayed(
-              Duration.zero,
-              () {
-                Navigator.pop(context);
+        child: MultiBlocListener(
+          listeners: [
+            BlocListener<AssignInAppPackageCubit, AssignInAppPackageState>(
+              listener: (context, state) {
+                if (state is AssignInAppPackageSuccess) {
+                  context.read<FetchSystemSettingsCubit>().fetchSettings(
+                        isAnonymous: false,
+                        forceRefresh: true,
+                      );
+                  HelperUtils.showSnackBarMessage(
+                    context,
+                    'Package Assigned',
+                  );
+                }
               },
-            );
-          },
-          child: MultiBlocListener(
-            listeners: [
-              BlocListener<AssignInAppPackageCubit, AssignInAppPackageState>(
+            ),
+          ],
+          child: Builder(
+            builder: (context) {
+              return BlocListener<AssignFreePackageCubit,
+                  AssignFreePackageState>(
                 listener: (context, state) {
-                  if (state is AssignInAppPackageSuccess) {
+                  if (state is AssignFreePackageInProgress) {
+                    unawaited(Widgets.showLoader(context));
+                  }
+
+                  if (state is AssignFreePackageSuccess) {
+                    Widgets.hideLoder(context);
+                    context
+                        .read<FetchSubscriptionPackagesCubit>()
+                        .fetchPackages();
                     context.read<FetchSystemSettingsCubit>().fetchSettings(
                           isAnonymous: false,
                           forceRefresh: true,
                         );
+
                     HelperUtils.showSnackBarMessage(
                       context,
-                      'Package Assigned',
+                      'Free package is assigned',
+                    );
+                  }
+
+                  if (state is AssignFreePackageFail) {
+                    Widgets.hideLoder(context);
+
+                    HelperUtils.showSnackBarMessage(
+                      context,
+                      'Failed to assign free package',
                     );
                   }
                 },
-              ),
-            ],
-            child: Builder(
-              builder: (context) {
-                return BlocListener<AssignFreePackageCubit,
-                    AssignFreePackageState>(
-                  listener: (context, state) {
-                    if (state is AssignFreePackageInProgress) {
-                      unawaited(Widgets.showLoader(context));
+                child: BlocBuilder<FetchSubscriptionPackagesCubit,
+                    FetchSubscriptionPackagesState>(
+                  builder: (context, state) {
+                    if (state is FetchSubscriptionPackagesInProgress) {
+                      return buildSubscriptionShimmer();
                     }
-
-                    if (state is AssignFreePackageSuccess) {
-                      Widgets.hideLoder(context);
-                      context
-                          .read<FetchSubscriptionPackagesCubit>()
-                          .fetchPackages();
-                      context.read<FetchSystemSettingsCubit>().fetchSettings(
-                            isAnonymous: false,
-                            forceRefresh: true,
-                          );
-
-                      HelperUtils.showSnackBarMessage(
-                        context,
-                        'Free package is assigned',
-                      );
-                    }
-
-                    if (state is AssignFreePackageFail) {
-                      Widgets.hideLoder(context);
-
-                      HelperUtils.showSnackBarMessage(
-                        context,
-                        'Failed to assign free package',
-                      );
-                    }
-                  },
-                  child: BlocBuilder<FetchSubscriptionPackagesCubit,
-                      FetchSubscriptionPackagesState>(
-                    builder: (context, state) {
-                      if (state is FetchSubscriptionPackagesInProgress) {
-                        return ListView.builder(
-                          itemCount: 10,
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.all(16),
-                          itemBuilder: (context, index) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(
-                                vertical: 8,
-                              ),
-                              child: CustomShimmer(
-                                height: 160,
-                              ),
-                            );
+                    if (state is FetchSubscriptionPackagesFailure) {
+                      if (state.errorMessage is NoInternetConnectionError) {
+                        return NoInternet(
+                          onRetry: () {
+                            context
+                                .read<FetchSubscriptionPackagesCubit>()
+                                .fetchPackages();
                           },
                         );
                       }
-                      if (state is FetchSubscriptionPackagesFailure) {
-                        if (state.errorMessage is NoInternetConnectionError) {
-                          return NoInternet(
-                            onRetry: () {
-                              context
-                                  .read<FetchSubscriptionPackagesCubit>()
-                                  .fetchPackages();
-                            },
-                          );
-                        }
 
-                        return const SomethingWentWrong();
-                      }
-                      if (state is FetchSubscriptionPackagesSuccess) {
-                        return TabBarView(
-                          controller: _tabController,
-                          children: [
-                            // Current Plan Tab
-                            _buildCurrentPlanTab(state),
+                      return const SomethingWentWrong();
+                    }
+                    if (state is FetchSubscriptionPackagesSuccess) {
+                      return TabBarView(
+                        controller: _tabController,
+                        children: [
+                          // Current Plan Tab
+                          _buildCurrentPlanTab(state),
 
-                            // Other Plans Tab
-                            _buildOtherPlansTab(state),
-                          ],
-                        );
-                      }
+                          // Other Plans Tab
+                          _buildOtherPlansTab(state),
+                        ],
+                      );
+                    }
 
-                      return Container();
-                    },
-                  ),
-                );
-              },
-            ),
+                    return Container();
+                  },
+                ),
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+
+  Widget buildSubscriptionShimmer() {
+    return ListView.builder(
+      itemCount: 2,
+      shrinkWrap: true,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsetsDirectional.only(
+            top: 10,
+            start: 16,
+            end: 16,
+          ),
+          width: MediaQuery.of(context).size.width,
+          child: Column(
+            children: [
+              const CustomShimmer(
+                borderRadius: 18,
+                height: 50,
+              ),
+              ...List.generate(
+                8,
+                (index) => const Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: 12,
+                    end: 12,
+                  ),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 18),
+                      Row(
+                        children: [
+                          CustomShimmer(
+                            borderRadius: 18,
+                            height: 20,
+                            width: 20,
+                          ),
+                          SizedBox(
+                            width: 10,
+                          ),
+                          Expanded(
+                            child: CustomShimmer(
+                              borderRadius: 18,
+                              height: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                child: MySeparator(
+                  color: context.color.tertiaryColor.withValues(alpha: 0.7),
+                  isShimmer: true,
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(
+                  top: 18,
+                  bottom: 18,
+                  left: 16,
+                  right: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: context.color.tertiaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: CustomShimmer(
+                  borderRadius: 10,
+                  height: 60,
+                  width: MediaQuery.of(context).size.width,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -306,41 +354,354 @@ class _SubscriptionPackageListScreenState
             },
           )
         : const Center(
+            heightFactor: double.infinity,
             child: NoDataFound(),
           );
   }
 
   Widget _buildOtherPlansTab(FetchSubscriptionPackagesSuccess state) {
-    // Filter out the active package
     final otherPackages = state.packageResponseModel.subscriptionPackage;
 
-    return SingleChildScrollView(
+    if (otherPackages.isEmpty) {
+      return const Center(
+        heightFactor: double.infinity,
+        child: NoDataFound(),
+      );
+    }
+
+    return ListView.builder(
       physics: Constant.scrollPhysics,
-      child: otherPackages.isNotEmpty
-          ? Column(
+      itemCount: otherPackages.length + 2, // +2 for loading and error widgets
+      itemBuilder: (context, index) {
+        if (index < otherPackages.length) {
+          final subscriptionPackage = otherPackages[index];
+          return SubscriptionPackageTile(
+            package: subscriptionPackage,
+            packageFeatures: state.packageResponseModel.allFeature,
+            onTap: () async {
+              await onTapSubscriptionTile(
+                subscriptionPackage: subscriptionPackage,
+              );
+            },
+          );
+        } else if (index == otherPackages.length && state.isLoadingMore) {
+          return UiUtils.progress();
+        } else if (index == otherPackages.length + 1 && state.hasError) {
+          return const CustomText('Something went wrong');
+        } else {
+          return const SizedBox.shrink();
+        }
+      },
+    );
+  }
+
+  Future<void> onTapSubscriptionTile({
+    required SubscriptionPackageModel subscriptionPackage,
+  }) async {
+    if (subscriptionPackage.packageStatus == 'review') {
+      await showModalBottomSheet<dynamic>(
+        context: context,
+        backgroundColor: context.color.secondaryColor,
+        builder: (context) => Container(
+          width: MediaQuery.of(context).size.width,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomText(
+                UiUtils.translate(context, 'review'),
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(height: 16),
+              CustomText(
+                UiUtils.translate(context, 'packageStatus'),
+                fontSize: 16,
+              ),
+              const SizedBox(height: 16),
+              UiUtils.buildButton(
+                context,
+                onPressed: () {
+                  Navigator.popAndPushNamed(
+                    context,
+                    Routes.transactionHistory,
+                  );
+                },
+                buttonTitle: 'transactionHistory'.translate(context),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (subscriptionPackage.price == 0) {
+      await onOnlineSubscribe(subscriptionPackage);
+      return;
+    }
+
+    if ((isBankTransferActive ?? false) && (isOnlinePaymentActive ?? false)) {
+      await showModalBottomSheet<dynamic>(
+        context: context,
+        isScrollControlled: true,
+        elevation: 10,
+        backgroundColor: context.color.secondaryColor,
+        builder: (context) => buildPaymentMethodsBottomSheet(
+          subscriptionPackage: subscriptionPackage,
+        ),
+      );
+    } else if (!(isBankTransferActive ?? true) &&
+        (isOnlinePaymentActive ?? false)) {
+      await onOnlineSubscribe(subscriptionPackage);
+    } else if ((isBankTransferActive ?? false) &&
+        !(isOnlinePaymentActive ?? true)) {
+      await onBankTransferSubscribe(subscriptionPackage);
+    }
+  }
+
+  Widget buildPaymentMethodsBottomSheet({
+    required SubscriptionPackageModel subscriptionPackage,
+  }) {
+    final state = context.read<GetApiKeysCubit>().state as GetApiKeysSuccess;
+    final enabledPaymentGatway = state.enabledPaymentGatway;
+    final icon = _getPaymentGatewayIcon(enabledPaymentGatway);
+
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: StatefulBuilder(
+        // Add StatefulBuilder here
+        builder: (context, setSheetState) {
+          // This gives local setState for the bottom sheet
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: context.color.secondaryColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: otherPackages.length,
-                  itemBuilder: (context, index) {
-                    final subscriptionPackage = otherPackages[index];
-                    return SubscriptionPackageTile(
-                      package: subscriptionPackage,
-                      packageFeatures: state.packageResponseModel.allFeature,
-                      onTap: () {
-                        _onTapSubscribe(subscriptionPackage);
-                      },
-                    );
+                Container(
+                  height: 4,
+                  margin: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.4,
+                  ),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.blueGrey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CustomText(
+                  'paymentMethods'.translate(context),
+                  fontSize: context.font.larger,
+                  fontWeight: FontWeight.w700,
+                  color: context.color.textColorDark,
+                ),
+                const SizedBox(height: 16),
+                _buildPaymentOptionForBottomSheet(
+                  value: 'online',
+                  title:
+                      enabledPaymentGatway.translate(context).firstUpperCase(),
+                  icon: icon,
+
+                  setSheetState: setSheetState, // Pass the local setState
+                ),
+                const SizedBox(height: 12),
+                _buildPaymentOptionForBottomSheet(
+                  value: 'bank_transfer',
+                  title: 'bankTransfer'.translate(context),
+                  icon: AppIcons.bankTransfer,
+                  iconColor: context.color.textColorDark,
+                  setSheetState: setSheetState, // Pass the local setState
+                ),
+                const SizedBox(height: 18),
+                UiUtils.buildButton(
+                  context,
+                  radius: 12,
+                  buttonTitle: 'continue'.translate(context),
+                  onPressed: () async {
+                    if (_selectedPaymentMethod == 'online') {
+                      Navigator.pop(context);
+                      await onOnlineSubscribe(subscriptionPackage);
+                    } else {
+                      Navigator.pop(context);
+                      await onBankTransferSubscribe(subscriptionPackage);
+                    }
                   },
                 ),
-                if (state.isLoadingMore) UiUtils.progress(),
-                if (state.hasError) const CustomText('Something went wrong'),
               ],
-            )
-          : const Center(
-              child: NoDataFound(),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Helper method to determine payment gateway icon
+  String _getPaymentGatewayIcon(String enabledPaymentGatway) {
+    if (enabledPaymentGatway == 'flutterwave') {
+      return AppIcons.flutterwave;
+    } else if (enabledPaymentGatway == 'paystack') {
+      return AppIcons.paystack;
+    } else if (enabledPaymentGatway == 'razorpay') {
+      return AppIcons.razorpay;
+    } else if (enabledPaymentGatway == 'paypal') {
+      return AppIcons.paypal;
+    } else {
+      return AppIcons.stripe;
+    }
+  }
+
+  // PAYMENT METHODS
+
+  // Method to handle online subscriptions
+  Future<void> onOnlineSubscribe(
+    SubscriptionPackageModel subscriptionPackage,
+  ) async {
+    log('######## ${AppSettings.enabledPaymentGatway}----${AppSettings.razorpayKey}');
+    if (Constant.isDemoModeOn) {
+      await HelperUtils.showSnackBarMessage(
+        context,
+        'thisActionNotValidDemo'.translate(context),
+      );
+      return;
+    }
+
+    // Handle free packages
+    if (subscriptionPackage.price == 0) {
+      await UiUtils.showBlurredDialoge(
+        context,
+        dialog: BlurredDialogBox(
+          title: 'areYouSure'.translate(context),
+          content: CustomText(
+            'areYourSureForFreePackage'.translate(context),
+          ),
+          onAccept: () async {
+            await context.read<AssignFreePackageCubit>().assign(
+                  subscriptionPackage.id,
+                );
+          },
+        ),
+      );
+      return;
+    }
+
+    // Handle iOS in-app purchases
+    if (Platform.isIOS) {
+      await inAppPurchase.buy(
+        subscriptionPackage.iosProductId,
+        subscriptionPackage.id.toString(),
+      );
+      return;
+    }
+
+    // Handle other payment gateways
+    if (isPaymentGatewayOpen == false) {
+      final paymentService = PaymentService()
+        ..targetGatwayKey = AppSettings.enabledPaymentGatway
+        ..attachedGatways(gatways)
+        ..setContext(context)
+        ..setPackage(subscriptionPackage);
+      await paymentService.pay();
+    }
+  }
+
+  // Method to handle bank transfer subscriptions
+  Future<void> onBankTransferSubscribe(
+    SubscriptionPackageModel subscriptionPackage,
+  ) async {
+    log('######## onBankTransferSubscribe');
+    await BankTransfer.show(
+      context: context,
+      subscriptionPackage: subscriptionPackage,
+    );
+  }
+
+  // Bank transfer UI components have been moved to bank_transfer.dart
+
+  // PAYMENT METHOD SELECTION UI
+
+  // Payment option button for bottom sheet
+  Widget _buildPaymentOptionForBottomSheet({
+    required String value,
+    required String title,
+    required String icon,
+    required Function(void Function()) setSheetState,
+    Color? iconColor,
+  }) {
+    final isSelected = _selectedPaymentMethod == value;
+
+    return GestureDetector(
+      onTap: () {
+        // Update the parent state
+        setState(() {
+          _selectedPaymentMethod = value;
+        });
+        // Also update the bottom sheet UI
+        setSheetState(() {});
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected
+                ? context.color.tertiaryColor
+                : context.color.borderColor,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            UiUtils.getSvg(
+              icon,
+              color: iconColor,
+              width: 24,
+              height: 24,
+            ),
+            const SizedBox(width: 12),
+            CustomText(
+              title,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            const Spacer(),
+            Center(
+              child: Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.color.primaryColor,
+                  border: Border.all(
+                    color: context.color.tertiaryColor,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: context.color.tertiaryColor,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

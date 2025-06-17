@@ -139,51 +139,37 @@ class UiUtils {
     double? width,
     double? height,
     Color? normalProgressColor,
-    bool showWhite = false,
+    bool play = true, // NEW: control whether animation plays
   }) {
+    final primaryColor = _context?.color.tertiaryColor;
+    final secondaryColor = _context?.color.buttonColor;
+
     if (Constant.useLottieProgress) {
       return LottieBuilder.asset(
-        'assets/lottie/${showWhite ? Constant.progressLottieFileWhite : Constant.progressLottieFile}',
+        'assets/lottie/${Constant.progressLottieFile}',
         width: width ?? 45,
         height: height ?? 45,
-        delegates: !showWhite
-            ? LottieDelegates(
-                values: [
-                  ValueDelegate.color(
-                    [
-                      'Layer 5 Outlines',
-                      'Group 1',
-                      '**',
-                    ],
-                    value: _context?.color.tertiaryColor,
-                  ),
-                  ValueDelegate.color(
-                    [
-                      'cube 4 Outlines',
-                      'Group 1',
-                      '**',
-                    ],
-                    value: _context?.color.tertiaryColor,
-                  ),
-                  ValueDelegate.color(
-                    [
-                      'cube 2 Outlines',
-                      'Group 1',
-                      '**',
-                    ],
-                    value: Colors.grey.shade100,
-                  ),
-                  ValueDelegate.color(
-                    [
-                      'cube 3 Outlines',
-                      'Group 1',
-                      '**',
-                    ],
-                    value: Colors.grey.shade100,
-                  ),
-                ],
-              )
-            : const LottieDelegates(),
+        animate: play, // 🔥 only play if allowed
+        delegates: LottieDelegates(
+          values: [
+            ValueDelegate.color(
+              ['Layer 5 Outlines', 'Group 1', '**'],
+              value: primaryColor,
+            ),
+            ValueDelegate.color(
+              ['cube 4 Outlines', 'Group 1', '**'],
+              value: primaryColor,
+            ),
+            ValueDelegate.color(
+              ['cube 2 Outlines', 'Group 1', '**'],
+              value: secondaryColor,
+            ),
+            ValueDelegate.color(
+              ['cube 3 Outlines', 'Group 1', '**'],
+              value: secondaryColor,
+            ),
+          ],
+        ),
       );
     } else {
       return CircularProgressIndicator(
@@ -224,8 +210,8 @@ class UiUtils {
       statusBarIconBrightness: context.color.brightness == Brightness.light
           ? Brightness.dark
           : Brightness.light,
-      systemStatusBarContrastEnforced: false,
-      systemNavigationBarContrastEnforced: false,
+      systemStatusBarContrastEnforced: true,
+      systemNavigationBarContrastEnforced: true,
       systemNavigationBarColor: context.color.secondaryColor,
       systemNavigationBarIconBrightness:
           context.color.brightness == Brightness.light
@@ -237,6 +223,7 @@ class UiUtils {
   static PreferredSize buildAppBar(
     BuildContext context, {
     String? title,
+    Widget? leading,
     bool? showBackButton,
     List<Widget>? actions,
     List<Widget>? bottom,
@@ -248,6 +235,9 @@ class UiUtils {
     Color? backButtonBackgroundColor,
     String? isFrom,
   }) {
+    if ((title?.length ?? 0) > 65 && bottomHeight == null) {
+      bottomHeight = 30;
+    }
     return PreferredSize(
       preferredSize: Size.fromHeight(55 + (bottomHeight ?? 0)),
       child: RoundedBorderOnSomeSidesWidget(
@@ -276,7 +266,7 @@ class UiUtils {
                           color:
                               backButtonBackgroundColor ?? Colors.transparent,
                           type: MaterialType.circle,
-                          child: InkWell(
+                          child: GestureDetector(
                             onTap: () {
                               onbackpress?.call();
                               Navigator.pop(context);
@@ -293,14 +283,20 @@ class UiUtils {
                           ),
                         ),
                       ],
-                      Expanded(
-                        child: CustomText(
-                          title ?? '',
-                          fontWeight: FontWeight.w600,
-                          color: context.color.textColorDark,
-                          fontSize: context.font.larger,
+                      if (leading != null) ...[
+                        leading,
+                      ],
+                      if (title != '' || title != null) ...[
+                        Expanded(
+                          child: CustomText(
+                            title ?? '',
+                            maxLines: 1,
+                            fontWeight: FontWeight.w600,
+                            color: context.color.textColorDark,
+                            fontSize: context.font.larger,
+                          ),
                         ),
-                      ),
+                      ],
                       if (actions != null) ...actions,
                     ],
                   ),
@@ -320,21 +316,6 @@ class UiUtils {
     final red = color0.r - 10;
     final green = color0.g - 10;
     final blue = color0.b - 10;
-
-    return Color.fromARGB(
-      color0.a.toInt(),
-      red.clamp(0, 255).toInt(),
-      green.clamp(0, 255).toInt(),
-      blue.clamp(0, 255).toInt(),
-    );
-  }
-
-  static Color makeColorLight(Color color) {
-    final color0 = color;
-
-    final red = color0.r + 10;
-    final green = color0.g + 10;
-    final blue = color0.b + 10;
 
     return Color.fromARGB(
       color0.a.toInt(),
@@ -380,12 +361,12 @@ class UiUtils {
       padding: outerPadding ?? EdgeInsets.zero,
       child: GestureDetector(
         onTap: () {
-          if (disabled == true) {
+          if (disabled ?? false) {
             onTapDisabledButton?.call();
           }
         },
         child: MaterialButton(
-          minWidth: autoWidth == true ? null : (width ?? double.infinity),
+          minWidth: autoWidth ?? false ? null : (width ?? double.infinity),
           height: height ?? 56.rh(context),
           padding: padding,
           shape: RoundedRectangleBorder(
@@ -412,17 +393,19 @@ class UiUtils {
                 UiUtils.progress(
                   width: progressWidth ?? 16,
                   height: progressHeight ?? 16,
-                  showWhite: true,
                 ),
               ],
               if (prefixWidget != null && !isInProgress && !isRTL) ...[
                 prefixWidget,
               ],
               if (isInProgress != true) ...[
-                CustomText(
-                  title,
-                  color: textColor ?? context.color.buttonColor,
-                  fontSize: fontSize ?? context.font.larger,
+                Flexible(
+                  child: CustomText(
+                    title,
+                    maxLines: 1,
+                    color: textColor ?? context.color.buttonColor,
+                    fontSize: fontSize ?? context.font.larger,
+                  ),
                 ),
               ] else ...[
                 if (showProgressTitle ?? false)
@@ -489,10 +472,8 @@ class UiUtils {
   }) {
     Navigator.of(context)
         .push(
-      BlurredRouter(
-        sigmaX: 10,
-        sigmaY: 10,
-        barrierDismiss: true,
+      CupertinoPageRoute<dynamic>(
+        barrierDismissible: true,
         builder: (BuildContext context) => FullScreenImageView(
           provider: provider,
           showDownloadButton: downloadOption,
@@ -507,15 +488,13 @@ class UiUtils {
 
   static void imageGallaryView(
     BuildContext context, {
-    required List images,
+    required List<dynamic> images,
     required int initalIndex,
     VoidCallback? then,
   }) {
     Navigator.of(context)
         .push(
-      BlurredRouter(
-        sigmaX: 10,
-        sigmaY: 10,
+      CupertinoPageRoute<dynamic>(
         builder: (BuildContext context) => GalleryViewWidget(
           initalIndex: initalIndex,
           images: images,
@@ -529,30 +508,27 @@ class UiUtils {
 
   static Future<dynamic> showBlurredDialoge(
     BuildContext context, {
-    required BlurDialoge dialoge,
+    required BlurDialoge dialog,
     double? sigmaX,
     double? sigmaY,
   }) async {
-    return Navigator.push(
-      context,
-      BlurredRouter(
-        barrierDismiss: true,
-        builder: (context) {
-          if (dialoge is BlurredDialogBox) {
-            return dialoge;
-          } else if (dialoge is BlurredDialogBuilderBox) {
-            return dialoge;
-          } else if (dialoge is EmptyDialogBox) {
-            return dialoge;
-          } else if (dialoge is BlurredSubscriptionDialogBox) {
-            return dialoge;
-          }
+    return showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: .7),
+      useSafeArea: false,
+      builder: (context) {
+        if (dialog is BlurredDialogBox) {
+          return dialog;
+        } else if (dialog is BlurredDialogBuilderBox) {
+          return dialog;
+        } else if (dialog is EmptyDialogBox) {
+          return dialog;
+        } else if (dialog is BlurredSubscriptionDialogBox) {
+          return dialog;
+        }
 
-          return Container();
-        },
-        sigmaX: sigmaX,
-        sigmaY: sigmaY,
-      ),
+        return Container();
+      },
     );
   }
 
@@ -575,6 +551,79 @@ class UiUtils {
     final tempDate = DateFormat('hh:mm').parse(time24);
     final dateFormat = DateFormat('h:mm a');
     return dateFormat.format(tempDate);
+  }
+
+  static Widget buildHorizontalShimmer() {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: Constant.scrollPhysics,
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+        horizontal: 8,
+      ),
+      itemCount: 15,
+      separatorBuilder: (context, index) {
+        return const SizedBox(
+          height: 12,
+        );
+      },
+      itemBuilder: (context, index) {
+        return Container(
+          width: double.maxFinite,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const ClipRRect(
+                borderRadius: BorderRadius.all(Radius.circular(15)),
+                child: CustomShimmer(height: 90, width: 90),
+              ),
+              const SizedBox(
+                width: 10,
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    CustomShimmer(
+                      height: 10,
+                      width: context.screenWidth - 50,
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    const CustomShimmer(
+                      height: 10,
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    CustomShimmer(
+                      height: 10,
+                      width: context.screenWidth / 1.2,
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    CustomShimmer(
+                      height: 10,
+                      width: context.screenWidth / 4,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 

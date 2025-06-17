@@ -1,8 +1,8 @@
 import 'package:ebroker/data/model/property_model.dart';
 import 'package:ebroker/data/repositories/personalized_feed_repository.dart';
 import 'package:ebroker/settings.dart';
-import 'package:ebroker/ui/screens/proprties/viewAll.dart';
-import 'package:ebroker/utils/network/networkAvailability.dart';
+import 'package:ebroker/ui/screens/proprties/view_all.dart';
+import 'package:ebroker/utils/network/network_availability.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class FetchPersonalizedPropertyListState {}
@@ -102,9 +102,9 @@ class FetchPersonalizedPropertyList
   }) async {
     if (forceRefresh != true) {
       if (state is FetchPersonalizedPropertySuccess) {
-        await Future.delayed(
+        await Future<dynamic>.delayed(
           Duration(
-            seconds: loadWithoutDelay == true
+            seconds: loadWithoutDelay ?? false
                 ? 0
                 : AppSettings.hiddenAPIProcessDelay,
           ),
@@ -116,7 +116,7 @@ class FetchPersonalizedPropertyList
       emit(FetchPersonalizedPropertyInProgress());
     }
     try {
-      if (forceRefresh == true) {
+      if (forceRefresh ?? false) {
         final result = await _personalizedFeedRepository
             .getPersonalizedProeprties(offset: 0);
 

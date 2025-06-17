@@ -2,8 +2,9 @@
 
 import 'package:ebroker/data/model/property_model.dart';
 import 'package:ebroker/data/repositories/property_repository.dart';
-import 'package:ebroker/ui/screens/proprties/viewAll.dart';
-import 'package:ebroker/utils/Network/cacheManger.dart';
+import 'package:ebroker/ui/screens/proprties/view_all.dart';
+import 'package:ebroker/utils/hive_utils.dart';
+import 'package:ebroker/utils/network/cache_manger.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class FetchPromotedPropertiesState {}
@@ -75,14 +76,17 @@ class FetchPromotedPropertiesCubit extends Cubit<FetchPromotedPropertiesState>
   }) async {
     try {
       await CacheData().getData(
-        forceRefresh: forceRefresh == true,
+        forceRefresh: forceRefresh ?? false,
         onProgress: () {
           emit(FetchPromotedPropertiesInProgress());
         },
-        delay: loadWithoutDelay == true ? 0 : null,
+        delay: loadWithoutDelay ?? false ? 0 : null,
         onNetworkRequest: () async {
           final result = await _propertyRepository.fetchPromotedProperty(
             offset: 0,
+            latitude: HiveUtils.getLatitude().toString(),
+            longitude: HiveUtils.getLongitude().toString(),
+            radius: HiveUtils.getRadius().toString(),
             sendCityName: true,
           );
           return FetchPromotedPropertiesSuccess(
@@ -143,6 +147,9 @@ class FetchPromotedPropertiesCubit extends Cubit<FetchPromotedPropertiesState>
         );
         final result = await _propertyRepository.fetchPromotedProperty(
           offset: (state as FetchPromotedPropertiesSuccess).properties.length,
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
           sendCityName: true,
         );
 

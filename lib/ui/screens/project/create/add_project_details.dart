@@ -10,8 +10,8 @@ class AddProjectDetails extends StatefulWidget {
 
   final Map<dynamic, dynamic>? editData;
 
-  static BlurredRouter route(RouteSettings settings) {
-    return BlurredRouter(
+  static CupertinoPageRoute<dynamic> route(RouteSettings settings) {
+    return CupertinoPageRoute(
       builder: (context) {
         return BlocProvider(
           create: (context) => ManageProjectCubit(),
@@ -141,315 +141,323 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.color.backgroundColor,
-      appBar: UiUtils.buildAppBar(
-        context,
-        title: 'projectDetails'.translate(context),
-        showBackButton: true,
-      ),
-      bottomNavigationBar: BottomAppBar(
-        color: context.color.backgroundColor,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-          child: MaterialButton(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            color: context.color.tertiaryColor,
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                Map<dynamic, dynamic> documents;
-                documents = {};
-                try {
-                  documents = documentFiles.fold({}, (pr, el) {
-                    if (el is FileDocument) {
-                      pr.addAll({
-                        'documents[${pr.length}]':
-                            MultipartFile.fromFileSync(el.value.path),
-                      });
-                    }
-                    return pr;
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: context.color.backgroundColor,
+        appBar: UiUtils.buildAppBar(
+          context,
+          title: 'projectDetails'.translate(context),
+          showBackButton: true,
+        ),
+        bottomNavigationBar: BottomAppBar(
+          color: context.color.backgroundColor,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            child: MaterialButton(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              color: context.color.tertiaryColor,
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  Map<dynamic, dynamic> documents;
+                  documents = {};
+                  try {
+                    documents = documentFiles.fold({}, (pr, el) {
+                      if (el is FileDocument) {
+                        pr.addAll({
+                          'documents[${pr.length}]':
+                              MultipartFile.fromFileSync(el.value.path),
+                        });
+                      }
+                      return pr;
+                    });
+                  } catch (e) {
+                    log('issue is $e');
+                  }
+
+                  projectDetails = {
+                    'title': _titleController.text,
+                    'slug_id': _slugController.text,
+                    'description': _descriptionController.text,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'city': _cityNameController.text,
+                    'state': _stateNameController.text,
+                    'country': _countryNameController.text,
+                    'location': _addressController.text,
+                    'video_link': _videoLinkController.text,
+                    if (titleImage != null &&
+                        titleImage is! UrlValue &&
+                        titleImage?.value != '')
+                      'image': titleImage,
+                    'gallery_images': galleryImages,
+                    ...documents.cast<String, dynamic>(),
+                    'is_edit': isEdit,
+                    'project': project,
+                    'type': projectType,
+                    'remove_gallery_images': removedGalleryImageId.join(','),
+                    'remove_documents': removedDocumentId.join(','),
+                    'remove_plans': removedPlansId.join(','),
+                    'meta_title': metaTitle,
+                    'meta_description': metaDescription,
+                    'meta_image': metaImageUrl,
+
+                    ////If there is data it will add into it
+                    ...widget.editData?.cast<String, dynamic>() ?? {},
+                  };
+                  addCloudData(
+                    'add_project_details',
+                    projectDetails,
+                  );
+                  //this will create Map from List<Map>
+
+                  floorPlansRawData
+                      .removeWhere((element) => element['image'] is String);
+
+                  final fold = floorPlansRawData.fold<Map<String, dynamic>>({},
+                      (previousValue, element) {
+                    previousValue.addAll({
+                      'plans[${previousValue.length ~/ 2}][id]':
+                          (element['id'] is ValueKey)
+                              ? (element['id'] as ValueKey).value
+                              : '',
+                      'plans[${previousValue.length ~/ 2}][document]':
+                          element['image'],
+                      'plans[${previousValue.length ~/ 2}][title]':
+                          element['title'],
+                    });
+                    return previousValue;
                   });
-                } catch (e) {
-                  log('issue is $e');
+
+                  addCloudData('floor_plans', fold);
+                  Navigator.pushNamed(
+                    context,
+                    Routes.projectMetaDataScreens,
+                    arguments: {
+                      'project': projectDetails,
+                    },
+                  );
                 }
-
-                projectDetails = {
-                  'title': _titleController.text,
-                  'slug_id': _slugController.text,
-                  'description': _descriptionController.text,
-                  'latitude': latitude,
-                  'longitude': longitude,
-                  'city': _cityNameController.text,
-                  'state': _stateNameController.text,
-                  'country': _countryNameController.text,
-                  'location': _addressController.text,
-                  'video_link': _videoLinkController.text,
-                  if (titleImage != null &&
-                      titleImage is! UrlValue &&
-                      titleImage?.value != '')
-                    'image': titleImage,
-                  'gallery_images': galleryImages,
-                  ...documents.cast<String, dynamic>(),
-                  'is_edit': isEdit,
-                  'project': project,
-                  'type': projectType,
-                  'remove_gallery_images': removedGalleryImageId.join(','),
-                  'remove_documents': removedDocumentId.join(','),
-                  'remove_plans': removedPlansId.join(','),
-                  'meta_title': metaTitle,
-                  'meta_description': metaDescription,
-                  'meta_image': metaImageUrl,
-
-                  ////If there is data it will add into it
-                  ...widget.editData?.cast<String, dynamic>() ?? {},
-                };
-                addCloudData(
-                  'add_project_details',
-                  projectDetails,
-                );
-                //this will create Map from List<Map>
-
-                floorPlansRawData
-                    .removeWhere((element) => element['image'] is String);
-
-                final fold =
-                    floorPlansRawData.fold({}, (previousValue, element) {
-                  previousValue.addAll({
-                    'plans[${previousValue.length ~/ 2}][id]':
-                        (element['id'] is ValueKey)
-                            ? (element['id'] as ValueKey).value
-                            : '',
-                    'plans[${previousValue.length ~/ 2}][document]':
-                        element['image'],
-                    'plans[${previousValue.length ~/ 2}][title]':
-                        element['title'],
-                  });
-                  return previousValue;
-                });
-
-                addCloudData('floor_plans', fold);
-                Navigator.pushNamed(
-                  context,
-                  Routes.projectMetaDataScreens,
-                  arguments: {
-                    'project': projectDetails,
-                  },
-                );
-              }
-            },
-            height: 50,
-            child: CustomText(
-              'continue'.translate(context),
-              color: context.color.secondaryColor,
+              },
+              height: 50,
+              child: CustomText(
+                'continue'.translate(context),
+                color: context.color.secondaryColor,
+              ),
             ),
           ),
         ),
-      ),
-      body: BlocListener<ManageProjectCubit, ManageProjectState>(
-        listener: (context, state) {
-          if (state is ManageProjectInProgress) {
-            Widgets.showLoader(context);
-          }
+        body: BlocListener<ManageProjectCubit, ManageProjectState>(
+          listener: (context, state) {
+            if (state is ManageProjectInProgress) {
+              Widgets.showLoader(context);
+            }
 
-          if (state is ManageProjectInSuccess) {
-            context.read<FetchMyProjectsListCubit>().update(state.project);
-            Widgets.hideLoder(context);
-            HelperUtils.showSnackBarMessage(
-              context,
-              'projectUpdatedSuccessfully'.translate(context),
-            );
-            Navigator.of(context)
-              ..pop()
-              ..pop();
-          }
-          if (state is ManageProjectInFail) {
-            throw state.error?.toString() ?? '';
-          }
-        },
-        child: SingleChildScrollView(
-          physics: Constant.scrollPhysics,
-          child: Form(
-            key: _formKey,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: context.color.textColorDark,
-                      ),
-                      children: [
-                        TextSpan(text: 'projectName'.translate(context)),
-                        const TextSpan(
-                          text: ' *',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                          ),
+            if (state is ManageProjectInSuccess) {
+              context.read<FetchMyProjectsListCubit>().update(state.project);
+              Widgets.hideLoder(context);
+              HelperUtils.showSnackBarMessage(
+                context,
+                'projectUpdatedSuccessfully'.translate(context),
+              );
+              Navigator.of(context)
+                ..pop()
+                ..pop();
+            }
+            if (state is ManageProjectInFail) {
+              log(state.error?.toString() ?? '');
+            }
+          },
+          child: SingleChildScrollView(
+            physics: Constant.scrollPhysics,
+            child: Form(
+              key: _formKey,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                          color: context.color.textColorDark,
                         ),
-                      ],
-                    ),
-                  ),
-                  height(),
-                  CustomTextFormField(
-                    controller: _titleController,
-                    validator: CustomTextFieldValidator.nullCheck,
-                    action: TextInputAction.next,
-                    hintText: 'projectName'.translate(context),
-                  ),
-                  height(),
-                  CustomText('slugIdLbl'.translate(context)),
-                  height(),
-                  CustomTextFormField(
-                    controller: _slugController,
-                    validator: CustomTextFieldValidator.slugId,
-                    action: TextInputAction.next,
-                    hintText: UiUtils.translate(context, 'slugIdOptional'),
-                  ),
-                  height(),
-                  Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: context.color.textColorDark,
-                      ),
-                      children: [
-                        TextSpan(text: 'Description'.translate(context)),
-                        const TextSpan(
-                          text: ' *',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  height(),
-                  CustomTextFormField(
-                    action: TextInputAction.next,
-                    controller: _descriptionController,
-                    validator: CustomTextFieldValidator.nullCheck,
-                    hintText: UiUtils.translate(context, 'writeSomething'),
-                    maxLine: 100,
-                    minLine: 6,
-                  ),
-                  height(),
-                  projectTypeField(context),
-                  height(),
-                  buildLocationChooseHeader(),
-                  height(),
-                  buildProjectLocationTextFields(),
-                  height(),
-                  Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: context.color.textColorDark,
-                      ),
-                      children: [
-                        TextSpan(text: 'uploadMainPicture'.translate(context)),
-                        const TextSpan(
-                          text: ' *',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  height(),
-                  AdaptiveImagePickerWidget(
-                    isRequired: true,
-                    multiImage: false,
-                    allowedSizeBytes: 3000000,
-                    value: isEdit ? UrlValue(project!.image!) : null,
-                    title: UiUtils.translate(context, 'addMainPicture'),
-                    onSelect: (ImagePickerValue<dynamic>? selected) {
-                      titleImage = selected;
-                      setState(() {});
-                    },
-                  ),
-                  height(),
-                  CustomText('uploadOtherImages'.translate(context)),
-                  height(),
-                  AdaptiveImagePickerWidget(
-                    title: UiUtils.translate(context, 'addOtherImage'),
-                    onRemove: (value) {
-                      if (value is UrlValue && value.metaData != null) {
-                        removedGalleryImageId.add(value.metaData['id'] as int);
-                      }
-                    },
-                    multiImage: true,
-                    value: MultiValue([
-                      if (project?.gallaryImages != null)
-                        ...project?.gallaryImages?.map(
-                              (e) => UrlValue(e.name!, {
-                                'id': e.id!,
-                              }),
-                            ) ??
-                            [],
-                    ]),
-                    onSelect: (ImagePickerValue<dynamic>? selected) {
-                      if (selected is MultiValue) {
-                        galleryImages = selected;
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  height(),
-                  CustomText('videoLink'.translate(context)),
-                  height(),
-                  CustomTextFormField(
-                    action: TextInputAction.next,
-                    controller: _videoLinkController,
-                    validator: CustomTextFieldValidator.link,
-                    hintText: 'http://example.com/video.mp4',
-                  ),
-                  height(),
-                  CustomText('projectDocuments'.translate(context)),
-                  height(),
-                  buildDocumentPicker(context),
-                  ...documentList(),
-                  height(),
-                  Row(
-                    children: [
-                      Column(
                         children: [
-                          CustomText(
-                            'floorPlans'.translate(context),
-                          ),
-                          CustomText(
-                            '${floorPlansRawData.length}',
-                            fontWeight: FontWeight.bold,
+                          TextSpan(text: 'projectName'.translate(context)),
+                          const TextSpan(
+                            text: ' *',
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                            ),
                           ),
                         ],
                       ),
-                      const Spacer(),
-                      MaterialButton(
-                        elevation: 0,
-                        color:
-                            context.color.tertiaryColor.withValues(alpha: 0.1),
-                        onPressed: () async {
-                          final data = await Navigator.pushNamed(
-                            context,
-                            Routes.manageFloorPlansScreen,
-                            arguments: {'floorPlan': floorPlansRawData},
-                          ) as Map?;
-                          if (data != null) {
-                            floorPlansRawData = (data['floorPlans'] as List)
-                                .cast<Map<String, dynamic>>();
-
-                            removedPlansId = data['removed'] as List<int>;
-                          }
-                          setState(() {});
-                        },
-                        child: const CustomText('Manage'),
+                    ),
+                    height(),
+                    CustomTextFormField(
+                      controller: _titleController,
+                      validator: CustomTextFieldValidator.nullCheck,
+                      action: TextInputAction.next,
+                      hintText: 'projectName'.translate(context),
+                    ),
+                    height(),
+                    CustomText('slugIdLbl'.translate(context)),
+                    height(),
+                    CustomTextFormField(
+                      controller: _slugController,
+                      validator: CustomTextFieldValidator.slugId,
+                      action: TextInputAction.next,
+                      hintText: UiUtils.translate(context, 'slugIdOptional'),
+                    ),
+                    height(),
+                    Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                          color: context.color.textColorDark,
+                        ),
+                        children: [
+                          TextSpan(text: 'Description'.translate(context)),
+                          const TextSpan(
+                            text: ' *',
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  height(30),
-                ],
+                    ),
+                    height(),
+                    CustomTextFormField(
+                      action: TextInputAction.next,
+                      controller: _descriptionController,
+                      validator: CustomTextFieldValidator.nullCheck,
+                      hintText: UiUtils.translate(context, 'writeSomething'),
+                      maxLine: 100,
+                      minLine: 6,
+                    ),
+                    height(),
+                    projectTypeField(context),
+                    height(),
+                    buildLocationChooseHeader(),
+                    height(),
+                    buildProjectLocationTextFields(),
+                    height(),
+                    Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                          color: context.color.textColorDark,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'uploadMainPicture'.translate(context),
+                          ),
+                          const TextSpan(
+                            text: ' *',
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    height(),
+                    AdaptiveImagePickerWidget(
+                      isRequired: true,
+                      multiImage: false,
+                      allowedSizeBytes: 3000000,
+                      value: isEdit ? UrlValue(project!.image!) : null,
+                      title: UiUtils.translate(context, 'addMainPicture'),
+                      onSelect: (ImagePickerValue<dynamic>? selected) {
+                        titleImage = selected;
+                        setState(() {});
+                      },
+                    ),
+                    height(),
+                    CustomText('uploadOtherImages'.translate(context)),
+                    height(),
+                    AdaptiveImagePickerWidget(
+                      title: UiUtils.translate(context, 'addOtherImage'),
+                      onRemove: (value) {
+                        if (value is UrlValue && value.metaData != null) {
+                          removedGalleryImageId
+                              .add(value.metaData['id'] as int);
+                        }
+                      },
+                      multiImage: true,
+                      value: MultiValue([
+                        if (project?.gallaryImages != null)
+                          ...project?.gallaryImages?.map(
+                                (e) => UrlValue(e.name!, {
+                                  'id': e.id!,
+                                }),
+                              ) ??
+                              [],
+                      ]),
+                      onSelect: (ImagePickerValue<dynamic>? selected) {
+                        if (selected is MultiValue) {
+                          galleryImages = selected;
+                          setState(() {});
+                        }
+                      },
+                    ),
+                    height(),
+                    CustomText('videoLink'.translate(context)),
+                    height(),
+                    CustomTextFormField(
+                      action: TextInputAction.next,
+                      controller: _videoLinkController,
+                      validator: CustomTextFieldValidator.link,
+                      hintText: 'http://example.com/video.mp4',
+                    ),
+                    height(),
+                    CustomText('projectDocuments'.translate(context)),
+                    height(),
+                    buildDocumentPicker(context),
+                    ...documentList(),
+                    height(),
+                    Row(
+                      children: [
+                        Column(
+                          children: [
+                            CustomText(
+                              'floorPlans'.translate(context),
+                            ),
+                            CustomText(
+                              '${floorPlansRawData.length}',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        MaterialButton(
+                          elevation: 0,
+                          color: context.color.tertiaryColor
+                              .withValues(alpha: 0.1),
+                          onPressed: () async {
+                            final data = await Navigator.pushNamed(
+                              context,
+                              Routes.manageFloorPlansScreen,
+                              arguments: {'floorPlan': floorPlansRawData},
+                            ) as Map?;
+                            if (data != null) {
+                              floorPlansRawData = (data['floorPlans'] as List)
+                                  .cast<Map<String, dynamic>>();
+
+                              removedPlansId = data['removed'] as List<int>;
+                            }
+                            setState(() {});
+                          },
+                          child: const CustomText('Manage'),
+                        ),
+                      ],
+                    ),
+                    height(30),
+                  ],
+                ),
               ),
             ),
           ),
@@ -614,7 +622,7 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
             validator: (bool? value) {
               if (project != null) return null;
 
-              if (value == true) {
+              if (value ?? false) {
                 return null;
               } else {
                 return 'Select location';
@@ -676,16 +684,7 @@ class _AddProjectDetailsState extends CloudState<AddProjectDetails> {
       final placeMark = await Navigator.pushNamed(
         context,
         Routes.chooseLocaitonMap,
-        arguments: {
-          'latitude': project!.latitude != null && project!.latitude != ''
-              ? double.parse(project!.latitude!)
-              : null,
-          'longitude': project!.longitude != null && project!.longitude != ''
-              ? double.parse(
-                  project!.longitude!,
-                )
-              : null,
-        },
+        arguments: {},
       ) as Map?;
       final latlng = placeMark?['latlng'] as LatLng?;
       final place = placeMark?['place'] as Placemark?;

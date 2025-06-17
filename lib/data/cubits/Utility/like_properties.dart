@@ -4,15 +4,15 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LikedPropertiesState {
-  final Set liked;
-  Set? removedLikes;
+  final Set<dynamic> liked;
+  Set<dynamic>? removedLikes;
   LikedPropertiesState({
     required this.liked,
     this.removedLikes,
   });
 
   LikedPropertiesState copyWith({
-    Set? liked,
+    Set<dynamic>? liked,
   }) {
     return LikedPropertiesState(
       liked: liked ?? this.liked,
@@ -46,7 +46,7 @@ class LikedPropertiesCubit extends Cubit<LikedPropertiesState> {
   LikedPropertiesCubit()
       : super(LikedPropertiesState(liked: {}, removedLikes: {}));
 
-  void changeLike(dynamic id) {
+  void changeLike({required int id}) {
     final isAvailable = state.liked.contains(id);
 
     if (isAvailable) {
@@ -64,7 +64,7 @@ class LikedPropertiesCubit extends Cubit<LikedPropertiesState> {
     );
   }
 
-  void add(id) {
+  void add({required int id}) {
     state.liked.add(id);
     emit(
       LikedPropertiesState(
@@ -90,7 +90,7 @@ class LikedPropertiesCubit extends Cubit<LikedPropertiesState> {
   }
 
 //for locally ,
-  Set? getRemovedLikes() {
+  Set<dynamic>? getRemovedLikes() {
     return state.removedLikes;
   }
 }

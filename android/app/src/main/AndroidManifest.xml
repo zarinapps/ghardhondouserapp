@@ -31,7 +31,7 @@
     </intent>
 </queries>
    <application
-        android:label="Ghar Dhondho"
+        android:label="eBroker"
         android:requestLegacyExternalStorage="true"
         android:largeHeap="true"
         android:name="${applicationName}"
@@ -39,16 +39,16 @@
         android:allowBackup="false"
         android:fullBackupOnly="false"
         android:usesCleartextTraffic="true">
-       <property
+       <!-- <property
            android:name="android.adservices.AD_SERVICES_CONFIG"
            android:resource="@xml/gma_ad_services_config"
-           tools:replace="android:resource" />
+           tools:replace="android:resource" /> -->
        <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCxIHhqO3Xe49ZptAqdlLb_nQmhci-lakQ" />
+            android:value="api_key" />
        <meta-data
            android:name="com.google.android.gms.ads.APPLICATION_ID"
-           android:value="ca-app-pub-5521230412950397~4046683496"/>
+           android:value="ca-app-pub-3940256099942544~3347511713"/>
 
 
 
@@ -73,18 +73,17 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+              <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
 
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="https"
+                    android:scheme="ebroker"
                     android:host="ebrokerweb.wrteam.me"
                     android:pathPattern="/properties-details/.*" />
             </intent-filter>
-
-
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -95,6 +94,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity" />
         <activity
     android:name="com.yalantis.ucrop.UCropActivity"
     android:screenOrientation="portrait"

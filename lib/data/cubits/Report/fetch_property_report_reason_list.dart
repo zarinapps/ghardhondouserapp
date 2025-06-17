@@ -40,7 +40,7 @@ class FetchPropertyReportReasonsListCubit
       if (forceRefresh != true) {
         if (state is FetchPropertyReportReasonsSuccess) {
           // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-          await Future.delayed(
+          await Future<dynamic>.delayed(
             const Duration(seconds: AppSettings.hiddenAPIProcessDelay),
           );
           // });
@@ -51,7 +51,7 @@ class FetchPropertyReportReasonsListCubit
         emit(FetchPropertyReportReasonsInProgress());
       }
 
-      if (forceRefresh == true) {
+      if (forceRefresh ?? false) {
         final result = await _repository.fetchReportReasonsList();
 
         result.modelList.add(ReportReason(id: -10, reason: 'Other'));

@@ -2,6 +2,7 @@ import 'package:ebroker/ui/screens/widgets/video_view_screen.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/ui_utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AllGallaryImages extends StatelessWidget {
@@ -10,7 +11,7 @@ class AllGallaryImages extends StatelessWidget {
     super.key,
     this.youtubeThumbnail,
   });
-  final List images;
+  final List<dynamic> images;
   final String? youtubeThumbnail;
 
   @override
@@ -37,10 +38,11 @@ class AllGallaryImages extends StatelessWidget {
                 if (images[index].isVideo == true) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    CupertinoPageRoute<dynamic>(
                       builder: (context) {
                         return VideoViewScreen(
-                            videoUrl: images[index].image?.toString() ?? '');
+                          videoUrl: images[index].image?.toString() ?? '',
+                        );
                       },
                     ),
                   );

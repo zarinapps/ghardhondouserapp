@@ -1,7 +1,6 @@
 import 'package:ebroker/data/model/category.dart';
 import 'package:ebroker/data/model/data_output.dart';
 import 'package:ebroker/utils/api.dart';
-import 'package:ebroker/utils/constant.dart';
 
 class CategoryRepository {
   Future<DataOutput<Category>> fetchCategories({
@@ -11,7 +10,7 @@ class CategoryRepository {
     final parameters = <String, dynamic>{
       if (id != null) 'id': id,
       Api.offset: offset,
-      Api.limit: Constant.loadLimit,
+      Api.limit: 50,
     };
     try {
       final response = await Api.get(
@@ -25,8 +24,9 @@ class CategoryRepository {
         },
       ).toList();
       return DataOutput(
-          total: int.parse(response['total']?.toString() ?? '0'),
-          modelList: modelList);
+        total: int.parse(response['total']?.toString() ?? '0'),
+        modelList: modelList,
+      );
     } catch (e) {
       rethrow;
     }

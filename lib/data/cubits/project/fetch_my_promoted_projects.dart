@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:ebroker/data/model/advertisement_model.dart';
 import 'package:ebroker/data/repositories/project_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -64,12 +66,14 @@ class FetchMyPromotedProjectsCubit extends Cubit<FetchMyPromotedProjectsState> {
           total: result.total,
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      log(e.toString());
+      log(st.toString());
       emit(FetchMyPromotedProjectsFailure(e));
     }
   }
 
-  void delete(dynamic id) {
+  void delete(id) {
     if (state is FetchMyPromotedProjectsSuccess) {
       final projectModel = (state as FetchMyPromotedProjectsSuccess)
           .advertisement

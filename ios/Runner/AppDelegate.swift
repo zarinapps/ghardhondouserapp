@@ -13,7 +13,7 @@ import awesome_notifications
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GMSServices.provideAPIKey("AIzaSyDsuxFQVKBoURt070e56_GxUWDglHGT5d0")
+    GMSServices.provideAPIKey("api_key")
     GeneratedPluginRegistrant.register(with: self)
 
       SwiftAwesomeNotificationsPlugin.setPluginRegistrantCallback { registry in

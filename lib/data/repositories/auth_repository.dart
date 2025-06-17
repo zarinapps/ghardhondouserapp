@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:ebroker/exports/main_export.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -22,28 +24,39 @@ class AuthRepository {
     String? email,
     String? name,
   }) async {
-    final parameters = <String, String>{
-      Api.mobile: phone?.replaceAll(' ', '').replaceAll('+', '') ?? '',
-      Api.authId: uid,
-      if (email != null) 'email': email,
-      if (name != null) 'name': name,
-      Api.type: type.value,
-    };
+    try {
+      final parameters = <String, String>{
+        Api.mobile: phone?.replaceAll(' ', '').replaceAll('+', '') ?? '',
+        Api.authId: uid,
+        if (email != null) 'email': email,
+        if (name != null) 'name': name,
+        Api.type: type.value,
+      };
 
-    if (type == LoginType.phone) {
-      parameters.remove('email');
+      if (type == LoginType.phone) {
+        parameters.remove('email');
+      }
+
+      final response = await Api.post(
+        url: Api.apiLogin,
+        parameter: parameters,
+        useAuthToken: false,
+      );
+      log('Response of login with API: $response', name: 'loginWithApi');
+      if (response['error'] == true) {
+        return {
+          'token': '',
+          'data': response,
+        };
+      }
+
+      return {
+        'token': response['token'],
+        'data': response['data'],
+      };
+    } catch (e) {
+      throw Exception(e.toString());
     }
-
-    final response = await Api.post(
-      url: Api.apiLogin,
-      parameter: parameters,
-      useAuthToken: false,
-    );
-
-    return {
-      'token': response['token'],
-      'data': response['data'],
-    };
   }
 
   Future<Map<String, dynamic>> loginWithEmail({
@@ -115,9 +128,7 @@ class AuthRepository {
         return response;
       }
       return response;
-    } catch (e, st) {
-      print(e);
-      print(st);
+    } catch (e) {
       throw Exception(e.toString());
     }
   }
@@ -135,7 +146,6 @@ class AuthRepository {
           'password': password,
         },
       );
-      print(response);
       return response;
     } catch (e) {
       throw Exception(e.toString());

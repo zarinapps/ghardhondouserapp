@@ -18,12 +18,14 @@ class FetchMyPropertiesSuccess extends FetchMyPropertiesState {
   final bool isLoadingMore;
   final bool hasError;
   final List<PropertyModel> myProperty;
+  bool refreshing;
   FetchMyPropertiesSuccess({
     required this.total,
     required this.offset,
     required this.isLoadingMore,
     required this.hasError,
     required this.myProperty,
+    this.refreshing = false,
   });
 
   FetchMyPropertiesSuccess copyWith({
@@ -32,6 +34,7 @@ class FetchMyPropertiesSuccess extends FetchMyPropertiesState {
     bool? isLoadingMore,
     bool? hasMoreData,
     List<PropertyModel>? myProperty,
+    bool? refreshing,
   }) {
     return FetchMyPropertiesSuccess(
       total: total ?? this.total,
@@ -39,6 +42,7 @@ class FetchMyPropertiesSuccess extends FetchMyPropertiesState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasError: hasMoreData ?? hasError,
       myProperty: myProperty ?? this.myProperty,
+      refreshing: refreshing ?? this.refreshing,
     );
   }
 }
@@ -58,7 +62,12 @@ class FetchMyPropertiesCubit extends Cubit<FetchMyPropertiesState> {
     required String status,
   }) async {
     try {
-      emit(FetchMyPropertiesInProgress());
+      if (state is FetchMyPropertiesSuccess) {
+        emit((state as FetchMyPropertiesSuccess).copyWith(refreshing: true));
+      } else {
+        emit(FetchMyPropertiesInProgress());
+      }
+
       final result = await _propertyRepository.fetchMyProperties(
         offset: 0,
         type: type,

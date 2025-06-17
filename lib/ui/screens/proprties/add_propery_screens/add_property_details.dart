@@ -6,7 +6,6 @@ import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/widgets/panaroma_image_view.dart';
 import 'package:ebroker/utils/hive_keys.dart';
 import 'package:ebroker/utils/imagePicker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
@@ -18,7 +17,7 @@ class AddPropertyDetails extends StatefulWidget {
 
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return AddPropertyDetails(
           propertyDetails: arguments?['details'] as Map<String, dynamic>?,
@@ -36,34 +35,46 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
   final GlobalKey<FormState> _formKey = GlobalKey();
 
   late PropertyModel? property = getEditPropertyData(
-      widget.propertyDetails?['property'] as Map<String, dynamic>?);
+    widget.propertyDetails?['property'] as Map<String, dynamic>?,
+  );
 
   late final TextEditingController _propertyNameController =
       TextEditingController(
-          text: widget.propertyDetails?['name']?.toString() ?? '');
+    text: widget.propertyDetails?['name']?.toString() ?? '',
+  );
   late final TextEditingController _slugController = TextEditingController(
-      text: widget.propertyDetails?['slug_id']?.toString() ?? '');
+    text: widget.propertyDetails?['slug_id']?.toString() ?? '',
+  );
   late final TextEditingController _descriptionController =
       TextEditingController(
-          text: widget.propertyDetails?['desc']?.toString() ?? '');
+    text: widget.propertyDetails?['desc']?.toString() ?? '',
+  );
   late final TextEditingController _cityNameController = TextEditingController(
-      text: widget.propertyDetails?['city']?.toString() ?? '');
+    text: widget.propertyDetails?['city']?.toString() ?? '',
+  );
   late final TextEditingController _stateNameController = TextEditingController(
-      text: widget.propertyDetails?['state']?.toString() ?? '');
+    text: widget.propertyDetails?['state']?.toString() ?? '',
+  );
   late final TextEditingController _countryNameController =
       TextEditingController(
-          text: widget.propertyDetails?['country']?.toString() ?? '');
+    text: widget.propertyDetails?['country']?.toString() ?? '',
+  );
   late final TextEditingController _latitudeController = TextEditingController(
-      text: widget.propertyDetails?['latitude']?.toString() ?? '');
+    text: widget.propertyDetails?['latitude']?.toString() ?? '',
+  );
   late final TextEditingController _longitudeController = TextEditingController(
-      text: widget.propertyDetails?['longitude']?.toString() ?? '');
+    text: widget.propertyDetails?['longitude']?.toString() ?? '',
+  );
   late final TextEditingController _addressController = TextEditingController(
-      text: widget.propertyDetails?['address']?.toString() ?? '');
+    text: widget.propertyDetails?['address']?.toString() ?? '',
+  );
   late final TextEditingController _priceController = TextEditingController(
-      text: widget.propertyDetails?['price']?.toString() ?? '');
+    text: widget.propertyDetails?['price']?.toString() ?? '',
+  );
   late final TextEditingController _clientAddressController =
       TextEditingController(
-          text: widget.propertyDetails?['client']?.toString() ?? '');
+    text: widget.propertyDetails?['client']?.toString() ?? '',
+  );
 
   late final TextEditingController _videoLinkController =
       TextEditingController();
@@ -134,7 +145,8 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
     metaImageUrl = allPropData['meta_image']?.toString() ?? '';
 
     mixedPropertyImageList = List<dynamic>.from(
-        widget.propertyDetails?['images'] as Iterable<dynamic>? ?? []);
+      widget.propertyDetails?['images'] as Iterable<dynamic>? ?? [],
+    );
     if (widget.propertyDetails != null) {
       selectedRentType =
           (widget.propertyDetails?['rentduration']).toString().isEmpty
@@ -147,18 +159,18 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
     metaDescriptionController.text =
         allPropData['meta_description']?.toString() ?? '';
     metaKeywordController.text = allPropData['meta_keywords']?.toString() ?? '';
-    _propertiesImagePicker.listener((images) {
-      try {
-        mixedPropertyImageList
-            .addAll(List<dynamic>.from(images as Iterable<dynamic>? ?? []));
-      } catch (e) {
-        log('Error is $e');
+    _propertiesImagePicker.listener((dynamic file) {
+      if (_propertiesImagePicker.pickedFile != null) {
+        try {
+          mixedPropertyImageList.add(_propertiesImagePicker.pickedFile);
+          setState(() {});
+        } catch (e) {
+          log('Error is $e');
+        }
       }
-
-      setState(() {});
     });
 
-    _pickTitleImage.listener((p0) {
+    _pickTitleImage.listener((dynamic file) {
       titleImageURL = '';
       if (mounted) setState(() {});
     });
@@ -175,36 +187,27 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
   Future<void> _onTapChooseLocation(FormFieldState<dynamic> state) async {
     FocusManager.instance.primaryFocus?.unfocus();
 
-    if (Hive.box(HiveKeys.userDetailsBox)
+    if (Hive.box<dynamic>(HiveKeys.userDetailsBox)
         .get('latitude')
         .toString()
         .isNotEmpty) {
       final dynamic latitudeValue =
-          Hive.box(HiveKeys.userDetailsBox).get('latitude') ?? '0';
+          Hive.box<dynamic>(HiveKeys.userDetailsBox).get('latitude') ?? '0';
       localLatitude = double.tryParse(latitudeValue.toString()) ?? 0.0;
     }
-    if (Hive.box(HiveKeys.userDetailsBox)
+    if (Hive.box<dynamic>(HiveKeys.userDetailsBox)
         .get('longitude')
         .toString()
         .isNotEmpty) {
       final dynamic longitudeValue =
-          Hive.box(HiveKeys.userDetailsBox).get('longitude') ?? '0';
+          Hive.box<dynamic>(HiveKeys.userDetailsBox).get('longitude') ?? '0';
       localLongitude = double.tryParse(longitudeValue.toString()) ?? 0.0;
     }
 
     final placeMark = await Navigator.pushNamed(
       context,
       Routes.chooseLocaitonMap,
-      arguments: {
-        'latitude': widget.propertyDetails?['latitude'] != null
-            ? double.parse(
-                widget.propertyDetails?['latitude']?.toString() ?? '')
-            : null,
-        'longitude': widget.propertyDetails?['longitude'] != null
-            ? double.parse(
-                widget.propertyDetails?['longitude']?.toString() ?? '')
-            : null,
-      },
+      arguments: {},
     ) as Map?;
     final latlng = placeMark?['latlng'] as LatLng?;
     final place = placeMark?['place'] as Placemark?;
@@ -275,7 +278,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
             context,
             sigmaX: 5,
             sigmaY: 5,
-            dialoge: BlurredDialogBox(
+            dialog: BlurredDialogBox(
               svgImagePath: AppIcons.warning,
               title: UiUtils.translate(context, 'incomplete'),
               showCancleButton: false,
@@ -295,7 +298,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
             context,
             sigmaX: 5,
             sigmaY: 5,
-            dialoge: BlurredDialogBox(
+            dialog: BlurredDialogBox(
               svgImagePath: AppIcons.warning,
               title: UiUtils.translate(context, 'incomplete'),
               showCancleButton: false,
@@ -316,7 +319,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
             context,
             sigmaX: 5,
             sigmaY: 5,
-            dialoge: BlurredDialogBox(
+            dialog: BlurredDialogBox(
               svgImagePath: AppIcons.warning,
               title: UiUtils.translate(context, 'incomplete'),
               showCancleButton: false,
@@ -574,7 +577,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                     children: [
                       Expanded(
                         child: CustomText(
-                          'Is Private Property?'.translate(context),
+                          'isPrivateProperty'.translate(context),
                         ),
                       ),
                       CupertinoSwitch(
@@ -616,7 +619,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                               return null;
                             }
 
-                            if (value == true) {
+                            if (value ?? false) {
                               return null;
                             } else {
                               return 'Select location';
@@ -910,7 +913,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  BlurredRouter(
+                                  CupertinoPageRoute<dynamic>(
                                     builder: (context) {
                                       return PanaromaImageScreen(
                                         imageUrl: image.path,
@@ -967,7 +970,6 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                             ),
                           ),
                           closeButton(context, () {
-                            print('THREE D IMAGE URL $threeDImageURL');
                             threeDImageURL.isNotEmpty
                                 ? removeThreeDImage = 1
                                 : removeThreeDImage = 0;
@@ -1011,7 +1013,7 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  BlurredRouter(
+                                  CupertinoPageRoute<dynamic>(
                                     builder: (context) {
                                       return PanaromaImageScreen(
                                         imageUrl: threeDImageURL,
@@ -1222,11 +1224,11 @@ class _AddPropertyDetailsState extends State<AddPropertyDetails> {
         items: [
           DropdownMenuItem(
             value: 0,
-            child: CustomText('Sell'.translate(context)),
+            child: CustomText('sell'.translate(context)),
           ),
           DropdownMenuItem(
             value: 1,
-            child: CustomText('Rent'.translate(context)),
+            child: CustomText('rent'.translate(context)),
           ),
         ],
         onTap: () {},

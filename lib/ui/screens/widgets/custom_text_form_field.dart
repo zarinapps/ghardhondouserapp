@@ -32,6 +32,8 @@ class CustomTextFormField extends StatelessWidget {
     this.dense,
     this.autovalidate,
     this.textDirection,
+    this.isPassword,
+    this.scrollPadding = const EdgeInsets.only(bottom: 20),
   });
 
   final String? hintText;
@@ -50,12 +52,16 @@ class CustomTextFormField extends StatelessWidget {
   final Widget? suffix;
   final bool? dense;
   final TextDirection? textDirection;
+  final bool? isPassword;
+  final EdgeInsets scrollPadding;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      scrollPadding: scrollPadding,
       textDirection: textDirection,
       controller: controller,
+      obscureText: isPassword ?? false,
       autovalidateMode: autovalidate,
       inputFormatters: formaters,
       textInputAction: action,

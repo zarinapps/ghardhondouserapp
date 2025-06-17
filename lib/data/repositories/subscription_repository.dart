@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:ebroker/data/model/subscription_pacakage_model.dart';
 import 'package:ebroker/utils/api.dart';
 
@@ -64,6 +65,46 @@ class SubscriptionRepository {
       );
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> initiateBankTransfer({
+    required String packageId,
+    required MultipartFile? file,
+  }) async {
+    try {
+      final parameters = <String, dynamic>{
+        'package_id': packageId,
+        'file': file,
+      };
+      final response = await Api.post(
+        url: Api.initiateBankTransfer,
+        parameter: parameters,
+        useAuthToken: true,
+      );
+      return response;
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadBankReceiptFile({
+    required String paymentTransactionId,
+    required MultipartFile file,
+  }) async {
+    try {
+      final response = await Api.post(
+        url: Api.uploadBankReceiptFile,
+        useAuthToken: true,
+        parameter: {
+          'payment_transaction_id': paymentTransactionId,
+          'file': file,
+        },
+      );
+
+      return response;
+    } catch (e) {
+      throw Exception(e.toString());
     }
   }
 }

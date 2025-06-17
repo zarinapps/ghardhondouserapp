@@ -1,16 +1,11 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
-class GooglePlaceModel {
-  final String city;
-  final String description;
-  final String placeId;
-  final String latitude;
-  final String longitude;
-  final String state;
-  final String country;
+import 'package:flutter/foundation.dart';
 
-  GooglePlaceModel({
+@immutable
+class GooglePlaceModel {
+  const GooglePlaceModel({
     required this.state,
     required this.country,
     required this.city,
@@ -19,6 +14,13 @@ class GooglePlaceModel {
     required this.latitude,
     required this.longitude,
   });
+  final String city;
+  final String description;
+  final String placeId;
+  final String latitude;
+  final String longitude;
+  final String state;
+  final String country;
 
   GooglePlaceModel copyWith({
     String? name,

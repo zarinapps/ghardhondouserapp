@@ -17,7 +17,6 @@ class NotificationsRepository {
         url: Api.apiGetNotifications,
         queryParameters: parameters,
       );
-      print('total is ${response['total']}');
 
       final modelList = (response['data'] as List).map((e) {
         return NotificationData.fromJson(e as Map<String, dynamic>? ?? {});

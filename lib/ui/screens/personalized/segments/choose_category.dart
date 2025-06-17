@@ -23,7 +23,9 @@ class _CategoryInterestChooseState extends State<CategoryInterestChoose>
 
   @override
   Widget build(BuildContext context) {
-    final isFirstTime = widget.type == PersonalizedVisitType.FirstTime;
+    final isFirstTime = widget.type == PersonalizedVisitType.firstTime;
+    final isFetchCategoryLoading =
+        context.watch<FetchCategoryCubit>().state is FetchCategoryInProgress;
     super.build(context);
     return Scaffold(
       backgroundColor: context.color.primaryColor,
@@ -78,6 +80,21 @@ class _CategoryInterestChooseState extends State<CategoryInterestChoose>
             const SizedBox(
               height: 25,
             ),
+            if (isFetchCategoryLoading)
+              Wrap(
+                children: List.generate(
+                  25,
+                  (index) => Padding(
+                    padding:
+                        const EdgeInsetsDirectional.only(end: 4, bottom: 5),
+                    child: CustomShimmer(
+                      borderRadius: 20,
+                      height: 40,
+                      width: index.isEven ? 100 : 120,
+                    ),
+                  ),
+                ),
+              ),
             Wrap(
               children: List.generate(
                   context.watch<FetchCategoryCubit>().getCategories().length,

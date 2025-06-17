@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:ebroker/data/model/agent/agents_properties_models/properties_data.dart';
 import 'package:ebroker/data/model/system_settings_model.dart';
+import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/widgets/like_button_widget.dart';
 import 'package:ebroker/ui/screens/widgets/promoted_widget.dart';
@@ -16,11 +17,9 @@ class PropertyCard extends StatelessWidget {
   final StatusButton? statusButton;
   final Function(FavoriteType type)? onLikeChange;
   final bool? useRow;
-  final bool? showDeleteButton;
   final VoidCallback? onDeleteTap;
   final double? additionalImageWidth;
   final bool? showLikeButton;
-  final VoidCallback? onTap;
 
   const PropertyCard({
     required this.agentPropertiesData,
@@ -30,11 +29,9 @@ class PropertyCard extends StatelessWidget {
     this.additionalHeight,
     this.onLikeChange,
     this.statusButton,
-    this.showDeleteButton,
     this.onDeleteTap,
     this.showLikeButton,
     this.additionalImageWidth,
-    this.onTap,
   });
 
   @override
@@ -43,6 +40,9 @@ class PropertyCard extends StatelessWidget {
       // disabled: Constant.isNumberWithSuffix == false,
       context: context,
     );
+    final isPremium = agentPropertiesData.isPremium == 1;
+    final isAddedByMe =
+        agentPropertiesData.addedBy.toString() == HiveUtils.getUserId();
 
     return BlocProvider(
       create: (context) => AddToFavoriteCubitCubit(),
@@ -58,7 +58,61 @@ class PropertyCard extends StatelessWidget {
                 agentPropertiesData.slugId,
               );
             },
-            onTap: onTap,
+            onTap: () async {
+              try {
+                if (isPremium) {
+                  await GuestChecker.check(
+                    onNotGuest: () async {
+                      unawaited(Widgets.showLoader(context));
+
+                      if (isAddedByMe) {
+                        await _navigateToPropertyDetails(
+                          context,
+                          agentPropertiesData.id,
+                          isAddedByMe,
+                        );
+                      } else {
+                        final checkPackage = CheckPackage();
+                        final packageAvailable =
+                            await checkPackage.checkPackageAvailable(
+                          packageType: PackageType.premiumProperties,
+                        );
+                        if (packageAvailable) {
+                          await _navigateToPropertyDetails(
+                            context,
+                            agentPropertiesData.id,
+                            isAddedByMe,
+                          );
+                        } else {
+                          Widgets.hideLoder(context);
+
+                          await UiUtils.showBlurredDialoge(
+                            context,
+                            dialog: const BlurredSubscriptionDialogBox(
+                              packageType:
+                                  SubscriptionPackageType.premiumProperties,
+                              isAcceptContainesPush: true,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  );
+                } else {
+                  unawaited(Widgets.showLoader(context));
+
+                  await _navigateToPropertyDetails(
+                    context,
+                    agentPropertiesData.id,
+                    isAddedByMe,
+                  );
+                }
+              } catch (e) {
+                // Error handled in the finally block
+              } finally {
+                Widgets.hideLoder(context);
+              }
+            },
             child: Container(
               height: addBottom == null ? 124 : (124 + (additionalHeight ?? 0)),
               decoration: BoxDecoration(
@@ -89,7 +143,16 @@ class PropertyCard extends StatelessWidget {
                                             100 + (additionalImageWidth ?? 0),
                                         fit: BoxFit.cover,
                                       ),
-                                      // CustomText(a.promoted.toString()),
+                                      if (isPremium)
+                                        PositionedDirectional(
+                                          start: 6,
+                                          top: 6,
+                                          child: UiUtils.getSvg(
+                                            AppIcons.premium,
+                                            height: 24,
+                                            width: 24,
+                                          ),
+                                        ),
                                       if (agentPropertiesData.promoted)
                                         const PositionedDirectional(
                                           start: 5,
@@ -98,7 +161,6 @@ class PropertyCard extends StatelessWidget {
                                             type: PromoteCardType.icon,
                                           ),
                                         ),
-
                                       PositionedDirectional(
                                         bottom: 6,
                                         start: 6,
@@ -312,58 +374,45 @@ class PropertyCard extends StatelessWidget {
 
                       if (useRow == false || useRow == null) ...addBottom ?? [],
 
-                      if (useRow == true) ...{Row(children: addBottom ?? [])},
+                      if (useRow ?? false) ...{Row(children: addBottom ?? [])},
 
                       // ...addBottom ?? []
                     ],
                   ),
-                  if (showDeleteButton ?? false)
-                    PositionedDirectional(
-                      top: 32 * 2,
-                      end: 12,
-                      child: InkWell(
-                        onTap: () {
-                          onDeleteTap?.call();
-                        },
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: context.color.secondaryColor,
-                            shape: BoxShape.circle,
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color.fromARGB(33, 0, 0, 0),
-                                offset: Offset(0, 2),
-                                blurRadius: 15,
-                              ),
-                            ],
-                          ),
-                          child: SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: FittedBox(
-                              fit: BoxFit.none,
-                              child: SvgPicture.asset(
-                                AppIcons.bin,
-                                colorFilter: ColorFilter.mode(
-                                  context.color.tertiaryColor,
-                                  BlendMode.srcIn,
-                                ),
-                                width: 18,
-                                height: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _navigateToPropertyDetails(
+    BuildContext context,
+    int propertyId,
+    bool isMyProperty,
+  ) async {
+    final fetch = PropertyRepository();
+    final dataOutput = await fetch.fetchPropertyFromPropertyId(
+      id: propertyId,
+      isMyProperty: isMyProperty,
+    );
+
+    Widgets.hideLoder(context);
+
+    Future.delayed(
+      Duration.zero,
+      () {
+        HelperUtils.goToNextPage(
+          Routes.propertyDetails,
+          context,
+          false,
+          args: {
+            'propertyData': dataOutput,
+          },
+        );
+      },
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:ebroker/data/cubits/agents/fetch_agent_verification_form_values.
 import 'package:ebroker/data/model/agent/agent_verification_form_fields_model.dart';
 import 'package:ebroker/data/model/agent/agent_verification_form_values_model.dart';
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/download_doc.dart';
 import 'package:flutter/material.dart';
 
 class AgentVerificationForm extends StatefulWidget {
@@ -15,9 +16,9 @@ class AgentVerificationForm extends StatefulWidget {
   @override
   State<AgentVerificationForm> createState() => _AgentVerificationFormState();
 
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => MultiBlocProvider(
         providers: [
           BlocProvider(
@@ -81,6 +82,10 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
               builder: (context, valuesState) {
                 if (fieldsState is FetchAgentVerificationFormFieldsSuccess &&
                     valuesState is FetchAgentVerificationFormValuesSuccess) {
+                  if (fieldsState.fields.isEmpty ||
+                      valuesState.values.isEmpty) {
+                    return const NoDataFound();
+                  }
                   // Call _initializeFormData here, when both states are successful
                   if (!_isFormInitialized) {
                     _initializeFormData(valuesState.values.first);
@@ -89,6 +94,9 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
                 } else if (fieldsState
                         is FetchAgentVerificationFormFieldsSuccess &&
                     valuesState is FetchAgentVerificationFormValuesFailure) {
+                  if (fieldsState.fields.isEmpty) {
+                    return const NoDataFound();
+                  }
                   // Handle the case where values failed to load
                   return _buildFormWithoutValues(context, fieldsState);
                 } else if (fieldsState
@@ -194,7 +202,6 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
       case 'checkbox':
         return _buildCheckboxGroup(field, fieldValue);
       case 'dropdown':
-        print('field is $field, fieldValue is $fieldValue');
         return _buildDropdown(field, fieldValue?.toString() ?? '');
       case 'textarea':
         return _buildTextArea(field, fieldValue?.toString() ?? '');
@@ -207,7 +214,6 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
               height: 10,
             ),
             DocumentPickerWidget(
-              fieldId: field.id,
               initialDocument: _selectedDocuments[field.id],
               onDocumentSelected: (document) {
                 setState(() {
@@ -321,7 +327,7 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
 
   Widget _buildCheckboxGroup(
     AgentVerificationFormFieldsModel field,
-    dynamic fieldValue,
+    fieldValue,
   ) {
     var initialValues = <String>[];
     if (fieldValue is String) {
@@ -544,7 +550,7 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
     }
   }
 
-  List<String> _parseCheckboxValue(dynamic value) {
+  List<String> _parseCheckboxValue(value) {
     if (value == null) return [];
     if (value is List) return value.map((e) => e.toString()).toList();
     if (value is String) return value.split(',').map((e) => e.trim()).toList();
@@ -629,6 +635,16 @@ class _AgentVerificationFormState extends State<AgentVerificationForm> {
   }
 
   Future<void> _submitForm() async {
+    if (Constant.isDemoModeOn) {
+      await HelperUtils.showSnackBarMessage(
+        context,
+        UiUtils.translate(
+          context,
+          'thisActionNotValidDemo',
+        ),
+      );
+      return;
+    }
     try {
       if (_formKey.currentState!.validate()) {
         final fetchFormFieldsState =
@@ -704,13 +720,11 @@ class AgentDocuments {
 class DocumentPickerWidget extends StatefulWidget {
   const DocumentPickerWidget({
     required this.onDocumentSelected,
-    required this.fieldId,
     super.key,
     this.initialDocument,
   });
   final Function(AgentDocuments?) onDocumentSelected;
   final AgentDocuments? initialDocument;
-  final int fieldId;
 
   @override
   DocumentPickerWidgetState createState() => DocumentPickerWidgetState();
@@ -732,7 +746,7 @@ class DocumentPickerWidgetState extends State<DocumentPickerWidget> {
       children: [
         buildDocumentsPicker(context),
         if (selectedDocument != null)
-          DownloadableDocuments(url: widget.initialDocument!.name),
+          DownloadableDocuments(url: widget.initialDocument?.name ?? ''),
       ],
     );
   }

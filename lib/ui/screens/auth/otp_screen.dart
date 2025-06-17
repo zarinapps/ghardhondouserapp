@@ -28,9 +28,9 @@ class OtpScreen extends StatefulWidget {
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
-  static Route route(RouteSettings routeSettings) {
+  static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments! as Map;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) {
         return MultiBlocProvider(
           providers: [
@@ -57,9 +57,10 @@ class _OtpScreenState extends State<OtpScreen> {
   ValueNotifier<int> otpResendTime = ValueNotifier<int>(
     Constant.otpResendSecond,
   );
-  final TextEditingController otpController = TextEditingController();
+  final TextEditingController phoneOtpController = TextEditingController();
+  final TextEditingController emailOtpController = TextEditingController();
   int otpLength = 6;
-  bool isOTPautofilled = false;
+  bool isOtpAutoFilled = false;
   final List<FocusNode> _focusNodes = [];
   int focusIndex = 0;
   String otpIs = '';
@@ -77,14 +78,6 @@ class _OtpScreenState extends State<OtpScreen> {
       timer!.cancel();
     }
     startTimer();
-
-    Future.delayed(Duration.zero, listenOtp);
-
-    otpController.addListener(() {
-      if (isOTPautofilled) {
-        _loginOnOTPFilled();
-      }
-    });
   }
 
   @override
@@ -93,6 +86,8 @@ class _OtpScreenState extends State<OtpScreen> {
       fNode.dispose();
     }
     otpResendTime.dispose();
+    phoneOtpController.dispose();
+    emailOtpController.dispose();
 
     super.dispose();
   }
@@ -164,6 +159,101 @@ class _OtpScreenState extends State<OtpScreen> {
     );
   }
 
+  Widget buildOtpContainer({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required TextEditingController controller,
+    required List<TextInputFormatter> inputFormatters,
+    required TextInputType keyboardType,
+    required String buttonText,
+    required dynamic Function(String) onCodeSubmitted,
+    required dynamic Function(String) onCodeChanged,
+    required Function() onPressed,
+  }) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      padding: const EdgeInsets.all(20),
+      width: MediaQuery.of(context).size.width,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          CustomText(
+            UiUtils.translate(context, 'weSentCodeOnEmail'),
+            fontSize: context.font.large,
+            color: context.color.textColorDark.withValues(alpha: 0.8),
+          ),
+          CustomText(
+            '${widget.isDeleteAccount ? HiveUtils.getUserDetails().email : widget.email}',
+            fontSize: context.font.large,
+            color: context.color.textColorDark.withValues(alpha: 0.8),
+          ),
+          SizedBox(
+            height: 20.rh(context),
+          ),
+          PinFieldAutoFill(
+            autoFocus: true,
+            controller: emailOtpController,
+            decoration: UnderlineDecoration(
+              lineHeight: 1.5,
+              colorBuilder: PinListenColorBuilder(
+                context.color.tertiaryColor,
+                Colors.grey,
+              ),
+            ),
+            currentCode: demoOTP(),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+            keyboardType: Platform.isIOS
+                ? const TextInputType.numberWithOptions(signed: true)
+                : TextInputType.number,
+            onCodeSubmitted: (code) {
+              context.read<VerifyOtpCubit>().verifyEmailOTP(
+                    otp: code,
+                    email: widget.email ?? '',
+                  );
+            },
+            onCodeChanged: (code) {
+              if (code?.length == 6) {
+                otpIs = code!;
+                // setState(() {});
+              }
+            },
+          ),
+
+          // loginButton(context),
+          if (!(timer?.isActive ?? false)) ...[
+            SizedBox(
+              height: 70,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: IgnorePointer(
+                  ignoring: timer?.isActive ?? false,
+                  child: setTextbutton(
+                    UiUtils.translate(context, 'resendCodeBtnLbl'),
+                    (timer?.isActive ?? false)
+                        ? Theme.of(context).colorScheme.textLightColor
+                        : Theme.of(context).colorScheme.tertiaryColor,
+                    FontWeight.bold,
+                    resendOTP,
+                    context,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(child: resendOtpTimerWidget()),
+          ),
+
+          loginButton(context),
+        ],
+      ),
+    );
+  }
+
   Widget otpScreenContainer(
     BuildContext context,
   ) =>
@@ -190,7 +280,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   PinFieldAutoFill(
                     autoFocus: true,
-                    controller: otpController,
+                    controller: emailOtpController,
                     decoration: UnderlineDecoration(
                       lineHeight: 1.5,
                       colorBuilder: PinListenColorBuilder(
@@ -265,7 +355,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       color: context.color.textColorDark.withValues(alpha: 0.8),
                     ),
                     CustomText(
-                      "+${widget.isDeleteAccount ? HiveUtils.getUserDetails().mobile : widget.countryCode}${widget.phoneNumber}",
+                      '+${widget.isDeleteAccount ? HiveUtils.getUserDetails().mobile : widget.countryCode}${widget.phoneNumber}',
                       fontSize: context.font.large,
                       color: context.color.textColorDark.withValues(alpha: 0.8),
                     ),
@@ -275,7 +365,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   PinFieldAutoFill(
                     autoFocus: true,
-                    controller: otpController,
+                    controller: phoneOtpController,
                     decoration: UnderlineDecoration(
                       lineHeight: 1.5,
                       colorBuilder: PinListenColorBuilder(
@@ -435,6 +525,7 @@ class _OtpScreenState extends State<OtpScreen> {
             email: widget.email ?? '',
             password: widget.password ?? '',
           );
+      return;
     }
     if (AppSettings.otpServiceProvider == 'firebase') {
       context.read<SendOtpCubit>().sendFirebaseOTP(
@@ -493,11 +584,11 @@ class _OtpScreenState extends State<OtpScreen> {
     if (widget.isEmailSelected) {
       try {
         await context.read<VerifyOtpCubit>().verifyEmailOTP(
-              otp: otpIs,
+              otp: emailOtpController.text,
               email: widget.email ?? '',
             );
         if (context.read<VerifyOtpCubit>().state is VerifyOtpSuccess) {
-          Navigator.pushReplacementNamed(
+          await Navigator.pushReplacementNamed(
             context,
             Routes.main,
             arguments: {
@@ -507,7 +598,7 @@ class _OtpScreenState extends State<OtpScreen> {
         }
         return;
       } catch (e) {
-        HelperUtils.showSnackBarMessage(
+        await HelperUtils.showSnackBarMessage(
           context,
           e.toString(),
           messageDuration: 1,
@@ -516,7 +607,7 @@ class _OtpScreenState extends State<OtpScreen> {
       }
     }
     try {
-      if (otpController.text.isEmpty) {
+      if (phoneOtpController.text.isEmpty) {
         await HelperUtils.showSnackBarMessage(
           context,
           UiUtils.translate(context, 'lblEnterOtp'),
@@ -528,17 +619,17 @@ class _OtpScreenState extends State<OtpScreen> {
         if (widget.isDeleteAccount) {
           await context.read<VerifyOtpCubit>().verifyOTP(
                 verificationId: verificationID,
-                otp: otpIs,
+                otp: phoneOtpController.text,
               );
         } else {
           await context.read<VerifyOtpCubit>().verifyOTP(
                 verificationId: widget.otpVerificationId,
-                otp: otpIs,
+                otp: phoneOtpController.text,
               );
         }
       } else if (AppSettings.otpServiceProvider == 'twilio') {
         await context.read<VerifyOtpCubit>().verifyOTP(
-              otp: widget.otpIs ?? '',
+              otp: phoneOtpController.text,
               number: '+${widget.countryCode}${widget.phoneNumber}',
             );
       }
@@ -549,34 +640,5 @@ class _OtpScreenState extends State<OtpScreen> {
         'invalidOtp'.translate(context),
       );
     }
-  }
-
-  void _loginOnOTPFilled() {
-    onTapLogin();
-  }
-
-  void listenOtp() {
-    final autoFill = SmsAutoFill();
-
-    autoFill.code.listen((event) {
-      Future.delayed(Duration.zero, () {
-        otpController.text = event;
-
-        _focusNodes[focusIndex].unfocus();
-
-        var allFilled = true;
-        if (otpController.text.isEmpty) {
-          allFilled = false;
-          return;
-        }
-
-        // Call the API if all OTP fields are filled
-        if (allFilled) {
-          _loginOnOTPFilled();
-        }
-
-        if (mounted) setState(() {});
-      });
-    });
   }
 }

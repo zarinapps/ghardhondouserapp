@@ -31,7 +31,10 @@ class NetworkRequestInterseptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     ({
       'URL': response.requestOptions.path,
       'Method': response.requestOptions.method,

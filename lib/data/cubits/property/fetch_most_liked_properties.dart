@@ -4,8 +4,9 @@ import 'dart:developer';
 import 'package:ebroker/data/model/property_model.dart';
 import 'package:ebroker/data/repositories/property_repository.dart';
 import 'package:ebroker/settings.dart';
-import 'package:ebroker/ui/screens/proprties/viewAll.dart';
-import 'package:ebroker/utils/Network/networkAvailability.dart';
+import 'package:ebroker/ui/screens/proprties/view_all.dart';
+import 'package:ebroker/utils/hive_utils.dart';
+import 'package:ebroker/utils/network/network_availability.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class FetchMostLikedPropertiesState {}
@@ -81,9 +82,9 @@ class FetchMostLikedPropertiesCubit extends Cubit<FetchMostLikedPropertiesState>
     if (forceRefresh != true) {
       if (state is FetchMostLikedPropertiesSuccess) {
         // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        await Future.delayed(
+        await Future<dynamic>.delayed(
           Duration(
-            seconds: loadWithoutDelay == true
+            seconds: loadWithoutDelay ?? false
                 ? 0
                 : AppSettings.hiddenAPIProcessDelay,
           ),
@@ -96,9 +97,12 @@ class FetchMostLikedPropertiesCubit extends Cubit<FetchMostLikedPropertiesState>
       emit(FetchMostLikedPropertiesInProgress());
     }
     try {
-      if (forceRefresh == true) {
+      if (forceRefresh ?? false) {
         final result = await _propertyRepository.fetchMostLikeProperty(
           offset: 0,
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
           sendCityName: true,
         );
 
@@ -115,6 +119,9 @@ class FetchMostLikedPropertiesCubit extends Cubit<FetchMostLikedPropertiesState>
         if (state is! FetchMostLikedPropertiesSuccess) {
           final result = await _propertyRepository.fetchMostLikeProperty(
             offset: 0,
+            latitude: HiveUtils.getLatitude().toString(),
+            longitude: HiveUtils.getLongitude().toString(),
+            radius: HiveUtils.getRadius().toString(),
             sendCityName: true,
           );
 
@@ -132,6 +139,9 @@ class FetchMostLikedPropertiesCubit extends Cubit<FetchMostLikedPropertiesState>
             onInternet: () async {
               final result = await _propertyRepository.fetchMostLikeProperty(
                 offset: 0,
+                latitude: HiveUtils.getLatitude().toString(),
+                longitude: HiveUtils.getLongitude().toString(),
+                radius: HiveUtils.getRadius().toString(),
                 sendCityName: true,
               );
 
@@ -198,6 +208,9 @@ class FetchMostLikedPropertiesCubit extends Cubit<FetchMostLikedPropertiesState>
         );
         final result = await _propertyRepository.fetchMostLikeProperty(
           offset: (state as FetchMostLikedPropertiesSuccess).properties.length,
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
           sendCityName: true,
         );
 

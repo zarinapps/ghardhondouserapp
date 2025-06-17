@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:ebroker/data/cubits/Personalized/add_update_personalized_interest.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/Extensions/lib/list.dart';
@@ -9,19 +11,19 @@ part 'segments/choose_category.dart';
 part 'segments/choose_nearby.dart';
 part 'segments/other_interest.dart';
 
-enum PersonalizedVisitType { FirstTime, Normal }
+enum PersonalizedVisitType { firstTime, normal }
 
 class PersonalizedPropertyScreen extends StatefulWidget {
   const PersonalizedPropertyScreen({required this.type, super.key});
 
   final PersonalizedVisitType type;
 
-  static Route route(RouteSettings settings) {
+  static Route<dynamic> route(RouteSettings settings) {
     final args = settings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) => PersonalizedPropertyScreen(
         type: args?['type'] as PersonalizedVisitType? ??
-            PersonalizedVisitType.Normal,
+            PersonalizedVisitType.normal,
       ),
     );
   }
@@ -42,7 +44,8 @@ class _PersonalizedPropertyScreenState
 
   @override
   void initState() {
-    context.read<FetchOutdoorFacilityListCubit>().fetchIfFailed();
+    context.read<FetchCategoryCubit>().fetchCategories();
+    context.read<FetchOutdoorFacilityListCubit>().fetch();
     super.initState();
   }
 
@@ -81,7 +84,7 @@ class _PersonalizedPropertyScreenState
             context.read<FetchPersonalizedPropertyList>().fetch(
                   forceRefresh: true,
                 );
-            if (widget.type == PersonalizedVisitType.FirstTime) {
+            if (widget.type == PersonalizedVisitType.firstTime) {
               Future.delayed(
                 Duration.zero,
                 () {
@@ -186,7 +189,9 @@ class _PersonalizedPropertyScreenState
                 buttonTextColor: selectedCategoryId.isEmpty
                     ? context.color.textColorDark
                     : null,
-                color: context.color.tertiaryColor,
+                color: selectedCategoryId.isEmpty
+                    ? Colors.red
+                    : context.color.tertiaryColor,
               ),
             ),
           ),
@@ -207,6 +212,7 @@ class _PersonalizedPropertyScreenState
         side: BorderSide(color: context.color.borderColor),
       ),
       onPressed: onPressed,
+      disabledColor: Colors.grey,
       height: 48,
       color: color,
       child: CustomText(
@@ -218,7 +224,7 @@ class _PersonalizedPropertyScreenState
 
   Future<void> _updatePersonalizedFeed() async {
     try {
-      Widgets.showLoader(context);
+      unawaited(Widgets.showLoader(context));
       await context.read<AddUpdatePersonalizedInterest>().addOrUpdate(
             action: PersonalizedFeedAction.add,
             categoryIds: selectedCategoryId,
@@ -229,7 +235,7 @@ class _PersonalizedPropertyScreenState
           );
       await context.read();
     } catch (e) {
-      print(e);
+      log('Error is $e');
     }
   }
 

@@ -17,8 +17,8 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
   static final List<void Function(String key, dynamic value)> _listeners = [];
 
   // Method to add a listener for a specific key
-  listenOn(String key, Function(dynamic value) callBack) {
-    _listeners.add((String addedKey, dynamic addedValue) {
+  void listenOn(String key, Function(dynamic value) callBack) {
+    _listeners.add((String addedKey, addedValue) {
       if (key == addedKey) {
         callBack.call(addedValue);
       } else if (key == '*') {
@@ -28,7 +28,7 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
   }
 
   // Method to notify all listeners about changes
-  void notify(String key, dynamic value) {
+  void notify(String key, value) {
     for (final element in _listeners) {
       element.call(key, value);
     }
@@ -40,14 +40,14 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
   }
 
   // Method to add cloud data and notify listeners
-  void addCloudData(String key, dynamic value) {
+  void addCloudData(String key, value) {
     cloudData.addAll(Map<dynamic, dynamic>.from({key: value}));
     notify(key, value);
   }
 
-  void insertCloudData(String key, dynamic value) {
+  void insertCloudData(String key, value) {
     if (!cloudData.containsKey(key)) {
-      cloudData[key] = {};
+      cloudData[key] = <dynamic, dynamic>{};
     }
     if (cloudData[key] is Map) {
       cloudData[key].addAll(Map<dynamic, dynamic>.from({key: value}));
@@ -57,13 +57,13 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
   }
 
   // Method to add screen-specific data and notify listeners
-  void addScreenValue(String key, dynamic value) {
+  void addScreenValue(String key, value) {
     cloudData.addAll({key: value});
     notify(key, value);
   }
 
   // Method to set cloud data for a specific key and notify listeners
-  void setCloudData(String key, dynamic value) {
+  void setCloudData(String key, value) {
     cloudData[key] = value;
     notify(key, value);
   }
@@ -74,7 +74,7 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
       cloudData[key] = [value];
     }
     if (cloudData[key] is List<T>) {
-      if (disableClone == true) {
+      if (disableClone ?? false) {
         if (!(cloudData[key] as List<T>).contains(value)) {
           (cloudData[key] as List<T>).add(value);
           notify(key, value);
@@ -133,10 +133,11 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
     }
   }
 
-  CloudState<T> toGroup(String groupName, dynamic key, dynamic value) {
+  CloudState<T> toGroup(String groupName, key, value) {
     // Check if the group exists in cloudData
     if (!cloudData.containsKey(groupName)) {
-      cloudData[groupName] = {}; // Initialize as an empty map if not present
+      cloudData[groupName] =
+          <dynamic, dynamic>{}; // Initialize as an empty map if not present
     }
 
     // Now you can safely access and update the group's key-value pair
@@ -144,7 +145,7 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
     return this;
   }
 
-  void removeFromGroup(String groupName, dynamic key) {
+  void removeFromGroup(String groupName, key) {
     if (cloudData.containsKey(groupName)) {
       if (cloudData[groupName].containsKey(key) as bool? ?? false) {
         cloudData[groupName].remove(key);
@@ -158,27 +159,27 @@ abstract class CloudState<T extends StatefulWidget> extends State<T> {
     }
   }
 
-  dynamic fromGroup(String groupName, dynamic key) {
+  dynamic fromGroup(String groupName, key) {
     return cloudData[groupName][key];
   }
 
-  Map? group(String groupName) {
-    return cloudData[groupName] as Map?;
+  Map<dynamic, dynamic>? group(String groupName) {
+    return cloudData[groupName] as Map<dynamic, dynamic>?;
   }
 
   // Method to add screen-specific data in the cloud data
-  void screenData(String key, dynamic value) {
+  void screenData(String key, value) {
     if (cloudData.containsKey(runtimeType)) {
       (cloudData[runtimeType] as Map).addAll({key: value});
     } else {
-      cloudData[runtimeType] = {};
-      (cloudData[runtimeType] as Map).addAll({key: value});
+      cloudData[runtimeType] = <dynamic, dynamic>{};
+      (cloudData[runtimeType] as Map<dynamic, dynamic>).addAll({key: value});
     }
   }
 
   // Method to get screen-specific data from the cloud data
   dynamic getScreenData(State screen, String key) {
-    return cloudData[screen][key] ?? {};
+    return cloudData[screen][key] ?? <dynamic, dynamic>{};
   }
 
   // Override build method, as it's an abstract class

@@ -2,7 +2,6 @@
 import 'package:ebroker/data/model/propery_filter_model.dart';
 import 'package:ebroker/data/model/system_settings_model.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:flutter/material.dart';
 
 const String svgPath = 'assets/svg/';
 
@@ -12,11 +11,8 @@ abstract class Constant {
   static String iOSAppId = AppSettings.iOSAppId;
   static String playstoreURLAndroid = AppSettings.playstoreURLAndroid;
   static String appstoreURLios = AppSettings.appstoreURLios;
-  static const String shareappText = AppSettings.shareAppText;
 
-  static ScrollPhysics scrollPhysics = const BouncingScrollPhysics(
-    parent: AlwaysScrollableScrollPhysics(),
-  );
+  static ScrollPhysics scrollPhysics = const AlwaysScrollableScrollPhysics();
 
   //backend url
   static String baseUrl = AppSettings.baseUrl;
@@ -77,7 +73,7 @@ abstract class Constant {
   //
   static int loadLimit = AppSettings.apiDataLoadLimit;
 
-  static const String defaultCountryCode = '92';
+  static const String defaultCountryCode = AppSettings.defaultCountryCode;
 
   ///This maxCategoryLength is for show limited number of categories and show "More" button,
   ///You have to set less than [loadLimit] constant
@@ -195,7 +191,7 @@ modM8h9DRzp9OaAJqxfP960q
 
   //Demo mode settings
   static bool isDemoModeOn = false;
-  static String demoCountryCode = '92';
+  static String demoCountryCode = '91';
   static String demoMobileNumber = '1234567890';
   static String demoFirebaseID = '6a1Zdl2TxORQGbCazj4XDGfgBBG3';
   static String demoModeOTP = '123456';

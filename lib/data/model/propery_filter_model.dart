@@ -1,17 +1,11 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
+@immutable
 class PropertyFilterModel {
-  final String propertyType;
-  final String maxPrice;
-  final String minPrice;
-  final String categoryId;
-  final String postedSince;
-  final String city;
-  final String state;
-  final String country;
-  List<int>? facilities;
-  PropertyFilterModel({
+  const PropertyFilterModel({
     required this.propertyType,
     required this.maxPrice,
     required this.minPrice,
@@ -22,6 +16,16 @@ class PropertyFilterModel {
     required this.country,
     required this.facilities,
   });
+
+  final String propertyType;
+  final String maxPrice;
+  final String minPrice;
+  final String categoryId;
+  final String postedSince;
+  final String city;
+  final String state;
+  final String country;
+  final List<int> facilities;
 
   PropertyFilterModel copyWith({
     String? propertyType,
@@ -42,7 +46,7 @@ class PropertyFilterModel {
       city: city ?? this.city,
       state: state ?? this.state,
       country: country ?? this.country,
-      facilities: facilities ?? facilities,
+      facilities: facilities,
     );
   }
 
@@ -66,7 +70,7 @@ class PropertyFilterModel {
   }
 
   factory PropertyFilterModel.createEmpty() {
-    return PropertyFilterModel(
+    return const PropertyFilterModel(
       propertyType: '',
       maxPrice: '',
       minPrice: '',

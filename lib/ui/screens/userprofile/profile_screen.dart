@@ -4,11 +4,11 @@ import 'package:ebroker/data/model/system_settings_model.dart';
 import 'package:ebroker/data/repositories/auth_repository.dart';
 import 'package:ebroker/data/repositories/system_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:launch_review/launch_review.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -79,568 +79,586 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
     final systemSettingsState = context.read<FetchSystemSettingsCubit>().state;
 
-    return Scaffold(
-      backgroundColor: context.color.primaryColor,
-      appBar: UiUtils.buildAppBar(
-        context,
-        title: UiUtils.translate(context, 'myProfile'),
-      ),
-      body: BlocListener<DeleteAccountCubit, DeleteAccountState>(
-        listener: (context, state) {
-          if (state is DeleteAccountProgress) {
-            unawaited(Widgets.showLoader(context));
-          }
-          if (state is DeleteAccountFailure) {
-            Widgets.hideLoder(context);
-          }
-          if (state is AccountDeleted) {
-            Widgets.hideLoder(context);
-            context.read<UserDetailsCubit>().clear();
-            Navigator.pushReplacementNamed(
-              context,
-              Routes.login,
-              arguments: {'popToCurrent': false},
-            );
-          }
-        },
-        child: RefreshIndicator(
-          color: context.color.tertiaryColor,
-          onRefresh: () async {
-            await context.read<FetchSystemSettingsCubit>().fetchSettings(
-                  isAnonymous: GuestChecker.value,
-                );
+    return AnnotatedRegion(
+      value: UiUtils.getSystemUiOverlayStyle(context: context),
+      child: Scaffold(
+        backgroundColor: context.color.primaryColor,
+        appBar: UiUtils.buildAppBar(
+          context,
+          title: UiUtils.translate(context, 'myProfile'),
+        ),
+        body: BlocListener<DeleteAccountCubit, DeleteAccountState>(
+          listener: (context, state) {
+            if (state is DeleteAccountProgress) {
+              unawaited(Widgets.showLoader(context));
+            }
+            if (state is DeleteAccountFailure) {
+              Widgets.hideLoder(context);
+            }
+            if (state is AccountDeleted) {
+              Widgets.hideLoder(context);
+              context.read<UserDetailsCubit>().clear();
+              Navigator.pushReplacementNamed(
+                context,
+                Routes.login,
+                arguments: {'popToCurrent': false},
+              );
+            }
           },
-          child: systemSettingsState is FetchSystemSettingsInProgress
-              ? buildProfileLoadingShimmer()
-              : SingleChildScrollView(
-                  physics: Constant.scrollPhysics,
-                  controller: profileScreenController,
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      children: <Widget>[
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              width: 1.5,
-                              color: context.color.borderColor,
+          child: CustomRefreshIndicator(
+            onRefresh: () async {
+              await context.read<FetchSystemSettingsCubit>().fetchSettings(
+                    isAnonymous: GuestChecker.value,
+                  );
+            },
+            child: systemSettingsState is FetchSystemSettingsInProgress
+                ? buildProfileLoadingShimmer()
+                : SingleChildScrollView(
+                    physics: Constant.scrollPhysics,
+                    controller: profileScreenController,
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: <Widget>[
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                width: 1.5,
+                                color: context.color.borderColor,
+                              ),
+                              color: context.color.secondaryColor,
+                              borderRadius: BorderRadius.circular(18),
                             ),
-                            color: context.color.secondaryColor,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: profileImgWidget(),
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    CustomText(
-                                      username,
-                                      color: context.color.inverseSurface,
-                                      fontSize: context.font.large,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                    CustomText(
-                                      email,
-                                      color: context.color.textColorDark,
-                                      fontSize: context.font.small,
-                                      maxLines: 1,
-                                    ),
-                                    if (isGuest == false)
-                                      const SizedBox(height: 10),
-                                    if (isGuest == false)
-                                      _buildVerificationUI(
-                                        context,
-                                        verificationStatus,
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              if (isGuest == true)
-                                Container(
-                                  margin: const EdgeInsetsDirectional.only(
-                                    end: 20,
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: profileImgWidget(),
                                   ),
-                                  child: MaterialButton(
-                                    shape: RoundedRectangleBorder(
-                                      side: BorderSide(
-                                        color: context.color.borderColor,
-                                        width: 1.5,
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      CustomText(
+                                        username,
+                                        color: context.color.inverseSurface,
+                                        fontSize: context.font.large,
+                                        fontWeight: FontWeight.w700,
                                       ),
-                                      borderRadius: BorderRadius.circular(10),
+                                      CustomText(
+                                        email,
+                                        color: context.color.textColorDark,
+                                        fontSize: context.font.small,
+                                        maxLines: 1,
+                                      ),
+                                      if (isGuest == false)
+                                        const SizedBox(height: 10),
+                                      if (isGuest == false)
+                                        _buildVerificationUI(
+                                          context,
+                                          verificationStatus,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (isGuest == true)
+                                  Container(
+                                    margin: const EdgeInsetsDirectional.only(
+                                      end: 20,
                                     ),
-                                    onPressed: () {
-                                      Navigator.pushReplacementNamed(
+                                    child: MaterialButton(
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(
+                                          color: context.color.borderColor,
+                                          width: 1.5,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.pushReplacementNamed(
+                                          context,
+                                          Routes.login,
+                                          arguments: {'popToCurrent': false},
+                                        );
+                                      },
+                                      child: CustomText(
+                                        'login'.translate(context),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                width: 1.5,
+                                color: context.color.borderColor,
+                              ),
+                              color: context.color.secondaryColor,
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(
+                                  height: 20,
+                                ),
+                                if (isGuest == false)
+                                  customTile(
+                                    context,
+                                    title: UiUtils.translate(
+                                      context,
+                                      'editProfile',
+                                    ),
+                                    svgImagePath: AppIcons.profile,
+                                    onTap: () {
+                                      HelperUtils.goToNextPage(
+                                        Routes.completeProfile,
                                         context,
-                                        Routes.login,
-                                        arguments: {'popToCurrent': false},
+                                        false,
+                                        args: {'from': 'profile'},
                                       );
                                     },
-                                    child:
-                                        CustomText('login'.translate(context)),
                                   ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              width: 1.5,
-                              color: context.color.borderColor,
-                            ),
-                            color: context.color.secondaryColor,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(
-                                height: 20,
-                              ),
-                              if (isGuest == false)
+                                if (isGuest == false) dividerWithSpacing(),
                                 customTile(
                                   context,
                                   title:
-                                      UiUtils.translate(context, 'editProfile'),
-                                  svgImagePath: AppIcons.profile,
-                                  onTap: () {
-                                    HelperUtils.goToNextPage(
-                                      Routes.completeProfile,
-                                      context,
-                                      false,
-                                      args: {'from': 'profile'},
+                                      UiUtils.translate(context, 'myProjects'),
+                                  svgImagePath: AppIcons.upcomingProject,
+                                  onTap: () async {
+                                    await GuestChecker.check(
+                                      onNotGuest: () async {
+                                        await Navigator.pushNamed(
+                                          context,
+                                          Routes.myProjects,
+                                        );
+                                      },
                                     );
                                   },
                                 ),
-                              if (isGuest == false) dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'myProjects'),
-                                svgImagePath: AppIcons.upcomingProject,
-                                onTap: () async {
-                                  GuestChecker.check(
-                                    onNotGuest: () async {
-                                      await Navigator.pushNamed(
-                                        context,
-                                        Routes.projectListScreen,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'myAds'),
-                                svgImagePath: AppIcons.promoted,
-                                onTap: () async {
-                                  GuestChecker.check(
-                                    onNotGuest: () async {
-                                      await Navigator.pushNamed(
-                                        context,
-                                        Routes.myAdvertisment,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title:
-                                    UiUtils.translate(context, 'subscription'),
-                                svgImagePath: AppIcons.subscription,
-                                onTap: () {
-                                  GuestChecker.check(
-                                    onNotGuest: () async {
-                                      try {
-                                        await context
-                                            .read<GetApiKeysCubit>()
-                                            .fetch();
-                                        if (context
-                                            .read<GetApiKeysCubit>()
-                                            .state is GetApiKeysSuccess) {
-                                          await Navigator.pushNamed(
-                                            context,
-                                            Routes.subscriptionPackageListRoute,
-                                          );
-                                        } else if (context
-                                            .read<GetApiKeysCubit>()
-                                            .state is GetApiKeysFail) {
-                                          final errorMessage = (context
-                                                  .read<GetApiKeysCubit>()
-                                                  .state as GetApiKeysFail)
-                                              .error
-                                              .toString();
-                                          await HelperUtils.showSnackBarMessage(
-                                            context,
-                                            errorMessage,
-                                          );
-                                        }
-                                      } catch (e) {
-                                        await HelperUtils.showSnackBarMessage(
-                                          context,
-                                          e.toString(),
-                                        );
-                                      }
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(
-                                  context,
-                                  'transactionHistory',
-                                ),
-                                svgImagePath: AppIcons.transaction,
-                                onTap: () {
-                                  GuestChecker.check(
-                                    onNotGuest: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        Routes.transactionHistory,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(
-                                  context,
-                                  'personalized',
-                                ),
-                                svgImagePath: AppIcons.magic,
-                                onTap: () {
-                                  GuestChecker.check(
-                                    onNotGuest: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        Routes.personalizedPropertyScreen,
-                                        arguments: {
-                                          'type': PersonalizedVisitType.Normal,
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(
-                                  context,
-                                  'faqScreen',
-                                ),
-                                svgImagePath: AppIcons.faqs,
-                                onTap: () {
-                                  GuestChecker.check(
-                                    onNotGuest: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        Routes.faqsScreen,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'language'),
-                                svgImagePath: AppIcons.language,
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    Routes.languageListScreenRoute,
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              ValueListenableBuilder(
-                                valueListenable: isDarkTheme,
-                                builder: (context, v, c) {
-                                  return customTile(
-                                    context,
-                                    title:
-                                        UiUtils.translate(context, 'darkTheme'),
-                                    svgImagePath: AppIcons.darkTheme,
-                                    isSwitchBox: true,
-                                    onTapSwitch: (value) {
-                                      context.read<AppThemeCubit>().changeTheme(
-                                            value == true
-                                                ? AppTheme.dark
-                                                : AppTheme.light,
-                                          );
-                                      setState(() {
-                                        isDarkTheme.value = value;
-                                      });
-                                    },
-                                    switchValue: v,
-                                    onTap: () {},
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title:
-                                    UiUtils.translate(context, 'notifications'),
-                                svgImagePath: AppIcons.notification,
-                                onTap: () {
-                                  GuestChecker.check(
-                                    onNotGuest: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        Routes.notificationPage,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'articles'),
-                                svgImagePath: AppIcons.articles,
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    Routes.articlesScreenRoute,
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'favorites'),
-                                svgImagePath: AppIcons.favorites,
-                                onTap: () {
-                                  GuestChecker.check(
-                                    onNotGuest: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        Routes.favoritesScreen,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title:
-                                    UiUtils.translate(context, 'areaConvertor'),
-                                svgImagePath: AppIcons.areaConvertor,
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    Routes.areaConvertorScreen,
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'shareApp'),
-                                svgImagePath: AppIcons.shareApp,
-                                onTap: shareApp,
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'rateUs'),
-                                svgImagePath: AppIcons.rateUs,
-                                onTap: rateUs,
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'contactUs'),
-                                svgImagePath: AppIcons.contactUs,
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    Routes.contactUs,
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(context, 'aboutUs'),
-                                svgImagePath: AppIcons.aboutUs,
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    Routes.profileSettings,
-                                    arguments: {
-                                      'title':
-                                          UiUtils.translate(context, 'aboutUs'),
-                                      'param': Api.aboutApp,
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title: UiUtils.translate(
-                                  context,
-                                  'termsConditions',
-                                ),
-                                svgImagePath: AppIcons.terms,
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    Routes.profileSettings,
-                                    arguments: {
-                                      'title': UiUtils.translate(
-                                        context,
-                                        'termsConditions',
-                                      ),
-                                      'param': Api.termsAndConditions,
-                                    },
-                                  );
-                                },
-                              ),
-                              dividerWithSpacing(),
-                              customTile(
-                                context,
-                                title:
-                                    UiUtils.translate(context, 'privacyPolicy'),
-                                svgImagePath: AppIcons.privacy,
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    Routes.profileSettings,
-                                    arguments: {
-                                      'title': UiUtils.translate(
-                                        context,
-                                        'privacyPolicy',
-                                      ),
-                                      'param': Api.privacyPolicy,
-                                    },
-                                  );
-                                },
-                              ),
-                              if (Constant.isUpdateAvailable == true) ...[
                                 dividerWithSpacing(),
-                                updateTile(
+                                customTile(
                                   context,
-                                  isUpdateAvailable: Constant.isUpdateAvailable,
-                                  title: UiUtils.translate(context, 'update'),
-                                  newVersion: Constant.newVersionNumber,
-                                  svgImagePath: AppIcons.update,
+                                  title: UiUtils.translate(context, 'myAds'),
+                                  svgImagePath: AppIcons.promoted,
                                   onTap: () async {
-                                    if (Platform.isIOS) {
-                                      await launchUrl(
-                                        Uri.parse(Constant.appstoreURLios),
-                                      );
-                                    } else if (Platform.isAndroid) {
-                                      await launchUrl(
-                                        Uri.parse(Constant.playstoreURLAndroid),
-                                      );
-                                    }
+                                    await GuestChecker.check(
+                                      onNotGuest: () async {
+                                        await Navigator.pushNamed(
+                                          context,
+                                          Routes.myAdvertisment,
+                                        );
+                                      },
+                                    );
                                   },
                                 ),
-                              ],
-                              if (isGuest == false) ...[
                                 dividerWithSpacing(),
                                 customTile(
                                   context,
                                   title: UiUtils.translate(
-                                      context, 'deleteAccount'),
-                                  svgImagePath: AppIcons.delete,
+                                    context,
+                                    'subscription',
+                                  ),
+                                  svgImagePath: AppIcons.subscription,
                                   onTap: () {
-                                    if (Constant.isDemoModeOn &&
-                                        context
-                                                .read<UserDetailsCubit>()
-                                                .state
-                                                .user
-                                                ?.authId ==
-                                            Constant.demoFirebaseID) {
-                                      HelperUtils.showSnackBarMessage(
-                                        context,
-                                        UiUtils.translate(
-                                          context,
-                                          'thisActionNotValidDemo',
-                                        ),
-                                      );
-                                      return;
-                                    }
-
-                                    deleteConfirmWidget(
-                                      UiUtils.translate(
-                                        context,
-                                        'deleteProfileMessageTitle',
-                                      ),
-                                      UiUtils.translate(
-                                        context,
-                                        'deleteProfileMessageContent',
-                                      ),
-                                      true,
+                                    GuestChecker.check(
+                                      onNotGuest: () async {
+                                        try {
+                                          await context
+                                              .read<GetApiKeysCubit>()
+                                              .fetch();
+                                          if (context
+                                              .read<GetApiKeysCubit>()
+                                              .state is GetApiKeysSuccess) {
+                                            await Navigator.pushNamed(
+                                              context,
+                                              Routes
+                                                  .subscriptionPackageListRoute,
+                                              arguments: {
+                                                'isBankTransferEnabled': (context
+                                                                .read<
+                                                                    GetApiKeysCubit>()
+                                                                .state
+                                                            as GetApiKeysSuccess)
+                                                        .bankTransferStatus ==
+                                                    '1',
+                                              },
+                                            );
+                                          } else if (context
+                                              .read<GetApiKeysCubit>()
+                                              .state is GetApiKeysFail) {
+                                            final errorMessage = (context
+                                                    .read<GetApiKeysCubit>()
+                                                    .state as GetApiKeysFail)
+                                                .error
+                                                .toString();
+                                            await HelperUtils
+                                                .showSnackBarMessage(
+                                              context,
+                                              errorMessage,
+                                            );
+                                          }
+                                        } catch (e) {
+                                          await HelperUtils.showSnackBarMessage(
+                                            context,
+                                            e.toString(),
+                                          );
+                                        }
+                                      },
                                     );
                                   },
                                 ),
-                              ],
-                              const SizedBox(
-                                height: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 25,
-                        ),
-                        if (isGuest == false) ...[
-                          UiUtils.buildButton(
-                            context,
-                            onPressed: logOutConfirmWidget,
-                            height: 52.rh(context),
-                            prefixWidget: Padding(
-                              padding:
-                                  const EdgeInsetsDirectional.only(end: 16),
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: context.color.secondaryColor,
-                                  borderRadius: BorderRadius.circular(10),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'transactionHistory',
+                                  ),
+                                  svgImagePath: AppIcons.transaction,
+                                  onTap: () {
+                                    GuestChecker.check(
+                                      onNotGuest: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          Routes.transactionHistory,
+                                        );
+                                      },
+                                    );
+                                  },
                                 ),
-                                child: FittedBox(
-                                  fit: BoxFit.none,
-                                  child: UiUtils.getSvg(
-                                    AppIcons.logout,
-                                    color: context.color.tertiaryColor,
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'personalized',
+                                  ),
+                                  svgImagePath: AppIcons.magic,
+                                  onTap: () {
+                                    GuestChecker.check(
+                                      onNotGuest: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          Routes.personalizedPropertyScreen,
+                                          arguments: {
+                                            'type':
+                                                PersonalizedVisitType.normal,
+                                          },
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'faqScreen',
+                                  ),
+                                  svgImagePath: AppIcons.faqs,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.faqsScreen,
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(context, 'language'),
+                                  svgImagePath: AppIcons.language,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.languageListScreenRoute,
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'darkTheme',
+                                  ),
+                                  svgImagePath: AppIcons.darkTheme,
+                                  isSwitchBox: true,
+                                  onTap: () {},
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'notifications',
+                                  ),
+                                  svgImagePath: AppIcons.notification,
+                                  onTap: () {
+                                    GuestChecker.check(
+                                      onNotGuest: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          Routes.notificationPage,
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(context, 'articles'),
+                                  svgImagePath: AppIcons.articles,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.articlesScreenRoute,
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title:
+                                      UiUtils.translate(context, 'favorites'),
+                                  svgImagePath: AppIcons.favorites,
+                                  onTap: () {
+                                    GuestChecker.check(
+                                      onNotGuest: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          Routes.favoritesScreen,
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'areaConvertor',
+                                  ),
+                                  svgImagePath: AppIcons.areaConvertor,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.areaConvertorScreen,
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(context, 'shareApp'),
+                                  svgImagePath: AppIcons.shareApp,
+                                  onTap: shareApp,
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(context, 'rateUs'),
+                                  svgImagePath: AppIcons.rateUs,
+                                  onTap: rateUs,
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title:
+                                      UiUtils.translate(context, 'contactUs'),
+                                  svgImagePath: AppIcons.contactUs,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.contactUs,
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(context, 'aboutUs'),
+                                  svgImagePath: AppIcons.aboutUs,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.profileSettings,
+                                      arguments: {
+                                        'title': UiUtils.translate(
+                                          context,
+                                          'aboutUs',
+                                        ),
+                                        'param': Api.aboutApp,
+                                      },
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'termsConditions',
+                                  ),
+                                  svgImagePath: AppIcons.terms,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.profileSettings,
+                                      arguments: {
+                                        'title': UiUtils.translate(
+                                          context,
+                                          'termsConditions',
+                                        ),
+                                        'param': Api.termsAndConditions,
+                                      },
+                                    );
+                                  },
+                                ),
+                                dividerWithSpacing(),
+                                customTile(
+                                  context,
+                                  title: UiUtils.translate(
+                                    context,
+                                    'privacyPolicy',
+                                  ),
+                                  svgImagePath: AppIcons.privacy,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.profileSettings,
+                                      arguments: {
+                                        'title': UiUtils.translate(
+                                          context,
+                                          'privacyPolicy',
+                                        ),
+                                        'param': Api.privacyPolicy,
+                                      },
+                                    );
+                                  },
+                                ),
+                                if (Constant.isUpdateAvailable == true) ...[
+                                  dividerWithSpacing(),
+                                  updateTile(
+                                    context,
+                                    isUpdateAvailable:
+                                        Constant.isUpdateAvailable,
+                                    title: UiUtils.translate(context, 'update'),
+                                    newVersion: Constant.newVersionNumber,
+                                    svgImagePath: AppIcons.update,
+                                    onTap: () async {
+                                      if (Platform.isIOS) {
+                                        await launchUrl(
+                                          Uri.parse(Constant.appstoreURLios),
+                                        );
+                                      } else if (Platform.isAndroid) {
+                                        await launchUrl(
+                                          Uri.parse(
+                                            Constant.playstoreURLAndroid,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                                if (isGuest == false) ...[
+                                  dividerWithSpacing(),
+                                  customTile(
+                                    context,
+                                    title: UiUtils.translate(
+                                      context,
+                                      'deleteAccount',
+                                    ),
+                                    svgImagePath: AppIcons.delete,
+                                    onTap: () {
+                                      if (Constant.isDemoModeOn &&
+                                          context
+                                                  .read<UserDetailsCubit>()
+                                                  .state
+                                                  .user
+                                                  ?.authId ==
+                                              Constant.demoFirebaseID) {
+                                        HelperUtils.showSnackBarMessage(
+                                          context,
+                                          UiUtils.translate(
+                                            context,
+                                            'thisActionNotValidDemo',
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      deleteConfirmWidget(
+                                        UiUtils.translate(
+                                          context,
+                                          'deleteProfileMessageTitle',
+                                        ),
+                                        UiUtils.translate(
+                                          context,
+                                          'deleteProfileMessageContent',
+                                        ),
+                                        true,
+                                      );
+                                    },
+                                  ),
+                                ],
+                                const SizedBox(
+                                  height: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 25,
+                          ),
+                          if (isGuest == false) ...[
+                            UiUtils.buildButton(
+                              context,
+                              onPressed: logOutConfirmWidget,
+                              height: 52.rh(context),
+                              prefixWidget: Padding(
+                                padding:
+                                    const EdgeInsetsDirectional.only(end: 16),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: context.color.secondaryColor,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.none,
+                                    child: UiUtils.getSvg(
+                                      AppIcons.logout,
+                                      color: context.color.tertiaryColor,
+                                    ),
                                   ),
                                 ),
                               ),
+                              buttonTitle: UiUtils.translate(context, 'logout'),
                             ),
-                            buttonTitle: UiUtils.translate(context, 'logout'),
-                          ),
-                          const SizedBox(
-                            height: 16,
-                          ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
+          ),
         ),
       ),
     );
@@ -695,7 +713,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     required String svgImagePath,
     required VoidCallback onTap,
     Function(dynamic value)? onTapSwitch,
-    dynamic switchValue,
+    switchValue,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -786,8 +804,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     required String svgImagePath,
     required VoidCallback onTap,
     bool? isSwitchBox,
-    Function(dynamic value)? onTapSwitch,
-    dynamic switchValue,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -853,19 +869,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                 ),
-              if (isSwitchBox ?? false)
+              if (isSwitchBox ?? false) ...[
+                const Spacer(),
                 // CupertinoSwitch(value: value, onChanged: onChanged)
-                SizedBox(
-                  height: 40,
-                  width: 30,
-                  child: CupertinoSwitch(
-                    activeTrackColor: context.color.tertiaryColor,
-                    value: switchValue as bool? ?? false,
-                    onChanged: (value) {
-                      onTapSwitch?.call(value);
-                    },
-                  ),
+                ValueListenableBuilder(
+                  valueListenable: isDarkTheme,
+                  builder: (context, value, child) {
+                    return CupertinoSwitch(
+                      activeTrackColor: context.color.tertiaryColor,
+                      value: value as bool,
+                      onChanged: (value) {
+                        context.read<AppThemeCubit>().toggleTheme();
+                      },
+                    );
+                  },
                 ),
+              ],
             ],
           ),
         ),
@@ -876,9 +895,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   void deleteConfirmWidget(String title, String desc, callDel) {
     UiUtils.showBlurredDialoge(
       context,
-      dialoge: BlurredDialogBox(
+      dialog: BlurredDialogBox(
         title: title,
-        content: CustomText(desc, textAlign: TextAlign.center),
+        content: CustomText(
+          desc,
+          textAlign: TextAlign.center,
+        ),
         acceptButtonName: 'deleteBtnLbl'.translate(context),
         cancelTextColor: context.color.textColorDark,
         svgImagePath: AppIcons.deleteIcon,
@@ -909,7 +931,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Constant.interestedPropertyIds.clear();
                     context.read<LikedPropertiesCubit>().state.liked.clear();
                     context.read<LikedPropertiesCubit>().clear();
-                    context.read<LoadChatMessagesCubit>().close();
+                    await context.read<LoadChatMessagesCubit>().close();
                   }
                   Widgets.hideLoder(context);
                   context.read<UserDetailsCubit>().clear();
@@ -924,7 +946,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     if (e.code == 'requires-recent-login') {
                       await UiUtils.showBlurredDialoge(
                         context,
-                        dialoge: BlurredDialogBox(
+                        dialog: BlurredDialogBox(
                           title: 'Recent login required'.translate(context),
                           acceptTextColor: context.color.buttonColor,
                           showCancleButton: false,
@@ -938,7 +960,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   } else {
                     await UiUtils.showBlurredDialoge(
                       context,
-                      dialoge: BlurredDialogBox(
+                      dialog: BlurredDialogBox(
                         title: 'somethingWentWrng'.translate(context),
                         acceptTextColor: context.color.buttonColor,
                         showCancleButton: false,
@@ -1025,12 +1047,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     try {
       if (Platform.isAndroid) {
         Share.share(
-          '${Constant.appName}\n${Constant.playstoreURLAndroid}\n${Constant.shareappText}',
+          '${Constant.appName}\n${Constant.playstoreURLAndroid}\n${'shareApp'.translate(context)}',
           subject: Constant.appName,
         );
       } else if (Platform.isIOS) {
         Share.share(
-          '${Constant.appName}\n${Constant.appstoreURLios}\n${Constant.shareappText}',
+          '${Constant.appName}\n${Constant.appstoreURLios}\n${'shareApp'.translate(context)}',
           subject: Constant.appName,
           sharePositionOrigin: bounds,
         );
@@ -1041,16 +1063,17 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> rateUs() async {
-    await LaunchReview.launch(
-      androidAppId: Constant.androidPackageName,
-      iOSAppId: Constant.iOSAppId,
-    );
+    final inAppReview = InAppReview.instance;
+
+    if (await inAppReview.isAvailable()) {
+      await inAppReview.openStoreListing();
+    }
   }
 
   void logOutConfirmWidget() {
     UiUtils.showBlurredDialoge(
       context,
-      dialoge: BlurredDialogBox(
+      dialog: BlurredDialogBox(
         title: UiUtils.translate(context, 'confirmLogoutTitle'),
         onAccept: () async {
           try {
@@ -1120,7 +1143,10 @@ class _ProfileScreenState extends State<ProfileScreen>
         },
         cancelTextColor: context.color.textColorDark,
         svgImagePath: AppIcons.logoutIcon,
-        content: CustomText(UiUtils.translate(context, 'confirmLogOutMsg')),
+        content: CustomText(
+          UiUtils.translate(context, 'confirmLogOutMsg'),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

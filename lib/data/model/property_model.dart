@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:ebroker/utils/Extensions/lib/adaptive_type.dart';
 import 'package:ebroker/utils/admob/native_ad_manager.dart';
 import 'package:ebroker/utils/helper_utils.dart';
+import 'package:flutter/foundation.dart';
 
 class PropertyModel implements NativeAdWidgetContainer {
   PropertyModel({
@@ -167,7 +168,11 @@ class PropertyModel implements NativeAdWidgetContainer {
       advertisementType: rawjson['advertisement_type']?.toString(),
       isBlockedByUser: rawjson['is_blocked_by_user'] as bool? ?? false,
       isBlockedByMe: rawjson['is_blocked_by_me'] as bool? ?? false,
-      rejectReason: rawjson['reject_reason']?.toString() ?? '',
+      rejectReason: rawjson['reject_reason'] == null
+          ? null
+          : RejectReason.fromMap(
+              rawjson['reject_reason'] as Map<String, dynamic>,
+            ),
     );
   }
 
@@ -227,19 +232,19 @@ class PropertyModel implements NativeAdWidgetContainer {
   final String? advertisementType;
   final bool? isBlockedByUser;
   final bool? isBlockedByMe;
-  final String? rejectReason;
+  final RejectReason? rejectReason;
 
   PropertyModel copyWith({
     int? id,
     String? title,
     String? price,
     Categorys? category,
-    dynamic builtUpArea,
-    dynamic plotArea,
-    dynamic hectaArea,
-    dynamic acre,
-    dynamic houseType,
-    dynamic furnished,
+    builtUpArea,
+    plotArea,
+    hectaArea,
+    acre,
+    houseType,
+    furnished,
     UnitType? unitType,
     String? description,
     String? address,
@@ -269,7 +274,7 @@ class PropertyModel implements NativeAdWidgetContainer {
     String? longitude,
     String? threeDImage,
     String? video,
-    dynamic advertisment,
+    advertisment,
     String? rentduration,
     String? titleImageHash,
     List<PropertyDocuments>? documents,
@@ -280,7 +285,7 @@ class PropertyModel implements NativeAdWidgetContainer {
     String? advertisementType,
     bool? isBlockedByUser,
     bool? isBlockedByMe,
-    String? rejectReason,
+    RejectReason? rejectReason,
   }) =>
       PropertyModel(
         id: id ?? this.id,
@@ -413,6 +418,52 @@ class PropertyModel implements NativeAdWidgetContainer {
   }
 }
 
+class RejectReason {
+  RejectReason({
+    this.id,
+    this.propertyId,
+    this.projectId,
+    this.reason,
+  });
+
+  factory RejectReason.fromJson(String str) =>
+      RejectReason.fromMap(json.decode(str) as Map<String, dynamic>);
+
+  factory RejectReason.fromMap(Map<String, dynamic> json) => RejectReason(
+        id: json['id'] as int?,
+        propertyId: json['property_id'] as int?,
+        projectId: json['project_id'] as int?,
+        reason: json['reason']?.toString(),
+      );
+
+  final int? id;
+  final int? propertyId;
+  final int? projectId;
+  final String? reason;
+
+  RejectReason copyWith({
+    int? id,
+    int? propertyId,
+    int? projectId,
+    String? reason,
+  }) =>
+      RejectReason(
+        id: id ?? this.id,
+        propertyId: propertyId ?? this.propertyId,
+        projectId: projectId ?? this.projectId,
+        reason: reason ?? this.reason,
+      );
+
+  String toJson() => json.encode(toMap());
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'property_id': propertyId,
+        'project_id': projectId,
+        'reason': reason,
+      };
+}
+
 class Categorys {
   Categorys({
     this.id,
@@ -488,9 +539,9 @@ class Parameter {
     int? id,
     String? name,
     String? typeOfParameter,
-    dynamic typeValues,
+    typeValues,
     String? image,
-    dynamic value,
+    value,
     int? isRequired,
   }) =>
       Parameter(
@@ -503,7 +554,7 @@ class Parameter {
         isRequired: isRequired ?? this.isRequired,
       );
 
-  static dynamic ifListConvertToString(dynamic value) {
+  static dynamic ifListConvertToString(value) {
     if (value is List) {
       return value.join(',');
     }
@@ -561,8 +612,9 @@ class UnitType {
       };
 }
 
+@immutable
 class Gallery {
-  Gallery({
+  const Gallery({
     required this.id,
     required this.image,
     required this.imageUrl,

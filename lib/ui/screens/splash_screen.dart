@@ -51,29 +51,41 @@ class SplashScreenState extends State<SplashScreen>
       if (value.contains(ConnectivityResult.none)) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
+          MaterialPageRoute<dynamic>(
             builder: (context) {
               return NoInternet(
                 onRetry: () async {
                   try {
-                    await LoadAppSettings().load(true);
+                    await LoadAppSettings().load(initBox: true);
                     if (context.color.brightness == Brightness.light) {
                       context.read<AppThemeCubit>().changeTheme(AppTheme.light);
                     } else {
                       context.read<AppThemeCubit>().changeTheme(AppTheme.dark);
                     }
+                    // Check internet connectivity before redirecting
+                    final connectivityResult =
+                        await Connectivity().checkConnectivity();
+                    if (!connectivityResult.contains(ConnectivityResult.none)) {
+                      // Only redirect to splash screen if internet is available
+                      Future.delayed(
+                        Duration.zero,
+                        () {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            Routes.splash,
+                          );
+                        },
+                      );
+                    } else {
+                      await HelperUtils.showSnackBarMessage(
+                        context,
+                        isFloating: true,
+                        'noInternetErrorMsg'.translate(context),
+                      );
+                    }
                   } catch (e) {
                     log('no internet');
                   }
-                  Future.delayed(
-                    Duration.zero,
-                    () {
-                      Navigator.pushReplacementNamed(
-                        context,
-                        Routes.splash,
-                      );
-                    },
-                  );
                 },
               );
             },
@@ -94,12 +106,6 @@ class SplashScreenState extends State<SplashScreen>
     if ((await Permission.location.status) == PermissionStatus.denied) {
       await Permission.location.request();
     }
-  }
-
-  @override
-  void dispose() {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-    super.dispose();
   }
 
   Future<void> checkIsUserAuthenticated() async {
@@ -164,7 +170,7 @@ class SplashScreenState extends State<SplashScreen>
             .pushReplacementNamed(Routes.main, arguments: {'from': 'main'});
       });
     } else if (authenticationState == AuthenticationState.unAuthenticated) {
-      if (Hive.box(HiveKeys.userDetailsBox).get('isGuest') == true) {
+      if (Hive.box<dynamic>(HiveKeys.userDetailsBox).get('isGuest') == true) {
         Future.delayed(Duration.zero, () {
           Navigator.of(context)
               .pushReplacementNamed(Routes.main, arguments: {'from': 'splash'});
@@ -183,11 +189,6 @@ class SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
-
     navigateCheck();
 
     return BlocListener<FetchLanguageCubit, FetchLanguageState>(
@@ -201,7 +202,7 @@ class SplashScreenState extends State<SplashScreen>
             if (kDebugMode) {
               print('FetchSystemSettingsSuccess');
             }
-            final setting = [];
+            final setting = <dynamic>[];
             if (setting.isNotEmpty) {
               if ((setting[0] as Map).containsKey('package_id')) {
                 Constant.subscriptionPackageId = '';
@@ -218,9 +219,13 @@ class SplashScreenState extends State<SplashScreen>
           }
         },
         child: AnnotatedRegion(
-          value: UiUtils.getSystemUiOverlayStyle(context: context),
+          value: SystemUiOverlayStyle(
+            statusBarColor: context.color.tertiaryColor,
+            systemNavigationBarColor: context.color.tertiaryColor,
+          ),
           child: Scaffold(
             backgroundColor: context.color.tertiaryColor,
+            extendBody: true,
             body: Stack(
               children: [
                 Align(
@@ -250,12 +255,12 @@ class SplashScreenState extends State<SplashScreen>
   }
 }
 
-Future getDefaultLanguage(VoidCallback onSuccess) async {
+Future<dynamic> getDefaultLanguage(VoidCallback onSuccess) async {
   try {
     // await Hive.initFlutter();v
-    await Hive.openBox(HiveKeys.languageBox);
-    await Hive.openBox(HiveKeys.userDetailsBox);
-    await Hive.openBox(HiveKeys.authBox);
+    await Hive.openBox<dynamic>(HiveKeys.languageBox);
+    await Hive.openBox<dynamic>(HiveKeys.userDetailsBox);
+    await Hive.openBox<dynamic>(HiveKeys.authBox);
 
     if (kDebugMode) {
       print(

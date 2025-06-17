@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 abstract class LoginSystem {
   BuildContext? context;
-  setContext(BuildContext context) {
+  void setContext(BuildContext context) {
     this.context = context;
   }
 

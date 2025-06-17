@@ -1,9 +1,5 @@
-import 'dart:async';
-
-import 'package:ebroker/data/cubits/agents/fetch_property_cubit.dart';
 import 'package:ebroker/data/model/agent/agent_model.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:flutter/material.dart';
 
 class AgentCard extends StatelessWidget {
   const AgentCard({
@@ -26,47 +22,19 @@ class AgentCard extends StatelessWidget {
       onLongPress: () {
         HelperUtils.share(context, agent.id, agent.name);
       },
-      onTap: () {
-        GuestChecker.check(
+      onTap: () async {
+        await GuestChecker.check(
           onNotGuest: () async {
             try {
-              unawaited(Widgets.showLoader(context));
-              await context
-                  .read<FetchAgentsPropertyCubit>()
-                  .fetchAgentsProperty(
-                    agentId: agent.id,
-                    forceRefresh: true,
-                    isAdmin: agent.isAdmin,
-                  );
-              final state = context.read<FetchAgentsPropertyCubit>().state;
-
-              if (state is FetchAgentsPropertySuccess) {
-                Widgets.hideLoder(context);
-                await Navigator.pushNamed(
-                  context,
-                  Routes.agentDetailsScreen,
-                  arguments: {
-                    'agent': state.agentsProperty.customerData,
-                    'isAdmin': agent.isAdmin,
-                  },
-                );
-              } else {
-                if ((agent.id.toString() == HiveUtils.getUserId()) &&
-                    state is FetchAgentsPropertySuccess) {
-                  Widgets.hideLoder(context);
-                  await Navigator.pushNamed(
-                    context,
-                    Routes.agentDetailsScreen,
-                    arguments: {
-                      'agent': state.agentsProperty.customerData,
-                      'isAdmin': agent.isAdmin,
-                    },
-                  );
-                }
-              }
-            } catch (e) {
-              Widgets.hideLoder(context);
-            }
+              await Navigator.pushNamed(
+                context,
+                Routes.agentDetailsScreen,
+                arguments: {
+                  'agentID': agent.id.toString(),
+                  'isAdmin': agent.isAdmin,
+                },
+              );
+            } catch (_) {}
           },
         );
       },

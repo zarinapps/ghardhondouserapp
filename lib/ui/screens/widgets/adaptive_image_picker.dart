@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'dart:io';
 
 import 'package:dotted_border/dotted_border.dart';
@@ -123,8 +125,9 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
       );
     }
     if (imagePickedValue is IdentifyValue) {
-      return get(imagePickerValue.value
-          as ImagePickerValue<dynamic>); // Access the .value property
+      return get(
+        imagePickerValue.value as ImagePickerValue<dynamic>,
+      ); // Access the .value property
     }
     return null; // Explicitly return null for unhandled cases
   }
@@ -155,7 +158,7 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
     // _pickTitleImage.pick(pickMultiple: false);
     // titleImageURL = "";
 
-    if (widget.multiImage == true) {
+    if (widget.multiImage ?? false) {
       final list = await imagePicker.pickMultiImage();
 
       final multiImages = list.map((e) {
@@ -191,8 +194,10 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
   }
 
   void _onRemove(
-      ImagePickerValue<dynamic>? value, FormFieldState<dynamic> state) {
-    if (widget.multiImage == true) {
+    ImagePickerValue<dynamic>? value,
+    FormFieldState<dynamic> state,
+  ) {
+    if (widget.multiImage ?? false) {
       if (imagePickedValue is MultiValue && value != null) {
         (imagePickedValue! as MultiValue).value.remove(value);
         widget.onRemove?.call(value);
@@ -264,8 +269,8 @@ class _AdaptiveImagePickerWidgetState extends State<AdaptiveImagePickerWidget> {
             }
           }
           if (widget.count != null &&
-              widget.multiImage == true &&
-              widget.isRequired == true &&
+              (widget.multiImage ?? false) &&
+              (widget.isRequired ?? false) &&
               imagePickedValue is MultiValue) {
             final images = (imagePickedValue! as MultiValue).value.length;
             if (widget.count?.min != null && images < widget.count!.min) {

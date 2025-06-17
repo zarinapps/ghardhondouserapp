@@ -1,6 +1,7 @@
 import 'package:ebroker/data/cubits/fetch_faqs_cubit.dart';
 import 'package:ebroker/data/model/faqs_model.dart';
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:ebroker/ui/screens/widgets/read_more_text.dart';
 import 'package:flutter/material.dart';
 
@@ -9,8 +10,8 @@ class FaqsScreen extends StatefulWidget {
     super.key,
   });
 
-  static Route route(RouteSettings routeSettings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings routeSettings) {
+    return CupertinoPageRoute(
       builder: (_) => const FaqsScreen(),
     );
   }
@@ -53,8 +54,7 @@ class _FaqsScreenState extends State<FaqsScreen> {
         title: UiUtils.translate(context, 'faqScreen'),
         showBackButton: true,
       ),
-      body: RefreshIndicator(
-        color: context.color.tertiaryColor,
+      body: CustomRefreshIndicator(
         onRefresh: () async {
           await context.read<FetchFaqsCubit>().fetchFaqs(
                 forceRefresh: true,
@@ -96,13 +96,9 @@ class _FaqsScreenState extends State<FaqsScreen> {
                     );
                   }
                   if (state is FetchFaqsSuccess && state.faqs.isEmpty) {
-                    return Center(
-                      heightFactor: 2,
-                      child: NoDataFound(
-                        onTap: () {
-                          Navigator.pushNamed(context, Routes.faqsScreen);
-                        },
-                      ),
+                    return const Center(
+                      heightFactor: 1.5,
+                      child: NoDataFound(),
                     );
                   }
                   if (state is FetchFaqsSuccess && state.faqs.isNotEmpty) {

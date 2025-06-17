@@ -53,7 +53,7 @@ class FetchAgentsProjectCubit extends Cubit<FetchAgentsProjectState> {
 
   Future<void> fetchAgentsProject({
     required bool forceRefresh,
-    required int agentId,
+    required String agentId,
     required bool isAdmin,
   }) async {
     try {
@@ -105,7 +105,8 @@ class FetchAgentsProjectCubit extends Cubit<FetchAgentsProjectState> {
           agentId: (state as FetchAgentsProjectSuccess)
               .agentsProperty
               .customerData
-              .id,
+              .id
+              .toString(),
           isAdmin: isAdmin,
         );
 

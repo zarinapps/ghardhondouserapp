@@ -70,7 +70,7 @@ class PickImage {
         }
         return myImage;
       });
-      final templistFile = [];
+      final templistFile = <dynamic>[];
       await for (final Future<File> futureFile in Stream.fromIterable(result)) {
         final file = await futureFile;
         templistFile.add(file);

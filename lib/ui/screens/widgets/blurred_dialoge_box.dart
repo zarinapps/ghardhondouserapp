@@ -10,6 +10,7 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
     required this.title,
     required this.content,
     super.key,
+    this.showAcceptButton = true,
     this.cancelButtonName,
     this.acceptButtonName,
     this.onCancel,
@@ -24,6 +25,8 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
     this.svgImageColor,
     this.barrierDismissable,
     this.isAcceptContainesPush,
+    this.titleColor,
+    this.titleWeight,
   });
   final String? cancelButtonName;
   final String? acceptButtonName;
@@ -41,6 +44,9 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
   final bool? showCancleButton;
   final bool? barrierDismissable;
   final bool? isAcceptContainesPush;
+  final bool showAcceptButton;
+  final Color? titleColor;
+  final FontWeight? titleWeight;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +79,9 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
             builder: (context, constraints) {
               return AlertDialog(
                 backgroundColor: context.color.secondaryColor,
+                actionsPadding: showAcceptButton
+                    ? const EdgeInsets.symmetric(vertical: 8)
+                    : EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -84,8 +93,6 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
                         backgroundColor:
                             context.color.tertiaryColor.withValues(alpha: 0.1),
                         child: SizedBox(
-                          // width: 87 / 2,
-                          // height: 87 / 2,
                           child: UiUtils.getSvg(
                             svgImagePath!,
                             color: svgImageColor,
@@ -98,6 +105,8 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
                     ],
                     CustomText(
                       title.firstUpperCase(),
+                      color: titleColor ?? context.color.textColorDark,
+                      fontWeight: titleWeight ?? FontWeight.w400,
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -106,30 +115,62 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
                 actionsOverflowAlignment: OverflowBarAlignment.center,
                 actionsAlignment: MainAxisAlignment.center,
                 actions: [
-                  if (showCancleButton ?? true) ...[
-                    button(
-                      context,
-                      constraints: constraints,
-                      buttonColor:
-                          cancelButtonColor ?? context.color.primaryColor,
-                      buttonName: cancelButtonName ??
-                          UiUtils.translate(context, 'cancelBtnLbl'),
-                      textColor: cancelTextColor ?? context.color.textColorDark,
-                      onTap: () {
-                        onCancel?.call();
-                        Navigator.pop(context, false);
-                      },
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (showCancleButton ?? true) ...[
+                        button(
+                          context,
+                          constraints: constraints,
+                          buttonColor:
+                              cancelButtonColor ?? context.color.primaryColor,
+                          buttonName: cancelButtonName ??
+                              UiUtils.translate(context, 'cancelBtnLbl'),
+                          textColor:
+                              cancelTextColor ?? context.color.textColorDark,
+                          onTap: () {
+                            onCancel?.call();
+                            Navigator.pop(context, false);
+                          },
+                        ),
+                        const SizedBox(
+                          width: 8,
+                        ),
+                      ],
+                      Builder(
+                        builder: (context) {
+                          if (showCancleButton == false && showAcceptButton) {
+                            return Center(
+                              child: SizedBox(
+                                width: context.screenWidth / 2,
+                                child: button(
+                                  context,
+                                  constraints: constraints,
+                                  buttonColor: acceptButtonColor ??
+                                      context.color.tertiaryColor,
+                                  buttonName: acceptButtonName ??
+                                      UiUtils.translate(context, 'ok'),
+                                  textColor: acceptTextColor ??
+                                      context.color.textColorDark,
+                                  onTap: () async {
+                                    await onAccept?.call();
 
-                    // const Spacer(),
-                  ],
-                  Builder(
-                    builder: (context) {
-                      if (showCancleButton == false) {
-                        return Center(
-                          child: SizedBox(
-                            width: context.screenWidth / 2,
-                            child: button(
+                                    if (isAcceptContainesPush == false ||
+                                        isAcceptContainesPush == null) {
+                                      Future.delayed(
+                                        Duration.zero,
+                                        () {
+                                          Navigator.pop(context, true);
+                                        },
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                            );
+                          }
+                          if (showAcceptButton) {
+                            return button(
                               context,
                               constraints: constraints,
                               buttonColor: acceptButtonColor ??
@@ -137,10 +178,10 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
                               buttonName: acceptButtonName ??
                                   UiUtils.translate(context, 'ok'),
                               textColor: acceptTextColor ??
-                                  context.color.textColorDark,
+                                  const Color.fromARGB(255, 255, 255, 255),
                               onTap: () async {
+                                if (!context.mounted) return;
                                 await onAccept?.call();
-
                                 if (isAcceptContainesPush == false ||
                                     isAcceptContainesPush == null) {
                                   Future.delayed(
@@ -151,34 +192,12 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
                                   );
                                 }
                               },
-                            ),
-                          ),
-                        );
-                      }
-                      return button(
-                        context,
-                        constraints: constraints,
-                        buttonColor:
-                            acceptButtonColor ?? context.color.tertiaryColor,
-                        buttonName: acceptButtonName ??
-                            UiUtils.translate(context, 'ok'),
-                        textColor: acceptTextColor ??
-                            const Color.fromARGB(255, 255, 255, 255),
-                        onTap: () async {
-                          if (!context.mounted) return;
-                          await onAccept?.call();
-                          if (isAcceptContainesPush == false ||
-                              isAcceptContainesPush == null) {
-                            Future.delayed(
-                              Duration.zero,
-                              () {
-                                Navigator.pop(context, true);
-                              },
                             );
                           }
+                          return const SizedBox.shrink();
                         },
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ],
               );
@@ -213,10 +232,9 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      width: constraints.maxWidth / 3,
+      width: constraints.maxWidth / 3.1,
       child: MaterialButton(
         elevation: 0,
-
         height: 39.rh(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
@@ -224,7 +242,6 @@ class BlurredDialogBox extends StatelessWidget implements BlurDialoge {
         ),
         color: buttonColor,
         // minWidth: (constraints.maxWidth / 2) - 10,
-
         onPressed: onTap,
         child: CustomText(
           buttonName,
@@ -323,6 +340,7 @@ class BlurredDialogBuilderBox extends StatelessWidget implements BlurDialoge {
                     CustomText(
                       title.firstUpperCase(),
                       textAlign: TextAlign.center,
+                      fontSize: context.font.extraLarge,
                     ),
                   ],
                 ),
@@ -330,78 +348,82 @@ class BlurredDialogBuilderBox extends StatelessWidget implements BlurDialoge {
                 actionsOverflowAlignment: OverflowBarAlignment.center,
                 actionsAlignment: MainAxisAlignment.center,
                 actions: [
-                  if (showCancleButton ?? true) ...[
-                    button(
-                      context,
-                      constraints: constraints,
-                      buttonColor: cancelButtonColor ??
-                          context.color.tertiaryColor.withValues(alpha: .10),
-                      buttonName: cancelButtonName ??
-                          UiUtils.translate(context, 'cancelBtnLbl'),
-                      textColor: cancelTextColor ?? context.color.textColorDark,
-                      onTap: () {
-                        onCancel?.call();
-                        Navigator.pop(context, false);
-                      },
-                    ),
+                  Row(
+                    children: [
+                      if (showCancleButton ?? true) ...[
+                        button(
+                          context,
+                          constraints: constraints,
+                          buttonColor: cancelButtonColor ??
+                              context.color.tertiaryColor
+                                  .withValues(alpha: .10),
+                          buttonName: cancelButtonName ??
+                              UiUtils.translate(context, 'cancelBtnLbl'),
+                          textColor:
+                              cancelTextColor ?? context.color.textColorDark,
+                          onTap: () {
+                            onCancel?.call();
+                            Navigator.pop(context, false);
+                          },
+                        ),
+                      ],
+                      Builder(
+                        builder: (context) {
+                          if (showCancleButton == false) {
+                            return Center(
+                              child: SizedBox(
+                                width: context.screenWidth / 2,
+                                child: button(
+                                  context,
+                                  constraints: constraints,
+                                  buttonColor: acceptButtonColor ??
+                                      context.color.tertiaryColor,
+                                  buttonName: acceptButtonName ??
+                                      UiUtils.translate(context, 'ok'),
+                                  textColor: acceptTextColor ??
+                                      context.color.textColorDark,
+                                  onTap: () async {
+                                    await onAccept?.call();
 
-                    // const Spacer(),
-                  ],
-                  Builder(
-                    builder: (context) {
-                      if (showCancleButton == false) {
-                        return Center(
-                          child: SizedBox(
-                            width: context.screenWidth / 2,
-                            child: button(
-                              context,
-                              constraints: constraints,
-                              buttonColor: acceptButtonColor ??
-                                  context.color.tertiaryColor,
-                              buttonName: acceptButtonName ??
-                                  UiUtils.translate(context, 'ok'),
-                              textColor: acceptTextColor ??
-                                  context.color.textColorDark,
-                              onTap: () async {
-                                await onAccept?.call();
-
-                                if (isAcceptContainesPush == false ||
-                                    isAcceptContainesPush == null) {
-                                  Future.delayed(
-                                    Duration.zero,
-                                    () {
-                                      Navigator.pop(context, true);
-                                    },
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                        );
-                      }
-                      return button(
-                        context,
-                        constraints: constraints,
-                        buttonColor:
-                            acceptButtonColor ?? context.color.tertiaryColor,
-                        buttonName: acceptButtonName ??
-                            UiUtils.translate(context, 'ok'),
-                        textColor: acceptTextColor ??
-                            const Color.fromARGB(255, 255, 255, 255),
-                        onTap: () async {
-                          await onAccept?.call();
-                          if (isAcceptContainesPush == false ||
-                              isAcceptContainesPush == null) {
-                            Future.delayed(
-                              Duration.zero,
-                              () {
-                                Navigator.pop(context, true);
-                              },
+                                    if (isAcceptContainesPush == false ||
+                                        isAcceptContainesPush == null) {
+                                      Future.delayed(
+                                        Duration.zero,
+                                        () {
+                                          Navigator.pop(context, true);
+                                        },
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
                             );
                           }
+                          return button(
+                            context,
+                            constraints: constraints,
+                            buttonColor: acceptButtonColor ??
+                                context.color.tertiaryColor,
+                            buttonName: acceptButtonName ??
+                                UiUtils.translate(context, 'ok'),
+                            textColor: acceptTextColor ??
+                                const Color.fromARGB(255, 255, 255, 255),
+                            onTap: () async {
+                              await onAccept?.call();
+                              if (isAcceptContainesPush == false ||
+                                  isAcceptContainesPush == null) {
+                                Future.delayed(
+                                  Duration.zero,
+                                  () {
+                                    Navigator.pop(context, true);
+                                  },
+                                );
+                              }
+                            },
+                          );
                         },
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ],
               );
@@ -420,15 +442,14 @@ class BlurredDialogBuilderBox extends StatelessWidget implements BlurDialoge {
     required Color textColor,
     required VoidCallback onTap,
   }) {
-    return SizedBox(
-      width: constraints.maxWidth / 3,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      width: constraints.maxWidth / 3.2,
       child: MaterialButton(
         elevation: 0,
         height: 39.rh(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         color: buttonColor,
-        // minWidth: (constraints.maxWidth / 2) - 10,
-
         onPressed: onTap,
         child: CustomText(
           buttonName,
@@ -467,9 +488,7 @@ class BlurredSubscriptionDialogBox extends StatelessWidget
               Navigator.pop(context);
             }
           },
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.5),
-          ),
+          child: Container(color: Colors.transparent),
         ),
         PopScope(
           canPop: false,
@@ -538,6 +557,9 @@ class BlurredSubscriptionDialogBox extends StatelessWidget
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
+                      constraints: BoxConstraints(
+                        minWidth: MediaQuery.of(context).size.width * 0.6,
+                      ),
                       margin: const EdgeInsets.all(12),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -605,10 +627,32 @@ class BlurredSubscriptionDialogBox extends StatelessWidget
                             buttonColor: context.color.tertiaryColor,
                             buttonName: UiUtils.translate(context, 'viewPlans'),
                             onTap: () async {
+                              final apiKeyState =
+                                  context.read<GetApiKeysCubit>().state;
+                              if (apiKeyState is GetApiKeysFail) {
+                                final errorMessage = (context
+                                        .read<GetApiKeysCubit>()
+                                        .state as GetApiKeysFail)
+                                    .error
+                                    .toString();
+                                await HelperUtils.showSnackBarMessage(
+                                  context,
+                                  errorMessage,
+                                );
+                                Navigator.pop(context);
+                                return;
+                              }
                               await Navigator.popAndPushNamed(
                                 context,
                                 Routes.subscriptionPackageListRoute,
-                                arguments: {'from': 'home'},
+                                arguments: {
+                                  'from': 'home',
+                                  'isBankTransferEnabled': (context
+                                              .read<GetApiKeysCubit>()
+                                              .state as GetApiKeysSuccess)
+                                          .bankTransferStatus ==
+                                      '1',
+                                },
                               );
                             },
                           ),

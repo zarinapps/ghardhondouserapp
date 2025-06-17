@@ -2,7 +2,7 @@ import 'package:ebroker/data/cubits/Utility/like_properties.dart';
 import 'package:ebroker/data/cubits/favorite/add_to_favorite_cubit.dart';
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
-import 'package:ebroker/utils/guestChecker.dart';
+import 'package:ebroker/utils/guest_checker.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,7 +45,7 @@ class _LikeButtonWidgetState extends State<LikeButtonWidget> {
             .read<LikedPropertiesCubit>()
             .getRemovedLikes()!
             .contains(widget.propertyId)) {
-          context.read<LikedPropertiesCubit>().add(widget.propertyId);
+          context.read<LikedPropertiesCubit>().add(id: widget.propertyId);
         }
       }
     }
@@ -61,10 +61,12 @@ class _LikeButtonWidgetState extends State<LikeButtonWidget> {
         if (state is AddToFavoriteCubitFailure) {}
         if (state is AddToFavoriteCubitSuccess) {
           //callback
-          widget.enableLike ? widget.onLikeChanged?.call(state.favorite) : '';
+          widget.enableLike
+              ? widget.onLikeChanged?.call(state.favorite)
+              : () {}();
 
           /// if it is already added then we'll add remove , other wise we'll add it into local list
-          context.read<LikedPropertiesCubit>().changeLike(state.id);
+          context.read<LikedPropertiesCubit>().changeLike(id: state.id);
         }
       },
       builder: (BuildContext context, AddToFavoriteCubitState addState) {

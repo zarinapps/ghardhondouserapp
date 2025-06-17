@@ -11,10 +11,10 @@ class RSAEncryption {
     try {
       final encryptedData_ = Uint8List.fromList(base64Decode(encryptedData));
       // Parse the private key from the PEM format
-      final privateKey__ = parser.parse(privateKey) as d.RSAPrivateKey;
+      final privateKey1 = parser.parse(privateKey) as d.RSAPrivateKey;
 
       // Create an RSA decrypter with the private key
-      final decrypter = Encrypter(RSA(privateKey: privateKey__));
+      final decrypter = Encrypter(RSA(privateKey: privateKey1));
 
       // Decrypt the data
       final decryptedData = decrypter.decryptBytes(Encrypted(encryptedData_));

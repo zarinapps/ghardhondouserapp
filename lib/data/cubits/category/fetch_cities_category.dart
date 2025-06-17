@@ -3,9 +3,8 @@ import 'dart:developer';
 
 import 'package:ebroker/data/model/city_model.dart';
 import 'package:ebroker/data/repositories/cities_repository.dart';
-import 'package:ebroker/settings.dart';
 import 'package:ebroker/utils/Extensions/lib/list.dart';
-import 'package:ebroker/utils/Network/networkAvailability.dart';
+import 'package:ebroker/utils/network/network_availability.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class FetchCityCategoryState {}
@@ -62,27 +61,13 @@ class FetchCityCategoryCubit extends Cubit<FetchCityCategoryState> {
     bool? loadWithoutDelay,
   }) async {
     try {
+      emit(FetchCityCategoryInProgress());
       final result = await _citiesRepository.fetchAllCities(offset: 0);
       final cities = List<City>.from(result.modelList);
-      if (forceRefresh != true) {
-        if (state is FetchCityCategorySuccess) {
-          // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-          await Future.delayed(
-            Duration(
-              seconds: loadWithoutDelay == true
-                  ? 0
-                  : AppSettings.hiddenAPIProcessDelay,
-            ),
-          );
-          // });
-        } else {
-          emit(FetchCityCategoryInProgress());
-        }
-      } else {
-        emit(FetchCityCategoryInProgress());
-      }
 
-      if (forceRefresh == true) {
+      emit(FetchCityCategoryInProgress());
+
+      if (forceRefresh ?? false) {
         emit(
           FetchCityCategorySuccess(
             offset: 0,

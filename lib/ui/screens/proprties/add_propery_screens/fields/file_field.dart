@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -11,7 +12,7 @@ import 'package:ebroker/utils/ui_utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-class CustomFileField extends CustomField {
+class CustomFileField extends CustomField<dynamic> {
   @override
   String type = 'file';
 
@@ -44,7 +45,7 @@ class CustomFileField extends CustomField {
         update(() {});
       }
     } catch (e) {
-      print('Error picking file: $e');
+      log('Error picking file: $e');
       // You might want to show an error message to the user here
     }
   }

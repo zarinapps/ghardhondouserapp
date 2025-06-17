@@ -1,8 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first, use_build_context_synchronously
 import 'dart:developer';
-import 'dart:ui';
 
-import 'package:dio/dio.dart';
 import 'package:ebroker/data/cubits/Interested/get_interested_user_cubit.dart';
 import 'package:ebroker/data/cubits/Report/property_report_cubit.dart';
 import 'package:ebroker/data/cubits/Utility/mortgage_calculator_cubit.dart';
@@ -10,30 +8,32 @@ import 'package:ebroker/data/cubits/agents/fetch_property_cubit.dart';
 import 'package:ebroker/data/cubits/property/Interest/change_interest_in_property_cubit.dart';
 import 'package:ebroker/data/cubits/property/change_property_status_cubit.dart';
 import 'package:ebroker/data/cubits/property/delete_property_cubit.dart';
+import 'package:ebroker/data/cubits/property/fetch_similar_properties_cubit.dart';
 import 'package:ebroker/data/cubits/property/update_property_status.dart';
 import 'package:ebroker/data/model/category.dart';
-import 'package:ebroker/data/model/interested_user_model.dart';
-import 'package:ebroker/data/model/system_settings_model.dart';
+import 'package:ebroker/data/model/project_model.dart';
 import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/chat/chat_screen.dart';
+import 'package:ebroker/ui/screens/chat_optimisation/chat_screen_new.dart';
+import 'package:ebroker/ui/screens/home/widgets/property_card_big.dart';
 import 'package:ebroker/ui/screens/proprties/Property%20tab/sell_rent_screen.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/agent_profile.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/download_doc.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/google_map_screen.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/interested_users.dart';
 import 'package:ebroker/ui/screens/proprties/widgets/mortgage_calculator.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/outdoor_facilities.dart';
 import 'package:ebroker/ui/screens/proprties/widgets/report_property_widget.dart';
 import 'package:ebroker/ui/screens/widgets/all_gallary_image.dart';
 import 'package:ebroker/ui/screens/widgets/like_button_widget.dart';
 import 'package:ebroker/ui/screens/widgets/panaroma_image_view.dart';
 import 'package:ebroker/ui/screens/widgets/read_more_text.dart';
 import 'package:ebroker/ui/screens/widgets/video_view_screen.dart';
-import 'package:ebroker/utils/AdMob/interstitialAdManager.dart';
-import 'package:ebroker/utils/Network/networkAvailability.dart';
+import 'package:ebroker/utils/admob/interstitial_ad_manager.dart';
+import 'package:ebroker/utils/network/network_availability.dart';
 import 'package:ebroker/utils/string_extenstion.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' as f;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart' as urllauncher;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -59,7 +59,7 @@ class PropertyDetails extends StatefulWidget {
   static Route<dynamic> route(RouteSettings routeSettings) {
     try {
       final arguments = routeSettings.arguments as Map?;
-      return BlurredRouter(
+      return CupertinoPageRoute(
         builder: (_) => MultiBlocProvider(
           providers: [
             BlocProvider(
@@ -79,6 +79,9 @@ class PropertyDetails extends StatefulWidget {
             ),
             BlocProvider(
               create: (context) => FetchAgentsPropertyCubit(),
+            ),
+            BlocProvider(
+              create: (context) => FetchSimilarPropertiesCubit(),
             ),
           ],
           child: PropertyDetails(
@@ -137,15 +140,6 @@ class PropertyDetailsState extends State<PropertyDetails>
   bool isPremiumUser = false;
   bool isReported = false;
 
-  bool shouldRestrictPropertyAccess() {
-    if (isPremiumProperty &&
-        !isPremiumUser &&
-        property!.addedBy.toString() != HiveUtils.getUserId()) {
-      return true;
-    }
-    return false;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -155,21 +149,29 @@ class PropertyDetailsState extends State<PropertyDetails>
     isPremiumProperty =
         widget.property?.allPropData['is_premium'] as bool? ?? false;
 
-    false;
     isReported = widget.property?.allPropData?['is_reported'] as bool? ?? false;
-
-    loadAd();
-    interstitialAdManager.load();
+    if (widget.property?.addedBy.toString() != HiveUtils.getUserId()) {
+      loadAd();
+      interstitialAdManager.load();
+    }
     // customListenerForConstant();
     //add title image along with gallery images
     context.read<FetchOutdoorFacilityListCubit>().fetch();
-    context.read<GetInterestedUserCubit>().fetch(
-          '${widget.property?.id}',
-        );
-    if (HiveUtils.isGuest() == false) {
-      context.read<GetChatListCubit>().fetch();
+    if (widget.property?.addedBy.toString() == HiveUtils.getUserId()) {
+      try {
+        context.read<GetInterestedUserCubit>().fetch(
+              '${widget.property?.id}',
+            );
+      } catch (e) {
+        Widgets.hideLoder(context);
+      }
     }
-    context.read<GetChatListCubit>().fetch();
+    if (HiveUtils.isGuest() == false) {
+      context.read<GetChatListCubit>().fetch(forceRefresh: true);
+    }
+    context.read<FetchSimilarPropertiesCubit>().fetchSimilarProperty(
+          propertyId: widget.property!.id!,
+        );
 
     Future.delayed(
       const Duration(seconds: 3),
@@ -189,7 +191,6 @@ class PropertyDetailsState extends State<PropertyDetails>
     property = widget.property;
     setData();
 
-    setViewedProperty();
     if (widget.property?.video != '' &&
         widget.property?.video != null &&
         !HelperUtils.isYoutubeVideo(widget.property?.video ?? '')) {
@@ -209,9 +210,31 @@ class PropertyDetailsState extends State<PropertyDetails>
       youtubeVideoThumbnail = thumbnail;
       setState(() {});
     }
+    context.read<FetchPropertyReportReasonsListCubit>().fetch();
   }
 
-  void loadAd() {
+  Future<void> onBackPress({required bool isFromAppBar}) async {
+    if (widget.property?.addedBy.toString() != HiveUtils.getUserId()) {
+      await interstitialAdManager.show();
+    }
+    context.read<MortgageCalculatorCubit>().emptyMortgageCalculatorData();
+    if (widget.property?.addedBy.toString() == HiveUtils.getUserId()) {
+      await context.read<FetchMyPropertiesCubit>().fetchMyProperties(
+            type: '',
+            status: '',
+          );
+    }
+    setState(() {
+      showGoogleMap = false;
+    });
+    if (!isFromAppBar) {
+      Future.delayed(Duration.zero, () {
+        Navigator.pop(context);
+      });
+    }
+  }
+
+  Future<void> loadAd() async {
     _bannerAd = BannerAd(
       adUnitId: Constant.admobBannerAndroid,
       request: const AdRequest(),
@@ -230,20 +253,13 @@ class PropertyDetailsState extends State<PropertyDetails>
           ad.dispose();
         },
       ),
-    )..load();
+    );
+    await _bannerAd!.load();
   }
 
   void setData() {
     fromMyProperty = widget.fromMyProperty!;
     fromCompleteEnquiry = widget.fromCompleteEnquiry!;
-  }
-
-  void setViewedProperty() {
-    if (property!.addedBy.toString() != HiveUtils.getUserId()) {
-      context.read<SetPropertyViewCubit>().set(
-            property!.id!.toString(),
-          );
-    }
   }
 
   late final CameraPosition _kInitialPlace = CameraPosition(
@@ -260,7 +276,10 @@ class PropertyDetailsState extends State<PropertyDetails>
 
   @override
   void dispose() {
+    _controller.future.then((value) => value.dispose());
+
     flickManager?.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -329,1247 +348,1147 @@ class PropertyDetailsState extends State<PropertyDetails>
 
     if (property?.rentduration != '' && property?.rentduration != null) {
       rentPrice =
-          ('$rentPrice / ') + (property!.rentduration ?? '').translate(context);
+          '$rentPrice / ${(property!.rentduration ?? '').translate(context)}';
     }
-    return SafeArea(
+    return AnnotatedRegion(
+      value: UiUtils.getSystemUiOverlayStyle(context: context),
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) async {
           if (didPop) return;
-          await interstitialAdManager.show();
-          context.read<MortgageCalculatorCubit>().emptyMortgageCalculatorData();
-          if (widget.property?.addedBy.toString() == HiveUtils.getUserId()) {
-            await context.read<FetchMyPropertiesCubit>().fetchMyProperties(
-                  type: '',
-                  status: '',
-                );
-          }
-          if (widget.fromPropertyAddSuccess ?? false) {
-            Navigator.popUntil(context, (route) => route.isFirst);
-          } else {
-            setState(() {
-              showGoogleMap = false;
-            });
-            Future.delayed(Duration.zero, () {
-              Navigator.of(context).pop();
-            });
-          }
+          await onBackPress(isFromAppBar: false);
         },
-        child: SafeArea(
-          child: BlocListener<GetSubsctiptionPackageLimitsCubit,
-              GetSubscriptionPackageLimitsState>(
-            listener: (context, state) {
-              if (state is GetSubscriptionPackageLimitsSuccess) {
-                isPremiumUser = state.hasSubscription;
-                setState(() {});
-              }
-            },
-            child: Stack(
-              children: [
-                Scaffold(
-                  appBar: UiUtils.buildAppBar(
-                    context,
-                    hideTopBorder: true,
-                    showBackButton: true,
-                    actions: [
-                      const Spacer(),
-                      if (!HiveUtils.isGuest()) ...[
-                        if (!(int.parse(HiveUtils.getUserId() ?? '0') ==
-                            property?.addedBy))
-                          Padding(
-                            padding: const EdgeInsetsDirectional.only(
-                              end: 12,
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                HelperUtils.share(
-                                  context,
-                                  property!.id!,
-                                  property?.slugId ?? '',
-                                );
-                              },
-                              child: UiUtils.getSvg(
-                                AppIcons.shareIcon,
-                              ),
-                            ),
+        child: BlocListener<GetSubsctiptionPackageLimitsCubit,
+            GetSubscriptionPackageLimitsState>(
+          listener: (context, state) {
+            if (state is GetSubscriptionPackageLimitsSuccess) {
+              isPremiumUser = state.hasSubscription;
+              setState(() {});
+            }
+          },
+          child: Stack(
+            children: [
+              Scaffold(
+                appBar: UiUtils.buildAppBar(
+                  context,
+                  showBackButton: true,
+                  onbackpress: () async {
+                    await onBackPress(isFromAppBar: true);
+                  },
+                  actions: [
+                    const Spacer(),
+                    if (!HiveUtils.isGuest()) ...[
+                      if (!(int.parse(HiveUtils.getUserId() ?? '0') ==
+                          property?.addedBy))
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            end: 12,
                           ),
-                      ],
-                      if (property?.addedBy.toString() == HiveUtils.getUserId())
-                        PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'share') {
-                              await HelperUtils.share(
+                          child: GestureDetector(
+                            onTap: () {
+                              HelperUtils.share(
                                 context,
                                 property!.id!,
                                 property?.slugId ?? '',
                               );
-                            }
-                            if (value == 'interestedUsers') {
-                              final interestedUserCubitReference =
-                                  context.read<GetInterestedUserCubit>();
-                              await showModalBottomSheet<dynamic>(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                backgroundColor: context.color.secondaryColor,
-                                constraints: BoxConstraints(
-                                  minWidth: double.infinity,
-                                  maxHeight: context.screenHeight * 0.7,
-                                  minHeight: context.screenHeight * 0.3,
-                                ),
-                                builder: (context) {
-                                  return InterestedUserListWidget(
-                                    totalCount:
-                                        '${widget.property?.totalInterestedUsers}',
-                                    interestedUserCubitReference:
-                                        interestedUserCubitReference,
-                                  );
-                                },
-                              );
-                              return;
-                            }
-                            if (value == 'markAsSold') {
-                              final action = await UiUtils.showBlurredDialoge(
-                                context,
-                                dialoge: BlurredDialogBuilderBox(
-                                  title:
-                                      'changePropertyStatus'.translate(context),
-                                  acceptButtonName: 'change'.translate(context),
-                                  cancelTextColor: context.color.tertiaryColor,
-                                  contentBuilder: (context, s) {
-                                    return Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: context.color.primaryColor,
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            border: Border.all(
-                                              color: context.color.borderColor,
-                                            ),
-                                          ),
-                                          width: s.maxWidth,
-                                          height: 50,
-                                          child: Center(
-                                            child: CustomText(
-                                              property!.properyType!
-                                                  .translate(context),
-                                              color:
-                                                  context.color.inverseSurface,
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8),
-                                          child: CustomText(
-                                            'to'.translate(context),
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        Container(
-                                          width: s.maxWidth,
-                                          decoration: BoxDecoration(
-                                            color: context.color.primaryColor,
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            border: Border.all(
-                                              color: context.color.borderColor,
-                                            ),
-                                          ),
-                                          height: 50,
-                                          child: Center(
-                                            child: CustomText(
-                                              _statusFilter(
-                                                    property!.properyType!,
-                                                  ) ??
-                                                  '',
-                                              color:
-                                                  context.color.inverseSurface,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              );
-                              if (action == true) {
-                                Future.delayed(Duration.zero, () {
-                                  context
-                                      .read<UpdatePropertyStatusCubit>()
-                                      .update(
-                                        propertyId: property!.id,
-                                        status:
-                                            _getStatus(property!.properyType),
-                                      );
-                                });
-                              }
-                            }
-                          },
-                          color: context.color.secondaryColor,
-                          itemBuilder: (BuildContext context) {
-                            return [
-                              buildPopupMenItem(
-                                context: context,
-                                title: 'share',
-                                icon: AppIcons.shareIcon,
-                                index: 0,
-                              ),
-                              buildPopupMenItem(
-                                context: context,
-                                title: 'interestedUsers',
-                                icon: AppIcons.interestedUsers,
-                                index: 1,
-                              ),
-                              if (property?.properyType != 'sold')
-                                buildPopupMenItem(
-                                  context: context,
-                                  title: 'markAsSold',
-                                  icon: AppIcons.changeStatus,
-                                  index: 2,
-                                ),
-                            ];
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Icon(
-                              Icons.more_vert_rounded,
-                              color: context.color.tertiaryColor,
+                            },
+                            child: UiUtils.getSvg(
+                              AppIcons.shareIcon,
                             ),
                           ),
                         ),
-                      const SizedBox(
-                        width: 10,
-                      ),
                     ],
-                  ),
-                  backgroundColor: context.color.backgroundColor,
-                  floatingActionButton: (property == null ||
-                          property!.addedBy.toString() == HiveUtils.getUserId())
-                      ? const SizedBox.shrink()
-                      : Container(),
-                  bottomNavigationBar: isPlayingYoutubeVideo == false
-                      ? BottomAppBar(
-                          key: UniqueKey(),
-                          padding: EdgeInsets.zero,
-                          color: context.color.secondaryColor,
-                          child: bottomNavBar(),
-                        )
-                      : null,
-                  floatingActionButtonLocation:
-                      FloatingActionButtonLocation.centerFloat,
-                  body: BlocListener<DeletePropertyCubit, DeletePropertyState>(
-                    listener: (context, state) {
-                      if (state is DeletePropertyInProgress) {
-                        Widgets.showLoader(context);
-                      }
-
-                      if (state is DeletePropertySuccess) {
-                        Widgets.hideLoder(context);
-                        Future.delayed(
-                          const Duration(milliseconds: 1000),
-                          () {
-                            Navigator.pop(context, true);
-                          },
-                        );
-                      }
-                      if (state is DeletePropertyFailure) {
-                        Widgets.showLoader(context);
-                      }
-                    },
-                    child: SafeArea(
-                      child: SingleChildScrollView(
-                        physics: Constant.scrollPhysics,
-                        child: BlocListener<UpdatePropertyStatusCubit,
-                            UpdatePropertyStatusState>(
-                          listener: (context, state) {
-                            if (state is UpdatePropertyStatusSuccess) {
-                              Widgets.hideLoder(context);
-                              Fluttertoast.showToast(
-                                msg: 'statusUpdated'.translate(context),
-                                backgroundColor: successMessageColor,
-                                gravity: ToastGravity.TOP,
-                                toastLength: Toast.LENGTH_LONG,
-                              );
-
-                              (cubitReference!).updateStatus(
-                                property!.id!,
-                                property!.properyType!,
-                              );
-                              setState(() {});
-                            }
-                            if (state is UpdatePropertyStatusFail) {
-                              Widgets.hideLoder(context);
-                            }
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal:
-                                  isPlayingYoutubeVideo == false ? 20.0 : 0,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(
-                                  height: 10,
+                    if (property?.addedBy.toString() == HiveUtils.getUserId())
+                      PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'share') {
+                            await HelperUtils.share(
+                              context,
+                              property!.id!,
+                              property?.slugId ?? '',
+                            );
+                          }
+                          if (value == 'interestedUsers') {
+                            final interestedUserCubitReference =
+                                context.read<GetInterestedUserCubit>();
+                            await showModalBottomSheet<dynamic>(
+                              context: context,
+                              isScrollControlled: true,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(20).copyWith(
+                                  bottomLeft: Radius.zero,
+                                  bottomRight: Radius.zero,
                                 ),
+                              ),
+                              backgroundColor: context.color.secondaryColor,
+                              constraints: BoxConstraints(
+                                minWidth: double.infinity,
+                                maxHeight: context.screenHeight * 0.7,
+                                minHeight: context.screenHeight * 0.3,
+                              ),
+                              builder: (context) {
+                                return InterestedUserListWidget(
+                                  totalCount:
+                                      '${widget.property?.totalInterestedUsers}',
+                                  interestedUserCubitReference:
+                                      interestedUserCubitReference,
+                                );
+                              },
+                            );
+                            return;
+                          }
+                          if (value == 'markAsSold') {
+                            final action = await UiUtils.showBlurredDialoge(
+                              context,
+                              dialog: BlurredDialogBuilderBox(
+                                title:
+                                    'changePropertyStatus'.translate(context),
+                                acceptButtonName: 'change'.translate(context),
+                                cancelTextColor: context.color.tertiaryColor,
+                                contentBuilder: (context, s) {
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: context.color.primaryColor,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          border: Border.all(
+                                            color: context.color.borderColor,
+                                          ),
+                                        ),
+                                        width: s.maxWidth,
+                                        height: 50,
+                                        child: Center(
+                                          child: CustomText(
+                                            property!.properyType!
+                                                .translate(context),
+                                            color: context.color.inverseSurface,
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: CustomText(
+                                          'to'.translate(context),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Container(
+                                        width: s.maxWidth,
+                                        decoration: BoxDecoration(
+                                          color: context.color.primaryColor,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          border: Border.all(
+                                            color: context.color.borderColor,
+                                          ),
+                                        ),
+                                        height: 50,
+                                        child: Center(
+                                          child: CustomText(
+                                            _statusFilter(
+                                                  property!.properyType!,
+                                                ) ??
+                                                '',
+                                            color: context.color.inverseSurface,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            );
+                            if (action == true) {
+                              Future.delayed(Duration.zero, () {
+                                context
+                                    .read<UpdatePropertyStatusCubit>()
+                                    .update(
+                                      propertyId: property!.id,
+                                      status: _getStatus(property!.properyType),
+                                    );
+                              });
+                            }
+                          }
+                        },
+                        color: context.color.secondaryColor,
+                        itemBuilder: (BuildContext context) {
+                          return [
+                            buildPopupMenItem(
+                              context: context,
+                              title: 'share',
+                              icon: AppIcons.shareIcon,
+                              index: 0,
+                            ),
+                            buildPopupMenItem(
+                              context: context,
+                              title: 'interestedUsers',
+                              icon: AppIcons.interestedUsers,
+                              index: 1,
+                            ),
+                            if (property?.properyType != 'sold' &&
+                                property?.properyType != 'rented')
+                              buildPopupMenItem(
+                                context: context,
+                                title: 'markAsSold',
+                                icon: AppIcons.changeStatus,
+                                index: 2,
+                              ),
+                          ];
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(
+                            Icons.more_vert_rounded,
+                            color: context.color.tertiaryColor,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                  ],
+                ),
+                backgroundColor: context.color.primaryColor,
+                floatingActionButton: (property == null ||
+                        property!.addedBy.toString() == HiveUtils.getUserId())
+                    ? const SizedBox.shrink()
+                    : Container(),
+                bottomNavigationBar: isPlayingYoutubeVideo == false
+                    ? BottomAppBar(
+                        key: UniqueKey(),
+                        padding: EdgeInsets.zero,
+                        color: context.color.secondaryColor,
+                        child: bottomNavBar(),
+                      )
+                    : null,
+                floatingActionButtonLocation:
+                    FloatingActionButtonLocation.centerFloat,
+                body: BlocListener<DeletePropertyCubit, DeletePropertyState>(
+                  listener: (context, state) {
+                    if (state is DeletePropertyInProgress) {
+                      Widgets.showLoader(context);
+                    }
 
-                                if (!isPlayingYoutubeVideo)
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(20),
-                                        child: SizedBox(
-                                          height: 227.rh(context),
-                                          child: Stack(
-                                            children: [
-                                              GestureDetector(
-                                                onTap: () {
-                                                  // google map doesn't allow blur so we hide it:)
-                                                  showGoogleMap = false;
+                    if (state is DeletePropertySuccess) {
+                      Widgets.hideLoder(context);
+                      Future.delayed(
+                        const Duration(milliseconds: 1000),
+                        () {
+                          Navigator.pop(context, true);
+                        },
+                      );
+                    }
+                    if (state is DeletePropertyFailure) {
+                      Widgets.showLoader(context);
+                    }
+                  },
+                  child: SingleChildScrollView(
+                    physics: Constant.scrollPhysics,
+                    child: BlocListener<UpdatePropertyStatusCubit,
+                        UpdatePropertyStatusState>(
+                      listener: (context, state) {
+                        if (state is UpdatePropertyStatusSuccess) {
+                          Widgets.hideLoder(context);
+                          Fluttertoast.showToast(
+                            msg: 'statusUpdated'.translate(context),
+                            backgroundColor: successMessageColor,
+                            gravity: ToastGravity.TOP,
+                            toastLength: Toast.LENGTH_LONG,
+                          );
+
+                          (cubitReference!).updateStatus(
+                            property!.id!,
+                            property!.properyType!,
+                          );
+                          setState(() {});
+                        }
+                        if (state is UpdatePropertyStatusFail) {
+                          Widgets.hideLoder(context);
+                        }
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isPlayingYoutubeVideo == false ? 20.0 : 0,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(
+                              height: 10,
+                            ),
+
+                            if (!isPlayingYoutubeVideo)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: SizedBox(
+                                      height: 227.rh(context),
+                                      child: Stack(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              // google map doesn't allow blur so we hide it:)
+                                              showGoogleMap = false;
+                                              setState(() {});
+                                              UiUtils.showFullScreenImage(
+                                                context,
+                                                provider: NetworkImage(
+                                                  property!.titleImage!,
+                                                ),
+                                                then: () {
+                                                  showGoogleMap = true;
                                                   setState(() {});
-                                                  UiUtils.showFullScreenImage(
+                                                },
+                                              );
+                                            },
+                                            child: UiUtils.getImage(
+                                              property!.titleImage!,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              height: 227.rh(context),
+                                              showFullScreenImage: true,
+                                            ),
+                                          ),
+                                          PositionedDirectional(
+                                            top: 20,
+                                            end: 20,
+                                            child: LikeButtonWidget(
+                                              propertyId: property!.id!,
+                                              isFavourite:
+                                                  property!.isFavourite!,
+                                              onStateChange: (
+                                                AddToFavoriteCubitState state,
+                                              ) {
+                                                if (state
+                                                    is AddToFavoriteCubitInProgress) {
+                                                  favoriteInProgress = true;
+                                                  setState(
+                                                    () {},
+                                                  );
+                                                } else {
+                                                  favoriteInProgress = false;
+                                                  setState(
+                                                    () {},
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                          PositionedDirectional(
+                                            bottom: 5,
+                                            end: 18,
+                                            child: Visibility(
+                                              visible:
+                                                  property?.threeDImage != '',
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
                                                     context,
-                                                    provider: NetworkImage(
-                                                      property!.titleImage!,
+                                                    CupertinoPageRoute<dynamic>(
+                                                      builder: (context) =>
+                                                          PanaromaImageScreen(
+                                                        imageUrl: property!
+                                                            .threeDImage!,
+                                                      ),
                                                     ),
-                                                    then: () {
-                                                      showGoogleMap = true;
-                                                      setState(() {});
-                                                    },
                                                   );
                                                 },
-                                                child: UiUtils.getImage(
-                                                  property!.titleImage!,
-                                                  fit: BoxFit.cover,
-                                                  width: double.infinity,
-                                                  height: 227.rh(context),
-                                                  showFullScreenImage: true,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: context
+                                                        .color.secondaryColor,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  height: 40.rh(context),
+                                                  width: 40.rw(context),
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(5),
+                                                    child: UiUtils.getSvg(
+                                                      AppIcons.v360Degree,
+                                                      color: context
+                                                          .color.tertiaryColor,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                              PositionedDirectional(
-                                                top: 20,
-                                                end: 20,
-                                                child: LikeButtonWidget(
-                                                  propertyId: property!.id!,
-                                                  isFavourite:
-                                                      property!.isFavourite!,
-                                                  onStateChange: (
-                                                    AddToFavoriteCubitState
-                                                        state,
-                                                  ) {
-                                                    if (state
-                                                        is AddToFavoriteCubitInProgress) {
-                                                      favoriteInProgress = true;
-                                                      setState(
-                                                        () {},
-                                                      );
-                                                    } else {
-                                                      favoriteInProgress =
-                                                          false;
-                                                      setState(
-                                                        () {},
-                                                      );
-                                                    }
-                                                  },
+                                            ),
+                                          ),
+                                          advertisementLabel(),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                  if (property?.addedBy.toString() ==
+                                      HiveUtils.getUserId()) ...[
+                                    buildEnableDisableSwitch(),
+                                  ],
+                                  Row(
+                                    children: [
+                                      UiUtils.imageType(
+                                        property?.category!.image ?? '',
+                                        width: 18,
+                                        height: 18,
+                                        color: Constant.adaptThemeColorSvg
+                                            ? context.color.tertiaryColor
+                                            : null,
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
+                                      SizedBox(
+                                        width: 158.rw(context),
+                                        child: CustomText(
+                                          property!.category!.category!,
+                                          maxLines: 1,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: context.font.normal,
+                                          color: context.color.textColorDark,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        width: 50,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(3.5),
+                                          color: context.color.tertiaryColor,
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(3),
+                                          child: Center(
+                                            child: CustomText(
+                                              property!.properyType
+                                                  .toString()
+                                                  .toLowerCase()
+                                                  .translate(context),
+                                              fontSize: context.font.small,
+                                              color: context.color.buttonColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: CustomText(
+                                          property!.title!.firstUpperCase(),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: context.font.larger,
+                                          color: context.color.textColorDark,
+                                        ),
+                                      ),
+                                      CustomText(
+                                        property?.postCreated ?? '',
+                                        color: context.color.textColorDark
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 13),
+                                  Row(
+                                    children: [
+                                      if (property!.properyType
+                                              .toString()
+                                              .toLowerCase() ==
+                                          'rent') ...[
+                                        CustomText(
+                                          rentPrice,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: context.font.larger,
+                                          color: context.color.tertiaryColor,
+                                        ),
+                                      ] else ...[
+                                        CustomText(
+                                          property!.price!.priceFormat(
+                                            enabled:
+                                                Constant.isNumberWithSuffix ==
+                                                    true,
+                                            context: context,
+                                          ),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: context.font.larger,
+                                          color: context.color.tertiaryColor,
+                                        ),
+                                      ],
+                                      if (Constant.isNumberWithSuffix ==
+                                          true) ...[
+                                        if (property!.properyType
+                                                .toString()
+                                                .toLowerCase() !=
+                                            'rent') ...[
+                                          const SizedBox(
+                                            width: 5,
+                                          ),
+                                          CustomText(
+                                            '(${property!.price!.priceFormat(context: context, enabled: false)})',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: context.font.larger,
+                                            color: context.color.tertiaryColor,
+                                          ),
+                                        ],
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  if (widget.property?.properyType
+                                          .toString()
+                                          .toLowerCase() ==
+                                      'sell') ...[
+                                    _buildMortgageCalculatorContainer(),
+                                    const SizedBox(
+                                      height: 10,
+                                    ),
+                                  ],
+                                  Container(
+                                    padding: EdgeInsets.zero,
+                                    width: double.infinity,
+                                    child: GridView.builder(
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      padding: EdgeInsets.zero,
+                                      shrinkWrap: true,
+                                      semanticChildCount:
+                                          property?.parameters?.length ?? 0,
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        childAspectRatio: 2,
+                                        // Increase the mainAxisExtent to accommodate multiple lines
+                                        mainAxisExtent:
+                                            80, // Changed from 51 to allow more vertical space
+                                      ),
+                                      itemCount:
+                                          property?.parameters?.length ?? 0,
+                                      itemBuilder: (context, index) {
+                                        final parameter =
+                                            property?.parameters![index];
+                                        return Container(
+                                          padding: EdgeInsets.zero,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment
+                                                .start, // Align to top for better multi-line layout
+                                            children: [
+                                              Container(
+                                                width: 40.rw(context),
+                                                height: 40.rh(context),
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  color: context
+                                                      .color.tertiaryColor
+                                                      .withValues(
+                                                    alpha: 0.2,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    10,
+                                                  ),
+                                                ),
+                                                child: SizedBox(
+                                                  height: 30.rh(context),
+                                                  width: 30.rw(context),
+                                                  child: FittedBox(
+                                                    child: UiUtils.imageType(
+                                                      parameter?.image ?? '',
+                                                      fit: BoxFit.cover,
+                                                      color: Constant
+                                                              .adaptThemeColorSvg
+                                                          ? context.color
+                                                              .tertiaryColor
+                                                          : null,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                              PositionedDirectional(
-                                                bottom: 5,
-                                                end: 18,
-                                                child: Visibility(
-                                                  visible:
-                                                      property?.threeDImage !=
-                                                          '',
-                                                  child: GestureDetector(
-                                                    onTap: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        BlurredRouter(
-                                                          builder: (context) =>
-                                                              PanaromaImageScreen(
-                                                            imageUrl: property!
-                                                                .threeDImage!,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                    child: Container(
-                                                      decoration: BoxDecoration(
-                                                        color: context.color
-                                                            .secondaryColor,
-                                                        shape: BoxShape.circle,
+                                              SizedBox(
+                                                width: 10.rw(context),
+                                              ),
+                                              Flexible(
+                                                // Use Flexible instead of fixed SizedBox
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    CustomText(
+                                                      parameter?.name ?? '',
+                                                      maxLines:
+                                                          1, // Keep parameter name as single line
+                                                      textAlign:
+                                                          TextAlign.start,
+                                                      fontSize:
+                                                          context.font.small,
+                                                      color: context
+                                                          .color.textColorDark
+                                                          .withValues(
+                                                        alpha: 0.8,
                                                       ),
-                                                      height: 40.rh(context),
-                                                      width: 40.rw(context),
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5),
-                                                        child: UiUtils.getSvg(
-                                                          AppIcons.v360Degree,
+                                                    ),
+                                                    if (parameter
+                                                            ?.typeOfParameter ==
+                                                        'file') ...{
+                                                      InkWell(
+                                                        onTap: () async {
+                                                          await urllauncher
+                                                              .launchUrl(
+                                                            Uri.parse(
+                                                              parameter!.value
+                                                                      ?.toString() ??
+                                                                  '',
+                                                            ),
+                                                            mode: LaunchMode
+                                                                .externalApplication,
+                                                          );
+                                                        },
+                                                        child: CustomText(
+                                                          UiUtils.translate(
+                                                            context,
+                                                            'viewFile',
+                                                          ),
+                                                          showUnderline: true,
                                                           color: context.color
                                                               .tertiaryColor,
                                                         ),
                                                       ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              advertisementLabel(),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 15,
-                                      ),
-                                      if (property?.addedBy.toString() ==
-                                          HiveUtils.getUserId()) ...[
-                                        buildEnableDisableSwitch(),
-                                      ],
-                                      Row(
-                                        children: [
-                                          UiUtils.imageType(
-                                            property?.category!.image ?? '',
-                                            width: 18,
-                                            height: 18,
-                                            color: Constant.adaptThemeColorSvg
-                                                ? context.color.tertiaryColor
-                                                : null,
-                                          ),
-                                          const SizedBox(
-                                            width: 10,
-                                          ),
-                                          SizedBox(
-                                            width: 158.rw(context),
-                                            child: CustomText(
-                                              property!.category!.category!,
-                                              maxLines: 1,
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: context.font.normal,
-                                              color: UiUtils.makeColorLight(
-                                                context.color.textColorDark,
-                                              ),
-                                            ),
-                                          ),
-                                          const Spacer(),
-                                          Container(
-                                            width: 50,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(3.5),
-                                              color:
-                                                  context.color.tertiaryColor,
-                                            ),
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(3),
-                                              child: Center(
-                                                child: CustomText(
-                                                  property!.properyType
-                                                      .toString()
-                                                      .toLowerCase()
-                                                      .translate(context),
-                                                  fontSize: context.font.small,
-                                                  color:
-                                                      context.color.buttonColor,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(
-                                        height: 15,
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: CustomText(
-                                              property!.title!.firstUpperCase(),
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: context.font.larger,
-                                              color:
-                                                  context.color.textColorDark,
-                                            ),
-                                          ),
-                                          CustomText(
-                                            property?.postCreated ?? '',
-                                            color: context.color.textColorDark
-                                                .withValues(alpha: 0.6),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 13),
-                                      Row(
-                                        children: [
-                                          if (property!.properyType
-                                                  .toString()
-                                                  .toLowerCase() ==
-                                              'rent') ...[
-                                            CustomText(
-                                              rentPrice,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: context.font.larger,
-                                              color:
-                                                  context.color.tertiaryColor,
-                                            ),
-                                          ] else ...[
-                                            CustomText(
-                                              property!.price!.priceFormat(
-                                                enabled: Constant
-                                                        .isNumberWithSuffix ==
-                                                    true,
-                                                context: context,
-                                              ),
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: context.font.larger,
-                                              color:
-                                                  context.color.tertiaryColor,
-                                            ),
-                                          ],
-                                          if (Constant.isNumberWithSuffix ==
-                                              true) ...[
-                                            if (property!.properyType
-                                                    .toString()
-                                                    .toLowerCase() !=
-                                                'rent') ...[
-                                              const SizedBox(
-                                                width: 5,
-                                              ),
-                                              CustomText(
-                                                '(${property!.price!.priceFormat(context: context, enabled: false)})',
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: context.font.larger,
-                                                color:
-                                                    context.color.tertiaryColor,
-                                              ),
-                                            ],
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      if (widget.property?.properyType
-                                              .toString()
-                                              .toLowerCase() ==
-                                          'sell') ...[
-                                        _buildMortgageCalculatorContainer(),
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
-                                      ],
-                                      Container(
-                                        padding: EdgeInsets.zero,
-                                        width: double.infinity,
-                                        child: GridView.builder(
-                                          physics:
-                                              const NeverScrollableScrollPhysics(),
-                                          padding: EdgeInsets.zero,
-                                          shrinkWrap: true,
-                                          semanticChildCount:
-                                              property?.parameters?.length ?? 0,
-                                          gridDelegate:
-                                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 2,
-                                            childAspectRatio: 2,
-                                            // Increase the mainAxisExtent to accommodate multiple lines
-                                            mainAxisExtent:
-                                                80, // Changed from 51 to allow more vertical space
-                                          ),
-                                          itemCount:
-                                              property?.parameters?.length ?? 0,
-                                          itemBuilder: (context, index) {
-                                            final parameter =
-                                                property?.parameters![index];
-                                            return Container(
-                                              padding: EdgeInsets.zero,
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment
-                                                        .start, // Align to top for better multi-line layout
-                                                children: [
-                                                  Container(
-                                                    width: 40.rw(context),
-                                                    height: 40.rh(context),
-                                                    alignment: Alignment.center,
-                                                    decoration: BoxDecoration(
-                                                      color: context
-                                                          .color.tertiaryColor
-                                                          .withValues(
-                                                        alpha: 0.2,
-                                                      ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                    ),
-                                                    child: SizedBox(
-                                                      height: 30.rh(context),
-                                                      width: 30.rw(context),
-                                                      child: FittedBox(
-                                                        child:
-                                                            UiUtils.imageType(
-                                                          parameter?.image ??
-                                                              '',
-                                                          fit: BoxFit.cover,
-                                                          color: Constant
-                                                                  .adaptThemeColorSvg
-                                                              ? context.color
-                                                                  .tertiaryColor
-                                                              : null,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  SizedBox(
-                                                    width: 10.rw(context),
-                                                  ),
-                                                  Flexible(
-                                                    // Use Flexible instead of fixed SizedBox
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        CustomText(
-                                                          parameter?.name ?? '',
+                                                    } else if (parameter?.value
+                                                        is List) ...{
+                                                      Flexible(
+                                                        // Use Flexible instead of fixed Container
+                                                        child: CustomText(
+                                                          (parameter?.value
+                                                                  as List)
+                                                              .join(
+                                                            ', ',
+                                                          ), // Added space after comma
                                                           maxLines:
-                                                              1, // Keep parameter name as single line
-                                                          textAlign:
-                                                              TextAlign.start,
-                                                          fontSize: context
-                                                              .font.small,
-                                                          color: context.color
-                                                              .textColorDark
-                                                              .withValues(
-                                                            alpha: 0.8,
-                                                          ),
-                                                        ),
-                                                        if (parameter
-                                                                ?.typeOfParameter ==
-                                                            'file') ...{
-                                                          InkWell(
-                                                            onTap: () async {
-                                                              await urllauncher
-                                                                  .launchUrl(
-                                                                Uri.parse(
-                                                                  parameter!
-                                                                          .value
-                                                                          ?.toString() ??
-                                                                      '',
-                                                                ),
-                                                                mode: LaunchMode
-                                                                    .externalApplication,
-                                                              );
-                                                            },
-                                                            child: CustomText(
-                                                              UiUtils.translate(
-                                                                  context,
-                                                                  'viewFile'),
-                                                              showUnderline:
-                                                                  true,
-                                                              color: context
-                                                                  .color
-                                                                  .tertiaryColor,
-                                                            ),
-                                                          ),
-                                                        } else if (parameter
-                                                                ?.value
-                                                            is List) ...{
-                                                          Flexible(
-                                                            // Use Flexible instead of fixed Container
-                                                            child: CustomText(
-                                                              (parameter?.value
-                                                                      as List)
-                                                                  .join(
-                                                                      ', '), // Added space after comma
-                                                              maxLines:
-                                                                  3, // Allow multiple lines
-                                                            ),
-                                                          ),
-                                                        } else ...[
-                                                          if (parameter
-                                                                  ?.typeOfParameter ==
-                                                              'textarea') ...[
-                                                            Flexible(
-                                                              // Use Flexible to allow content to adjust
-                                                              child: CustomText(
-                                                                '${parameter?.value}',
-                                                                maxLines:
-                                                                    3, // Allow up to 3 lines for textarea
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                fontSize:
-                                                                    context.font
-                                                                        .small,
-                                                              ),
-                                                            ),
-                                                          ] else ...[
-                                                            Flexible(
-                                                              // Use Flexible instead of ConstrainedBox
-                                                              child: CustomText(
-                                                                '${parameter?.value}',
-                                                                maxLines:
-                                                                    2, // Allow up to 2 lines for other content
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                fontSize:
-                                                                    context.font
-                                                                        .small,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ],
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 14,
-                                      ),
-                                      UiUtils.getDivider(),
-                                      const SizedBox(
-                                        height: 14,
-                                      ),
-                                      CustomText(
-                                        UiUtils.translate(
-                                          context,
-                                          'aboutThisPropLbl',
-                                        ),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: context.font.large,
-                                        color: context.color.textColorDark,
-                                      ),
-                                      const SizedBox(
-                                        height: 15,
-                                      ),
-                                      ReadMoreText(
-                                        text: property?.description ?? '',
-                                        style: TextStyle(
-                                          color: context.color.textColorDark
-                                              .withValues(alpha: 0.7),
-                                        ),
-                                        readMoreButtonStyle: TextStyle(
-                                          color: context.color.tertiaryColor,
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 20,
-                                      ),
-                                      // TODO(R): This is for banner ads
-                                      if (_bannerAd != null &&
-                                          Constant.isAdmobAdsEnabled)
-                                        SizedBox(
-                                          width:
-                                              _bannerAd?.size.width.toDouble(),
-                                          height:
-                                              _bannerAd?.size.height.toDouble(),
-                                          child: AdWidget(ad: _bannerAd!),
-                                        ),
-
-                                      const SizedBox(
-                                        height: 20,
-                                      ),
-                                      if (widget
-                                              .property
-                                              ?.assignedOutdoorFacility
-                                              ?.isNotEmpty ??
-                                          false) ...[
-                                        CustomText(
-                                          UiUtils.translate(
-                                            context,
-                                            'outdoorFacilities',
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: context.font.large,
-                                          color: context.color.textColorDark,
-                                        ),
-                                        const SizedBox(height: 10),
-                                      ],
-                                      OutdoorFacilityListWidget(
-                                        outdoorFacilityList: widget.property
-                                                ?.assignedOutdoorFacility ??
-                                            [],
-                                      ),
-
-                                      CustomText(
-                                        UiUtils.translate(
-                                          context,
-                                          'listedBy',
-                                        ),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: context.font.large,
-                                        color: context.color.textColorDark,
-                                      ),
-                                      const SizedBox(
-                                        height: 14,
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {},
-                                        child: AgentProfileWidget(
-                                          widget: widget,
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      if (gallary?.isNotEmpty ?? false) ...[
-                                        CustomText(
-                                          UiUtils.translate(
-                                            context,
-                                            'gallery',
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                          color: context.color.textColorDark,
-                                          fontSize: context.font.large,
-                                        ),
-                                        SizedBox(
-                                          height: 10.rh(context),
-                                        ),
-                                      ],
-                                      if (gallary?.isNotEmpty ?? false) ...[
-                                        Row(
-                                          children: List.generate(
-                                            gallary?.length.clamp(0, 4) ?? 0,
-                                            (index) {
-                                              return Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 3,
-                                                ),
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                    18,
-                                                  ),
-                                                  child: Stack(
-                                                    children: [
-                                                      GestureDetector(
-                                                        onTap: () {
-                                                          if (gallary?[index]
-                                                                  .isVideo ??
-                                                              false) {
-                                                            return;
-                                                          }
-                                                          //google map doesn't allow blur so we hide it:)
-                                                          showGoogleMap = false;
-                                                          setState(() {});
-
-                                                          final images = gallary
-                                                              ?.map(
-                                                                (e) =>
-                                                                    e.imageUrl,
-                                                              )
-                                                              .toList();
-
-                                                          UiUtils
-                                                              .imageGallaryView(
-                                                            context,
-                                                            images: images!,
-                                                            initalIndex: index,
-                                                            then: () {
-                                                              showGoogleMap =
-                                                                  true;
-                                                              setState(() {});
-                                                            },
-                                                          );
-                                                        },
-                                                        child: SizedBox(
-                                                          width: 76.rw(context),
-                                                          height:
-                                                              76.rh(context),
-                                                          child: gallary?[index]
-                                                                      .isVideo ??
-                                                                  false
-                                                              ? Container(
-                                                                  child: UiUtils
-                                                                      .getImage(
-                                                                    youtubeVideoThumbnail,
-                                                                    fit: BoxFit
-                                                                        .cover,
-                                                                  ),
-                                                                )
-                                                              : UiUtils
-                                                                  .getImage(
-                                                                  gallary?[index]
-                                                                          .imageUrl ??
-                                                                      '',
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                ),
+                                                              3, // Allow multiple lines
                                                         ),
                                                       ),
+                                                    } else ...[
+                                                      if (parameter
+                                                              ?.typeOfParameter ==
+                                                          'textarea') ...[
+                                                        Flexible(
+                                                          // Use Flexible to allow content to adjust
+                                                          child: CustomText(
+                                                            '${parameter?.value}',
+                                                            maxLines:
+                                                                3, // Allow up to 3 lines for textarea
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: context
+                                                                .font.small,
+                                                          ),
+                                                        ),
+                                                      ] else ...[
+                                                        Flexible(
+                                                          // Use Flexible instead of ConstrainedBox
+                                                          child: CustomText(
+                                                            '${parameter?.value}',
+                                                            maxLines:
+                                                                2, // Allow up to 2 lines for other content
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: context
+                                                                .font.small,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 14,
+                                  ),
+                                  UiUtils.getDivider(),
+                                  const SizedBox(
+                                    height: 14,
+                                  ),
+                                  CustomText(
+                                    UiUtils.translate(
+                                      context,
+                                      'aboutThisPropLbl',
+                                    ),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: context.font.large,
+                                    color: context.color.textColorDark,
+                                  ),
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                  if (property?.description != null) ...[
+                                    ReadMoreText(
+                                      text: property?.description ?? '',
+                                      style: TextStyle(
+                                        color: context.color.textColorDark,
+                                      ),
+                                      readMoreButtonStyle: TextStyle(
+                                        color: context.color.tertiaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+
+                                  // TODO(R): This is for banner ads
+                                  if (_bannerAd != null &&
+                                      Constant.isAdmobAdsEnabled)
+                                    SizedBox(
+                                      width: _bannerAd?.size.width.toDouble(),
+                                      height: _bannerAd?.size.height.toDouble(),
+                                      child: AdWidget(ad: _bannerAd!),
+                                    ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                  if (widget.property?.assignedOutdoorFacility
+                                          ?.isNotEmpty ??
+                                      false) ...[
+                                    CustomText(
+                                      UiUtils.translate(
+                                        context,
+                                        'outdoorFacilities',
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: context.font.large,
+                                      color: context.color.textColorDark,
+                                    ),
+                                    const SizedBox(height: 10),
+                                  ],
+                                  OutdoorFacilityListWidget(
+                                    outdoorFacilityList: widget.property
+                                            ?.assignedOutdoorFacility ??
+                                        [],
+                                  ),
+
+                                  CustomText(
+                                    UiUtils.translate(
+                                      context,
+                                      'listedBy',
+                                    ),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: context.font.large,
+                                    color: context.color.textColorDark,
+                                  ),
+                                  const SizedBox(
+                                    height: 14,
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {},
+                                    child: AgentProfileWidget(
+                                      widget: widget,
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  if (gallary?.isNotEmpty ?? false) ...[
+                                    CustomText(
+                                      UiUtils.translate(
+                                        context,
+                                        'gallery',
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                      color: context.color.textColorDark,
+                                      fontSize: context.font.large,
+                                    ),
+                                    SizedBox(
+                                      height: 10.rh(context),
+                                    ),
+                                  ],
+                                  if (gallary?.isNotEmpty ?? false) ...[
+                                    Row(
+                                      children: List.generate(
+                                        gallary?.length.clamp(0, 4) ?? 0,
+                                        (index) {
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 3,
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                18,
+                                              ),
+                                              child: Stack(
+                                                children: [
+                                                  GestureDetector(
+                                                    onTap: () {
                                                       if (gallary?[index]
                                                               .isVideo ??
-                                                          false)
-                                                        Positioned.fill(
-                                                          child:
-                                                              GestureDetector(
-                                                            onTap: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute<
-                                                                    dynamic>(
-                                                                  builder:
-                                                                      (context) {
-                                                                    return VideoViewScreen(
-                                                                      videoUrl:
-                                                                          gallary?[index].image ??
-                                                                              '',
-                                                                      flickManager:
-                                                                          flickManager,
-                                                                    );
-                                                                  },
-                                                                ),
-                                                              );
-                                                            },
-                                                            child: ColoredBox(
-                                                              color: Colors
-                                                                  .black
-                                                                  .withValues(
-                                                                alpha: 0.3,
+                                                          false) {
+                                                        return;
+                                                      }
+                                                      //google map doesn't allow blur so we hide it:)
+                                                      showGoogleMap = false;
+                                                      setState(() {});
+
+                                                      final images = gallary
+                                                          ?.map(
+                                                            (e) => e.imageUrl,
+                                                          )
+                                                          .toList();
+
+                                                      UiUtils.imageGallaryView(
+                                                        context,
+                                                        images: images!,
+                                                        initalIndex: index,
+                                                        then: () {
+                                                          showGoogleMap = true;
+                                                          setState(() {});
+                                                        },
+                                                      );
+                                                    },
+                                                    child: SizedBox(
+                                                      width: 76.rw(context),
+                                                      height: 76.rh(context),
+                                                      child: gallary?[index]
+                                                                  .isVideo ??
+                                                              false
+                                                          ? Container(
+                                                              child: UiUtils
+                                                                  .getImage(
+                                                                youtubeVideoThumbnail,
+                                                                fit: BoxFit
+                                                                    .cover,
                                                               ),
-                                                              child: FittedBox(
-                                                                fit:
-                                                                    BoxFit.none,
-                                                                child:
-                                                                    Container(
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    shape: BoxShape
-                                                                        .circle,
-                                                                    color: context
-                                                                        .color
-                                                                        .tertiaryColor
-                                                                        .withValues(
-                                                                      alpha:
-                                                                          0.8,
-                                                                    ),
-                                                                  ),
-                                                                  width: 30,
-                                                                  height: 30,
-                                                                  child:
-                                                                      const Icon(
-                                                                    Icons
-                                                                        .play_arrow,
-                                                                    color: Colors
-                                                                        .white,
-                                                                  ),
-                                                                ),
-                                                              ),
+                                                            )
+                                                          : UiUtils.getImage(
+                                                              gallary?[index]
+                                                                      .imageUrl ??
+                                                                  '',
+                                                              fit: BoxFit.cover,
                                                             ),
+                                                    ),
+                                                  ),
+                                                  if (gallary?[index].isVideo ??
+                                                      false)
+                                                    Positioned.fill(
+                                                      child: GestureDetector(
+                                                        onTap: () {
+                                                          Navigator.push(
+                                                            context,
+                                                            CupertinoPageRoute<
+                                                                dynamic>(
+                                                              builder:
+                                                                  (context) {
+                                                                return VideoViewScreen(
+                                                                  videoUrl:
+                                                                      gallary?[index]
+                                                                              .image ??
+                                                                          '',
+                                                                  flickManager:
+                                                                      flickManager,
+                                                                );
+                                                              },
+                                                            ),
+                                                          );
+                                                        },
+                                                        child: ColoredBox(
+                                                          color: Colors.black
+                                                              .withValues(
+                                                            alpha: 0.3,
                                                           ),
-                                                        ),
-                                                      if (index == 3)
-                                                        Positioned.fill(
-                                                          child:
-                                                              GestureDetector(
-                                                            onTap: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                BlurredRouter(
-                                                                  builder:
-                                                                      (context) {
-                                                                    return AllGallaryImages(
-                                                                      youtubeThumbnail:
-                                                                          youtubeVideoThumbnail,
-                                                                      images:
-                                                                          property?.gallery ??
-                                                                              [],
-                                                                    );
-                                                                  },
-                                                                ),
-                                                              );
-                                                            },
+                                                          child: FittedBox(
+                                                            fit: BoxFit.none,
                                                             child: Container(
-                                                              alignment:
-                                                                  Alignment
-                                                                      .center,
-                                                              color: Colors
-                                                                  .black
-                                                                  .withValues(
-                                                                alpha: 0.3,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                                color: context
+                                                                    .color
+                                                                    .tertiaryColor
+                                                                    .withValues(
+                                                                  alpha: 0.8,
+                                                                ),
                                                               ),
-                                                              child: CustomText(
-                                                                '+${(property?.gallery?.length ?? 0) - 3}',
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                fontSize:
-                                                                    context.font
-                                                                        .large,
+                                                              width: 30,
+                                                              height: 30,
+                                                              child: const Icon(
+                                                                Icons
+                                                                    .play_arrow,
                                                                 color: Colors
                                                                     .white,
                                                               ),
                                                             ),
                                                           ),
                                                         ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                      const SizedBox(
-                                        height: 15,
+                                                      ),
+                                                    ),
+                                                  if (index == 3)
+                                                    Positioned.fill(
+                                                      child: GestureDetector(
+                                                        onTap: () {
+                                                          Navigator.push(
+                                                            context,
+                                                            CupertinoPageRoute<
+                                                                dynamic>(
+                                                              builder:
+                                                                  (context) {
+                                                                return AllGallaryImages(
+                                                                  youtubeThumbnail:
+                                                                      youtubeVideoThumbnail,
+                                                                  images: property
+                                                                          ?.gallery ??
+                                                                      [],
+                                                                );
+                                                              },
+                                                            ),
+                                                          );
+                                                        },
+                                                        child: Container(
+                                                          alignment:
+                                                              Alignment.center,
+                                                          color: Colors.black
+                                                              .withValues(
+                                                            alpha: 0.3,
+                                                          ),
+                                                          child: CustomText(
+                                                            '+${(property?.gallery?.length ?? 0) - 3}',
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: context
+                                                                .font.large,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                      if (hasDocuments()) ...[
-                                        CustomText(
-                                          'Documents'.translate(context),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: context.font.large,
-                                        ),
-                                        ListView.builder(
-                                          shrinkWrap: true,
-                                          physics:
-                                              const NeverScrollableScrollPhysics(),
-                                          itemBuilder: (context, index) {
-                                            final document = widget
-                                                .property!.documents![index];
-                                            return DownloadableDocuments(
-                                              url: document.file!,
-                                            );
-                                          },
-                                          itemCount: widget
-                                              .property!.documents!.length,
-                                        ),
-                                      ],
-                                      const SizedBox(
-                                        height: 15,
-                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                  if (hasDocuments()) ...[
+                                    CustomText(
+                                      'Documents'.translate(context),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: context.font.large,
+                                    ),
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemBuilder: (context, index) {
+                                        final document =
+                                            widget.property!.documents![index];
+                                        return DownloadableDocuments(
+                                          url: document.file!,
+                                        );
+                                      },
+                                      itemCount:
+                                          widget.property!.documents!.length,
+                                    ),
+                                  ],
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                  CustomText(
+                                    UiUtils.translate(
+                                      context,
+                                      'locationLbl',
+                                    ),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: context.font.large,
+                                    color: context.color.textColorDark,
+                                  ),
+                                  SizedBox(
+                                    height: 10.rh(context),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
                                       CustomText(
-                                        UiUtils.translate(
-                                          context,
-                                          'locationLbl',
-                                        ),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: context.font.large,
+                                        "${UiUtils.translate(context, "addressLbl")} :",
+                                        fontSize: context.font.normal,
                                         color: context.color.textColorDark,
                                       ),
                                       SizedBox(
-                                        height: 10.rh(context),
+                                        height: 5.rh(context),
                                       ),
-                                      Column(
+                                      Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          CustomText(
-                                            "${UiUtils.translate(context, "addressLbl")} :",
-                                            fontSize: context.font.normal,
-                                            color: context.color.textColorDark,
+                                          UiUtils.getSvg(
+                                            AppIcons.location,
+                                            color: context.color.tertiaryColor,
                                           ),
                                           SizedBox(
-                                            height: 5.rh(context),
+                                            width: 5.rw(context),
                                           ),
-                                          Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              UiUtils.getSvg(
-                                                AppIcons.location,
-                                                color:
-                                                    context.color.tertiaryColor,
-                                              ),
-                                              SizedBox(
-                                                width: 5.rw(context),
-                                              ),
-                                              Expanded(
-                                                child: CustomText(
-                                                  property?.address ?? '',
-                                                ),
-                                              ),
-                                            ],
+                                          Expanded(
+                                            child: CustomText(
+                                              property?.address ?? '',
+                                              maxLines: 6,
+                                            ),
                                           ),
                                         ],
                                       ),
-                                      SizedBox(
-                                        height: 10.rh(context),
-                                      ),
-                                      SizedBox(
-                                        height: 175,
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          child: Stack(
-                                            fit: StackFit.expand,
-                                            children: [
-                                              Image.asset(
-                                                'assets/map.png',
-                                                fit: BoxFit.cover,
-                                              ),
-                                              BackdropFilter(
-                                                filter: ImageFilter.blur(
-                                                  sigmaX: 4,
-                                                  sigmaY: 4,
-                                                ),
-                                                child: Center(
-                                                  child: MaterialButton(
-                                                    onPressed: () {
-                                                      if (shouldRestrictPropertyAccess()) {
-                                                        GuestChecker.check(
-                                                          onNotGuest: () {
-                                                            shouldShowSubscriptionOverlay
-                                                                .value = true;
-                                                            return;
-                                                          },
-                                                        );
-                                                        return;
-                                                      }
-                                                      Navigator.push(
-                                                        context,
-                                                        BlurredRouter(
-                                                          builder: (context) {
-                                                            return Scaffold(
-                                                              extendBodyBehindAppBar:
-                                                                  true,
-                                                              appBar: AppBar(
-                                                                elevation: 0,
-                                                                iconTheme:
-                                                                    IconThemeData(
-                                                                  color: context
-                                                                      .color
-                                                                      .tertiaryColor,
-                                                                ),
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .transparent,
-                                                              ),
-                                                              body:
-                                                                  GoogleMapScreen(
-                                                                latitude: double
-                                                                    .parse(
-                                                                  property?.latitude ??
-                                                                      '0',
-                                                                ),
-                                                                longitude:
-                                                                    double
-                                                                        .parse(
-                                                                  property?.longitude ??
-                                                                      '0',
-                                                                ),
-                                                                kInitialPlace:
-                                                                    _kInitialPlace,
-                                                                controller:
-                                                                    _controller,
-                                                              ),
-                                                            );
-                                                          },
-                                                        ),
-                                                      );
-                                                    },
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                        5,
-                                                      ),
-                                                    ),
-                                                    color: context
-                                                        .color.tertiaryColor,
-                                                    elevation: 0,
-                                                    child:
-                                                        shouldRestrictPropertyAccess()
-                                                            ? Icon(
-                                                                Icons
-                                                                    .lock_open_outlined,
-                                                                color: context
-                                                                    .color
-                                                                    .secondaryColor
-                                                                    .withValues(
-                                                                  alpha: 0.8,
-                                                                ),
-                                                              )
-                                                            : CustomText(
-                                                                'viewMap'
-                                                                    .translate(
-                                                                  context,
-                                                                ),
-                                                                color: context
-                                                                    .color
-                                                                    .buttonColor,
-                                                              ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 18,
-                                      ),
-                                      if (!HiveUtils.isGuest()) ...[
-                                        if (int.parse(
-                                              HiveUtils.getUserId() ?? '0',
-                                            ) !=
-                                            property?.addedBy)
-                                          Row(
-                                            children: [
-                                              // sendEnquiryButtonWithState(),
-                                              setInterest(),
-                                            ],
-                                          ),
-                                      ],
-                                      const SizedBox(
-                                        height: 18,
-                                      ),
-                                      if (!reportedProperties.contains(
-                                            widget.property!.id,
-                                          ) &&
-                                          widget.property!.addedBy.toString() !=
-                                              HiveUtils.getUserId() &&
-                                          !isReported)
-                                        ReportPropertyButton(
-                                          propertyId: property!.id!,
-                                          onSuccess: () {
-                                            setState(
-                                              () {},
-                                            );
-                                          },
-                                        ),
-                                      const SizedBox(height: 18),
                                     ],
                                   ),
-                                //here
-                                SizedBox(
-                                  height: 20.rh(context),
-                                ),
-                              ],
+                                  SizedBox(
+                                    height: 10.rh(context),
+                                  ),
+                                  buildMapContainer(),
+                                  const SizedBox(
+                                    height: 18,
+                                  ),
+                                  if (!HiveUtils.isGuest()) ...[
+                                    if (int.parse(
+                                          HiveUtils.getUserId() ?? '0',
+                                        ) !=
+                                        property?.addedBy)
+                                      Row(
+                                        children: [
+                                          // sendEnquiryButtonWithState(),
+                                          setInterest(),
+                                        ],
+                                      ),
+                                  ],
+                                  const SizedBox(
+                                    height: 18,
+                                  ),
+                                  if (!reportedProperties.contains(
+                                        widget.property!.id,
+                                      ) &&
+                                      widget.property!.addedBy.toString() !=
+                                          HiveUtils.getUserId() &&
+                                      !isReported)
+                                    ReportPropertyButton(
+                                      propertyId: property!.id!,
+                                      onSuccess: () {
+                                        setState(
+                                          () {},
+                                        );
+                                      },
+                                    ),
+                                  const SizedBox(height: 18),
+                                  buildSimilarProperties(),
+                                ],
+                              ),
+                            //here
+                            SizedBox(
+                              height: 20.rh(context),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget buildSimilarProperties() {
+    return BlocBuilder<FetchSimilarPropertiesCubit,
+        FetchSimilarPropertiesState>(
+      builder: (context, state) {
+        if (state is FetchSimilarPropertiesSuccess) {
+          if (state.properties.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          if (widget.property?.requestStatus.toString() == 'pending' ||
+              widget.property?.requestStatus.toString() == 'rejected') {
+            return const SizedBox.shrink();
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CustomText(
+                UiUtils.translate(context, 'similarProperties'),
+                fontWeight: FontWeight.w600,
+                fontSize: context.font.large,
+                color: context.color.textColorDark,
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 390,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: state.properties.length,
+                  itemBuilder: (context, index) {
+                    return BlocProvider(
+                      create: (context) {
+                        return AddToFavoriteCubitCubit();
+                      },
+                      child: Container(
+                        width: context.screenWidth * 0.75,
+                        margin: const EdgeInsetsDirectional.only(end: 15),
+                        child: PropertyCardBig(
+                          key: UniqueKey(),
+                          showEndPadding: true,
+                          isFromCompare: true,
+                          isFirst: index == 0,
+                          property: state.properties[index],
+                          sourceProperty: property,
+                          onLikeChange: (type) {
+                            if (type == FavoriteType.add) {
+                              context
+                                  .read<FetchFavoritesCubit>()
+                                  .add(state.properties[index]);
+                            } else {
+                              context
+                                  .read<FetchFavoritesCubit>()
+                                  .remove(state.properties[index].id);
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 
@@ -1597,14 +1516,72 @@ class PropertyDetailsState extends State<PropertyDetails>
     );
   }
 
+  Widget buildMapContainer() {
+    return SizedBox(
+      height: 175,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/map.png',
+              fit: BoxFit.cover,
+            ),
+            Center(
+              child: MaterialButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute<dynamic>(
+                      builder: (context) {
+                        return Scaffold(
+                          extendBodyBehindAppBar: true,
+                          backgroundColor: context.color.primaryColor,
+                          appBar: AppBar(
+                            elevation: 0,
+                            iconTheme: IconThemeData(
+                              color: context.color.tertiaryColor,
+                            ),
+                            backgroundColor: Colors.transparent,
+                          ),
+                          body: GoogleMapScreen(
+                            latitude: double.parse(
+                              property?.latitude ?? '0',
+                            ),
+                            longitude: double.parse(
+                              property?.longitude ?? '0',
+                            ),
+                            kInitialPlace: _kInitialPlace,
+                            controller: _controller,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    5,
+                  ),
+                ),
+                color: context.color.tertiaryColor,
+                elevation: 0,
+                child: CustomText(
+                  'viewMap'.translate(
+                    context,
+                  ),
+                  color: context.color.buttonColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildEnableDisableSwitch() {
-    final state = context.read<ChangePropertyStatusCubit>().state;
-    final successState = context.read<ChangePropertyStatusCubit>().state
-        is ChangePropertyStatusSuccess;
-    final failureState = context.read<ChangePropertyStatusCubit>().state
-        is ChangePropertyStatusFailure;
-    final progressState = context.read<ChangePropertyStatusCubit>().state
-        is ChangePropertyStatusInProgress;
     return Column(
       children: [
         Row(
@@ -1619,42 +1596,72 @@ class PropertyDetailsState extends State<PropertyDetails>
             ValueListenableBuilder(
               valueListenable: isEnabled,
               builder: (context, value, child) {
-                return child!;
-              },
-              child: IgnorePointer(
-                ignoring: progressState,
-                child: CupertinoSwitch(
+                return CupertinoSwitch(
                   activeTrackColor: context.color.tertiaryColor,
-                  value: isEnabled.value,
-                  onChanged: (value) async {
-                    if (progressState) return;
-                    final status = isEnabled.value == false ? 1 : 0;
-                    await context
-                        .read<ChangePropertyStatusCubit>()
-                        .enableProperty(
-                          propertyId: property!.id!,
-                          status: status,
-                        );
-                    if (successState) {
-                      setState(() {
-                        isEnabled.value = value;
-                      });
-                    } else if (failureState) {
-                      final errorMessage =
-                          (state as ChangePropertyStatusFailure)
-                                  .error
-                                  .contains('429')
-                              ? 'tooManyRequestsPleaseWait'.translate(context)
-                              : state.error;
-                      await HelperUtils.showSnackBarMessage(
-                        context,
-                        errorMessage,
-                        type: MessageType.success,
-                      );
-                    }
-                  },
-                ),
-              ),
+                  value: value,
+                  onChanged: property?.requestStatus.toString() == 'pending'
+                      ? null
+                      : (newValue) async {
+                          // Get current state to check if we're already in progress
+                          final cubit =
+                              context.read<ChangePropertyStatusCubit>();
+                          final currentState = cubit.state;
+
+                          if (currentState is ChangePropertyStatusInProgress) {
+                            return;
+                          }
+
+                          final status = value == false ? 1 : 0;
+
+                          // Update UI immediately for responsive feedback
+                          setState(() {
+                            isEnabled.value = newValue;
+                          });
+
+                          try {
+                            // Make API call
+                            await cubit.enableProperty(
+                              propertyId: property!.id!,
+                              status: status,
+                            );
+
+                            // Listen for state changes after API call completes
+                            final newState = cubit.state;
+
+                            if (newState is ChangePropertyStatusFailure) {
+                              // If API failed, revert the UI change
+                              setState(() {
+                                isEnabled.value = !newValue;
+                              });
+
+                              final errorMessage =
+                                  newState.error.contains('429')
+                                      ? 'tooManyRequestsPleaseWait'
+                                          .translate(context)
+                                      : newState.error;
+
+                              await HelperUtils.showSnackBarMessage(
+                                context,
+                                errorMessage,
+                                type: MessageType.error,
+                              );
+                            }
+                            // Success state is already reflected in UI
+                          } catch (e) {
+                            // Handle unexpected errors
+                            setState(() {
+                              isEnabled.value = !newValue;
+                            });
+
+                            await HelperUtils.showSnackBarMessage(
+                              context,
+                              'somethingWentWrong'.translate(context),
+                              type: MessageType.error,
+                            );
+                          }
+                        },
+                );
+              },
             ),
           ],
         ),
@@ -1691,85 +1698,111 @@ class PropertyDetailsState extends State<PropertyDetails>
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            margin: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: context.color.tertiaryColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            height: 50,
-            width: 50,
-            child: UiUtils.getSvg(
-              AppIcons.calculator,
-              color: Colors.white,
-              width: 40,
-              height: 40,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: context.color.tertiaryColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                height: 50,
+                width: 50,
+                child: UiUtils.getSvg(
+                  AppIcons.calculator,
+                  color: Colors.white,
+                  width: 40,
+                  height: 40,
+                ),
+              ),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText(
+                      'calculateMortgage'.translate(context),
+                      color: context.color.tertiaryColor,
+                      fontSize: context.font.large,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    const SizedBox(
+                      height: 5,
+                    ),
+                    CustomText(
+                      'tryMortgageCalculator'.translate(context),
+                      color:
+                          context.color.inverseSurface.withValues(alpha: 0.6),
+                      fontSize: context.font.small,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CustomText(
-                  'calculateMortgage'.translate(context),
-                  color: context.color.tertiaryColor,
-                  fontSize: context.font.large,
-                  fontWeight: FontWeight.w900,
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                CustomText(
-                  'tryMortgageCalculator'.translate(context),
-                  color: context.color.inverseSurface.withValues(alpha: 0.6),
-                  fontSize: context.font.small,
-                ),
-              ],
+            child: UiUtils.buildButton(
+              context,
+              padding: const EdgeInsetsDirectional.only(end: 10, start: 10),
+              outerPadding:
+                  const EdgeInsetsDirectional.only(start: 10, end: 10),
+              height: 30,
+              showElevation: false,
+              buttonColor: Colors.transparent,
+              border: BorderSide(
+                color: context.color.tertiaryColor,
+              ),
+              onPressed: () async {
+                try {
+                  final checkPackage = CheckPackage();
+                  final packageAvailable =
+                      await checkPackage.checkPackageAvailable(
+                    packageType: PackageType.mortgageCalculatorDetail,
+                  );
+                  if (packageAvailable) {
+                    await showModalBottomSheet<dynamic>(
+                      sheetAnimationStyle: AnimationStyle(
+                        duration: const Duration(milliseconds: 500),
+                        reverseDuration: const Duration(milliseconds: 200),
+                      ),
+                      showDragHandle: true,
+                      backgroundColor: context.color.secondaryColor,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      context: context,
+                      builder: (context) => Padding(
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).viewInsets.bottom,
+                        ),
+                        child: MortgageCalculator(property: widget.property!),
+                      ),
+                    );
+                  } else {
+                    await UiUtils.showBlurredDialoge(
+                      context,
+                      dialog: const BlurredSubscriptionDialogBox(
+                        packageType:
+                            SubscriptionPackageType.mortgageCalculatorDetail,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  log(e.toString());
+                }
+              },
+              buttonTitle: 'tryNow'.translate(context),
+              textColor: context.color.tertiaryColor,
+              fontSize: 14,
+              radius: 5,
             ),
-          ),
-          const SizedBox(
-            width: 10,
-          ),
-          UiUtils.buildButton(
-            context,
-            padding: const EdgeInsetsDirectional.only(end: 10, start: 10),
-            outerPadding: const EdgeInsetsDirectional.only(start: 10, end: 10),
-            height: 30,
-            width: MediaQuery.of(context).size.width * 0.1,
-            showElevation: false,
-            buttonColor: Colors.transparent,
-            border: BorderSide(
-              color: context.color.tertiaryColor,
-            ),
-            onPressed: () async {
-              await showModalBottomSheet<dynamic>(
-                sheetAnimationStyle: AnimationStyle(
-                  duration: const Duration(milliseconds: 500),
-                  reverseDuration: const Duration(milliseconds: 200),
-                ),
-                showDragHandle: true,
-                isScrollControlled: true,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                ),
-                context: context,
-                builder: (context) => Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: MortgageCalculator(property: widget.property!),
-                ),
-              );
-            },
-            buttonTitle: 'tryNow'.translate(context),
-            textColor: context.color.tertiaryColor,
-            fontSize: 14,
-            radius: 5,
           ),
         ],
       ),
@@ -1799,7 +1832,8 @@ class PropertyDetailsState extends State<PropertyDetails>
             const SizedBox(
               width: 4,
             ),
-            if (property?.promoted == true && property?.promoted != null) ...[
+            if ((property?.promoted ?? false) &&
+                property?.promoted != null) ...[
               Container(
                 width: 83,
                 height: 28,
@@ -1822,6 +1856,40 @@ class PropertyDetailsState extends State<PropertyDetails>
     );
   }
 
+  Widget myPropertyButton({
+    required Function() onPressed,
+    required String title,
+    required String icon,
+    required bool disabled,
+  }) {
+    return Expanded(
+      child: UiUtils.buildButton(
+        context,
+        height: 45.rh(context),
+        disabled: disabled,
+        outerPadding: const EdgeInsets.all(
+          1,
+        ),
+        onPressed: onPressed,
+        prefixWidget: Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: SvgPicture.asset(
+            icon,
+            width: 20,
+            height: 20,
+            colorFilter: ColorFilter.mode(
+              context.color.buttonColor,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+        fontSize: context.font.normal,
+        width: context.screenWidth / 3,
+        buttonTitle: title,
+      ),
+    );
+  }
+
   Widget bottomNavBar() {
     /// IF property is added by current user then it will show promote button
     if (!HiveUtils.isGuest()) {
@@ -1829,348 +1897,292 @@ class PropertyDetailsState extends State<PropertyDetails>
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: SizedBox(
-            height: 65.rh(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child:
-                  BlocBuilder<FetchMyPropertiesCubit, FetchMyPropertiesState>(
-                builder: (context, state) {
-                  PropertyModel? model;
+            height: 45.rh(context),
+            child: BlocBuilder<FetchMyPropertiesCubit, FetchMyPropertiesState>(
+              builder: (context, state) {
+                PropertyModel? model;
 
-                  if (state is FetchMyPropertiesSuccess) {
-                    model = state.myProperty
-                        .where((element) => element.id == property?.id)
-                        .first;
-                  }
+                if (state is FetchMyPropertiesSuccess) {
+                  model = state.myProperty
+                      .where((element) => element.id == property?.id)
+                      .first;
+                }
 
-                  model ??= widget.property;
+                model ??= widget.property;
 
-                  final isFeatureAvailable = model?.isFeatureAvailable;
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!HiveUtils.isGuest() &&
-                          Constant.isDemoModeOn != true) ...[
-                        if (isFeatureAvailable ?? false) ...[
-                          BlocBuilder<GetSubsctiptionPackageLimitsCubit,
-                              GetSubscriptionPackageLimitsState>(
-                            builder: (context, state) {
-                              final isLoading = context
-                                      .read<GetSubsctiptionPackageLimitsCubit>()
-                                      .state
-                                  is GetSubscriptionPackageLimitsInProgress;
-                              return Expanded(
-                                child: UiUtils.buildButton(
-                                  context,
-                                  disabled:
-                                      property?.status.toString() == '0' ||
-                                          property?.advertisementStatus
-                                                  .toString() ==
-                                              '1',
-                                  outerPadding: const EdgeInsets.all(
-                                    1,
-                                  ),
-                                  onPressed: () async {
-                                    await context
-                                        .read<
-                                            GetSubsctiptionPackageLimitsCubit>()
-                                        .getLimits(
-                                          packageType: 'property_feature',
-                                        );
-                                    if (state
-                                        is GetSubsctiptionPackageLimitsFailure) {
-                                      await UiUtils.showBlurredDialoge(
-                                        context,
-                                        dialoge:
-                                            const BlurredSubscriptionDialogBox(
-                                          packageType: SubscriptionPackageType
-                                              .propertyFeature,
-                                          isAcceptContainesPush: true,
+                final isFeatureAvailable = model?.isFeatureAvailable;
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!HiveUtils.isGuest() &&
+                        Constant.isDemoModeOn != true) ...[
+                      if (isFeatureAvailable ?? false) ...[
+                        BlocBuilder<GetSubsctiptionPackageLimitsCubit,
+                            GetSubscriptionPackageLimitsState>(
+                          builder: (context, state) {
+                            return myPropertyButton(
+                              disabled: property?.status.toString() == '0' ||
+                                  property?.advertisementStatus.toString() ==
+                                      '1',
+                              onPressed: () async {
+                                await context
+                                    .read<GetSubsctiptionPackageLimitsCubit>()
+                                    .getLimits(
+                                      packageType: 'property_feature',
+                                    );
+                                if (state
+                                    is GetSubsctiptionPackageLimitsFailure) {
+                                  await UiUtils.showBlurredDialoge(
+                                    context,
+                                    dialog: const BlurredSubscriptionDialogBox(
+                                      packageType: SubscriptionPackageType
+                                          .propertyFeature,
+                                      isAcceptContainesPush: true,
+                                    ),
+                                  );
+                                } else if (state
+                                    is GetSubscriptionPackageLimitsSuccess) {
+                                  if (state.error) {
+                                    await UiUtils.showBlurredDialoge(
+                                      context,
+                                      dialog: BlurredDialogBox(
+                                        title: state.message.firstUpperCase(),
+                                        isAcceptContainesPush: true,
+                                        onAccept: () async {
+                                          await Navigator.popAndPushNamed(
+                                            context,
+                                            Routes.subscriptionPackageListRoute,
+                                            arguments: {
+                                              'from': 'propertyDetails',
+                                              'isBankTransferEnabled': (context
+                                                              .read<
+                                                                  GetApiKeysCubit>()
+                                                              .state
+                                                          as GetApiKeysSuccess)
+                                                      .bankTransferStatus ==
+                                                  '1',
+                                            },
+                                          );
+                                        },
+                                        content: CustomText(
+                                          'yourPackageLimitOver'
+                                              .translate(context),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    try {
+                                      await showDialog<dynamic>(
+                                        context: context,
+                                        builder: (context) =>
+                                            CreateAdvertisementPopup(
+                                          property: property!,
+                                          isProject: false,
+                                          project: ProjectModel(),
                                         ),
                                       );
-                                    } else if (state
-                                        is GetSubscriptionPackageLimitsSuccess) {
-                                      if (state.error) {
-                                        await UiUtils.showBlurredDialoge(
-                                          context,
-                                          dialoge: BlurredDialogBox(
-                                            title:
-                                                state.message.firstUpperCase(),
-                                            isAcceptContainesPush: true,
-                                            onAccept: () async {
-                                              await Navigator.popAndPushNamed(
-                                                context,
-                                                Routes
-                                                    .subscriptionPackageListRoute,
-                                                arguments: {
-                                                  'from': 'propertyDetails',
-                                                },
-                                              );
-                                            },
-                                            content: CustomText(
-                                              'yourPackageLimitOver'
-                                                  .translate(context),
-                                            ),
-                                          ),
-                                        );
-                                      } else {
-                                        try {
-                                          await Navigator.pushNamed(
-                                            context,
-                                            Routes.createAdvertismentPopupRoute,
-                                            arguments: {
-                                              'propertyData': property,
-                                            },
-                                          ).then(
-                                            (value) {
-                                              setState(() {});
-                                            },
-                                          );
-                                        } catch (e) {
-                                          await HelperUtils.showSnackBarMessage(
-                                            context,
-                                            e.toString(),
-                                          );
-                                        }
-                                      }
-                                    }
-                                  },
-                                  prefixWidget: Padding(
-                                    padding: const EdgeInsets.only(right: 6),
-                                    child: isLoading
-                                        ? Center(
-                                            child: UiUtils.progress(
-                                              showWhite: true,
-                                              height: 14,
-                                            ),
-                                          )
-                                        : SvgPicture.asset(
-                                            AppIcons.promoted,
-                                            width: 14,
-                                            height: 14,
-                                          ),
-                                  ),
-                                  fontSize: context.font.normal,
-                                  width: context.screenWidth / 3,
-                                  buttonTitle: isLoading
-                                      ? ''
-                                      : UiUtils.translate(context, 'feature'),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(
-                            width: 8,
-                          ),
-                        ],
-                      ],
-                      Expanded(
-                        child: UiUtils.buildButton(
-                          context,
-                          padding: const EdgeInsets.symmetric(horizontal: 1),
-                          outerPadding: const EdgeInsets.all(1),
-                          onPressed: () async {
-                            try {
-                              if (AppSettings.isVerificationRequired == true &&
-                                  isProfileCompleted != true) {
-                                await UiUtils.showBlurredDialoge(
-                                  context,
-                                  dialoge: BlurredDialogBox(
-                                    title: 'completeProfile'.translate(context),
-                                    isAcceptContainesPush: true,
-                                    onAccept: () async {
-                                      await Navigator.popAndPushNamed(
+                                    } catch (e) {
+                                      await HelperUtils.showSnackBarMessage(
                                         context,
-                                        Routes.completeProfile,
-                                        arguments: {
-                                          'from': 'home',
-                                          'navigateToHome': true,
-                                        },
+                                        e.toString(),
                                       );
-                                    },
-                                    content: CustomText(
-                                      'completeProfileFirst'.translate(context),
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-                              unawaited(Widgets.showLoader(context));
-                              final checkPackage = CheckPackage();
-                              final packageAvailable =
-                                  await checkPackage.checkPackageAvailable(
-                                packageType: PackageType.propertyList,
-                              );
-                              if (packageAvailable) {
-                                final category = await context
-                                    .read<FetchCategoryCubit>()
-                                    .get(
-                                      property!.category!.id!,
-                                    );
-                                final parameterIds = category.parameterTypes;
-                                final mappedParameters =
-                                    parameterIds?.map((dynamic id) {
-                                  // Find index of parameter in property parameters list
-                                  final index =
-                                      property?.parameters?.indexWhere(
-                                            (element) => element.id == id['id'],
-                                          ) ??
-                                          -1;
-
-                                  // If parameter found, return it; otherwise, return the original value
-                                  return index != -1
-                                      ? property!.parameters![index]
-                                      : id;
-                                }).toList();
-                                Constant.addProperty.addAll({
-                                  'category': Category(
-                                    category: property?.category!.category,
-                                    id: property?.category?.id,
-                                    image: property?.category?.image,
-                                    parameterTypes: mappedParameters,
-                                  ),
-                                });
-                                Widgets.hideLoder(context);
-                                await Navigator.pushNamed(
+                                    }
+                                  }
+                                }
+                              },
+                              icon: AppIcons.promoted,
+                              title: UiUtils.translate(context, 'feature'),
+                            );
+                          },
+                        ),
+                        const SizedBox(
+                          width: 8,
+                        ),
+                      ],
+                    ],
+                    myPropertyButton(
+                      disabled: false,
+                      icon: AppIcons.edit,
+                      onPressed: () async {
+                        if (Constant.isDemoModeOn) {
+                          await HelperUtils.showSnackBarMessage(
+                            context,
+                            'Not valid in demo mode',
+                          );
+                          return;
+                        }
+                        unawaited(Widgets.showLoader(context));
+                        if (AppSettings.isVerificationRequired == true &&
+                            isProfileCompleted != true) {
+                          await UiUtils.showBlurredDialoge(
+                            context,
+                            dialog: BlurredDialogBox(
+                              title: 'completeProfile'.translate(context),
+                              isAcceptContainesPush: true,
+                              onAccept: () async {
+                                await Navigator.popAndPushNamed(
                                   context,
-                                  Routes.addPropertyDetailsScreen,
+                                  Routes.completeProfile,
                                   arguments: {
-                                    'properties': property?.toMap(),
-                                    'details': {
-                                      'id': property?.id,
-                                      'catId': property?.category?.id,
-                                      'propType': property?.properyType,
-                                      'name': property?.title,
-                                      'desc': property?.description,
-                                      'city': property?.city,
-                                      'state': property?.state,
-                                      'country': property?.country,
-                                      'latitude': property?.latitude,
-                                      'longitude': property?.longitude,
-                                      'address': property?.address,
-                                      'client': property?.clientAddress,
-                                      'price': property?.price,
-                                      'parms': property?.parameters,
-                                      'allPropData': property?.allPropData,
-                                      'images': property?.gallery
-                                          ?.map((e) => e.imageUrl)
-                                          .toList(),
-                                      'gallary_with_id': property?.gallery,
-                                      'rentduration': property?.rentduration,
-                                      'assign_facilities':
-                                          property?.assignedOutdoorFacility,
-                                      'titleImage': property?.titleImage,
-                                      'slug_id': property?.slugId,
-                                      'three_d_image': property?.threeDImage,
-                                    },
+                                    'from': 'home',
+                                    'navigateToHome': true,
                                   },
                                 );
-                              } else {
-                                Widgets.hideLoder(context);
-                                await UiUtils.showBlurredDialoge(
-                                  context,
-                                  dialoge: const BlurredSubscriptionDialogBox(
-                                    packageType:
-                                        SubscriptionPackageType.propertyList,
-                                    isAcceptContainesPush: true,
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              Widgets.hideLoder(context);
-                              await HelperUtils.showSnackBarMessage(
-                                context,
-                                'somethingWentWrng'.translate(context),
-                              );
-                            } finally {
-                              Widgets.hideLoder(context);
-                            }
-                          },
-                          fontSize: context.font.normal,
-                          width: context.screenWidth / 3,
-                          prefixWidget: Padding(
-                            padding: const EdgeInsets.only(right: 6, left: 6),
-                            child: SvgPicture.asset(AppIcons.edit),
-                          ),
-                          buttonTitle: UiUtils.translate(context, 'edit'),
-                        ),
-                      ),
-                      const SizedBox(
-                        width: 8,
-                      ),
-                      Expanded(
-                        child: UiUtils.buildButton(
-                          context,
-                          padding: const EdgeInsets.symmetric(horizontal: 1),
-                          outerPadding: const EdgeInsets.all(1),
-                          prefixWidget: Padding(
-                            padding: const EdgeInsets.only(right: 6, left: 6),
-                            child: SvgPicture.asset(
-                              AppIcons.delete,
-                              colorFilter: ColorFilter.mode(
-                                context.color.buttonColor,
-                                BlendMode.srcIn,
+                              },
+                              content: CustomText(
+                                'completeProfileFirst'.translate(context),
                               ),
-                              width: 14,
-                              height: 14,
+                            ),
+                          );
+                          Widgets.hideLoder(context);
+                          return;
+                        }
+                        try {
+                          // final checkPackage = CheckPackage();
+                          // final packageAvailable =
+                          //     await checkPackage.checkPackageAvailable(
+                          //   packageType: PackageType.propertyList,
+                          // );
+                          final category =
+                              await context.read<FetchCategoryCubit>().get(
+                                    property!.category!.id!,
+                                  );
+                          // if (packageAvailable) {
+                          final parameterIds = category.parameterTypes;
+                          final mappedParameters = parameterIds?.map((id) {
+                            // Find index of parameter in property parameters list
+                            final index = property?.parameters?.indexWhere(
+                                  (element) => element.id == id['id'],
+                                ) ??
+                                -1;
+
+                            // If parameter found, return it; otherwise, return the original value
+                            return index != -1
+                                ? property!.parameters![index]
+                                : id;
+                          }).toList();
+                          Constant.addProperty.addAll({
+                            'category': Category(
+                              category: property?.category!.category,
+                              id: property?.category?.id,
+                              image: property?.category?.image,
+                              parameterTypes: mappedParameters,
+                            ),
+                          });
+                          Widgets.hideLoder(context);
+
+                          await Navigator.pushNamed(
+                            context,
+                            Routes.addPropertyDetailsScreen,
+                            arguments: {
+                              'properties': property?.toMap(),
+                              'details': {
+                                'id': property?.id,
+                                'catId': property?.category?.id,
+                                'propType': property?.properyType,
+                                'name': property?.title,
+                                'desc': property?.description,
+                                'city': property?.city,
+                                'state': property?.state,
+                                'country': property?.country,
+                                'latitude': property?.latitude,
+                                'longitude': property?.longitude,
+                                'address': property?.address,
+                                'client': property?.clientAddress,
+                                'price': property?.price,
+                                'parms': property?.parameters,
+                                'allPropData': property?.allPropData,
+                                'images': property?.gallery
+                                    ?.map((e) => e.imageUrl)
+                                    .toList(),
+                                'gallary_with_id': property?.gallery,
+                                'rentduration': property?.rentduration,
+                                'assign_facilities':
+                                    property?.assignedOutdoorFacility,
+                                'titleImage': property?.titleImage,
+                                'slug_id': property?.slugId,
+                                'three_d_image': property?.threeDImage,
+                              },
+                            },
+                          );
+                          // } else {
+                          //   Widgets.hideLoder(context);
+                          //   await UiUtils.showBlurredDialoge(
+                          //     context,
+                          //     dialog: const BlurredSubscriptionDialogBox(
+                          //       packageType:
+                          //           SubscriptionPackageType.propertyList,
+                          //       isAcceptContainesPush: true,
+                          //     ),
+                          //   );
+                          // }
+                        } catch (e) {
+                          Widgets.hideLoder(context);
+                        } finally {
+                          Widgets.hideLoder(context);
+                        }
+                      },
+                      title: UiUtils.translate(context, 'edit'),
+                    ),
+                    const SizedBox(
+                      width: 8,
+                    ),
+                    myPropertyButton(
+                      icon: AppIcons.delete,
+                      disabled: false,
+                      onPressed: () async {
+                        // //THIS IS FOR DEMO MODE
+                        final isPropertyActive =
+                            property?.status.toString() == '1';
+
+                        final isDemoNumber = HiveUtils.getUserDetails()
+                                .mobile ==
+                            '${Constant.demoCountryCode}${Constant.demoMobileNumber}';
+
+                        if (Constant.isDemoModeOn &&
+                            isPropertyActive &&
+                            isDemoNumber) {
+                          await HelperUtils.showSnackBarMessage(
+                            context,
+                            'Active property cannot be deleted in demo app.',
+                          );
+
+                          return;
+                        }
+
+                        final delete = await UiUtils.showBlurredDialoge(
+                          context,
+                          dialog: BlurredDialogBox(
+                            title: UiUtils.translate(
+                              context,
+                              'deleteBtnLbl',
+                            ),
+                            content: CustomText(
+                              UiUtils.translate(
+                                context,
+                                'deletepropertywarning',
+                              ),
+                              maxLines: 5,
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                          onPressed: () async {
-                            // //THIS IS FOR DEMO MODE
-                            final isPropertyActive =
-                                property?.status.toString() == '1';
-
-                            final isDemoNumber = HiveUtils.getUserDetails()
-                                    .mobile ==
-                                '${Constant.demoCountryCode}${Constant.demoMobileNumber}';
-
-                            if (Constant.isDemoModeOn &&
-                                isPropertyActive &&
-                                isDemoNumber) {
-                              await HelperUtils.showSnackBarMessage(
-                                context,
-                                'Active property cannot be deleted in demo app.',
-                              );
-
-                              return;
-                            }
-
-                            final delete = await UiUtils.showBlurredDialoge(
-                              context,
-                              dialoge: BlurredDialogBox(
-                                title: UiUtils.translate(
-                                  context,
-                                  'deleteBtnLbl',
-                                ),
-                                content: CustomText(
-                                  UiUtils.translate(
-                                    context,
-                                    'deletepropertywarning',
-                                  ),
-                                ),
-                              ),
-                            );
-                            if (delete == true) {
-                              Future.delayed(
-                                Duration.zero,
-                                () {
-                                  context.read<DeletePropertyCubit>().delete(
-                                        property!.id!,
-                                      );
-                                },
-                              );
-                            }
-                          },
-                          fontSize: context.font.normal,
-                          width: context.screenWidth / 3.2,
-                          buttonTitle:
-                              UiUtils.translate(context, 'deleteBtnLbl'),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+                        );
+                        if (delete == true) {
+                          Future.delayed(
+                            Duration.zero,
+                            () {
+                              context.read<DeletePropertyCubit>().delete(
+                                    property!.id!,
+                                  );
+                            },
+                          );
+                        }
+                      },
+                      title: UiUtils.translate(context, 'deleteBtnLbl'),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         );
@@ -2283,7 +2295,7 @@ class PropertyDetailsState extends State<PropertyDetails>
       fontSize: context.font.large,
       outerPadding: const EdgeInsets.all(1),
       buttonTitle: UiUtils.translate(context, 'call'),
-      width: 35,
+      height: 45.rh(context),
       onPressed: _onTapCall,
       prefixWidget: Container(
         margin: const EdgeInsets.only(right: 3, left: 3),
@@ -2302,7 +2314,7 @@ class PropertyDetailsState extends State<PropertyDetails>
       fontSize: context.font.large,
       outerPadding: const EdgeInsets.all(1),
       buttonTitle: UiUtils.translate(context, 'sms'),
-      width: 35,
+      height: 45.rh(context),
       onPressed: _onTapMessage,
       prefixWidget: SizedBox(
         width: 20,
@@ -2324,7 +2336,7 @@ class PropertyDetailsState extends State<PropertyDetails>
       fontSize: context.font.large,
       outerPadding: const EdgeInsets.all(1),
       buttonTitle: UiUtils.translate(context, 'chat'),
-      width: 35,
+      height: 45.rh(context),
       onPressed: _onTapChat,
       prefixWidget: SizedBox(
         width: 22,
@@ -2339,35 +2351,9 @@ class PropertyDetailsState extends State<PropertyDetails>
   }
 
   Future<void> _onTapCall() async {
-    if (isPremiumProperty && !isPremiumUser) {
-      GuestChecker.check(
-        onNotGuest: () async {
-          await UiUtils.showBlurredDialoge(
-            context,
-            dialoge: BlurredDialogBox(
-              title: 'Subscription needed',
-              isAcceptContainesPush: true,
-              onAccept: () async {
-                await Navigator.popAndPushNamed(
-                  context,
-                  Routes.subscriptionPackageListRoute,
-                  arguments: {'from': 'propertyDetails'},
-                );
-              },
-              content: CustomText(
-                'subscribeToUseThisFeature'.translate(context),
-              ),
-            ),
-          );
-          return;
-        },
-      );
-      return;
-    }
-
     final contactNumber = widget.property?.customerNumber;
 
-    final url = Uri.parse('tel: +$contactNumber'); //{contactNumber.data}
+    final url = Uri.parse('tel: $contactNumber'); //{contactNumber.data}
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
@@ -2376,32 +2362,6 @@ class PropertyDetailsState extends State<PropertyDetails>
   }
 
   Future<void> _onTapMessage() async {
-    if (isPremiumProperty && !isPremiumUser) {
-      GuestChecker.check(
-        onNotGuest: () async {
-          await UiUtils.showBlurredDialoge(
-            context,
-            dialoge: BlurredDialogBox(
-              title: 'Subscription needed',
-              isAcceptContainesPush: true,
-              onAccept: () async {
-                await Navigator.popAndPushNamed(
-                  context,
-                  Routes.subscriptionPackageListRoute,
-                  arguments: {'from': 'propertyDetails'},
-                );
-              },
-              content: CustomText(
-                'subscribeToUseThisFeature'.translate(context),
-              ),
-            ),
-          );
-          return;
-        },
-      );
-      return;
-    }
-
     final contactNumber = widget.property?.customerNumber;
 
     final url = Uri.parse('sms: +$contactNumber');
@@ -2414,17 +2374,14 @@ class PropertyDetailsState extends State<PropertyDetails>
 
   void _onTapChat() {
     CheckInternet.check(
-      onInternet: () {
-        GuestChecker.check(
+      onInternet: () async {
+        await GuestChecker.check(
           onNotGuest: () async {
             final chatState = context.read<GetChatListCubit>().state;
             if (chatState is GetChatListSuccess) {
-              // if (chatState.chatedUserList.isEmpty) {
-              //   return;
-              // }
               await Navigator.push(
                 context,
-                BlurredRouter(
+                CupertinoPageRoute<dynamic>(
                   builder: (context) {
                     return MultiBlocProvider(
                       providers: [
@@ -2438,7 +2395,7 @@ class PropertyDetailsState extends State<PropertyDetails>
                           create: (context) => DeleteMessageCubit(),
                         ),
                       ],
-                      child: ChatScreen(
+                      child: ChatScreenNew(
                         profilePicture: property?.customerProfile ?? '',
                         userName: property?.customerName ?? '',
                         propertyImage: property?.titleImage ?? '',
@@ -2469,545 +2426,6 @@ class PropertyDetailsState extends State<PropertyDetails>
           'noInternet'.translate(context),
         );
       },
-    );
-  }
-}
-
-class InterestedUserListWidget extends StatefulWidget {
-  const InterestedUserListWidget({
-    required this.totalCount,
-    required this.interestedUserCubitReference,
-    super.key,
-  });
-
-  final String totalCount;
-  final GetInterestedUserCubit interestedUserCubitReference;
-
-  @override
-  State<InterestedUserListWidget> createState() =>
-      _InterestedUserListWidgetState();
-}
-
-class _InterestedUserListWidgetState extends State<InterestedUserListWidget> {
-  final ScrollController _bottomSheetScrollController = ScrollController();
-
-  @override
-  void initState() {
-    _bottomSheetScrollController.addListener(() {
-      if (_bottomSheetScrollController.isEndReached()) {
-        if (widget.interestedUserCubitReference.hasMoreData()) {
-          widget.interestedUserCubitReference.fetchMore();
-        }
-      }
-    });
-
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SingleChildScrollView(
-        physics: Constant.scrollPhysics,
-        controller: _bottomSheetScrollController,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: CustomText(
-                'interestedUsers'.translate(context),
-                fontWeight: FontWeight.bold,
-                fontSize: context.font.larger,
-              ),
-            ),
-            BlocBuilder<GetInterestedUserCubit, GetInterestedUserState>(
-              bloc: widget.interestedUserCubitReference,
-              builder: (context, state) {
-                if (state is GetInterestedUserInProgress) {
-                  return Center(child: UiUtils.progress());
-                }
-
-                if (state is GetInterestedUserSuccess) {
-                  if (state.list.isEmpty) {
-                    return const Center(
-                      child: CustomText('No data found'),
-                    );
-                  }
-                  return ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final interestedUser = state.list[index];
-
-                      return InterestedUserCard(
-                        interestedUser: interestedUser,
-                      );
-                    },
-                    itemCount: state.list.length,
-                    shrinkWrap: true,
-                  );
-                }
-                return Container();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class InterestedUserCard extends StatelessWidget {
-  const InterestedUserCard({
-    required this.interestedUser,
-    super.key,
-  });
-
-  final InterestedUserModel interestedUser;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          // CircleAvatar(radius: 25, backgroundImage: SvgPro),
-          Container(
-            width: 50,
-            height: 50,
-            clipBehavior: Clip.antiAlias,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              // color: Colors.red,
-            ),
-            child: UiUtils.getImage(interestedUser.image ?? ''),
-          ),
-          const SizedBox(
-            width: 10,
-          ),
-          Expanded(
-            flex: 3,
-            child: CustomText(interestedUser.name ?? ''),
-          ),
-          const SizedBox(
-            width: 10,
-          ),
-          const Spacer(),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed: () async {
-                  await launchUrl(
-                    Uri.parse('mailto:${interestedUser.email}'),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-                icon: Icon(
-                  Icons.email,
-                  color: context.color.tertiaryColor,
-                ),
-              ),
-              IconButton(
-                onPressed: () async {
-                  await launchUrl(
-                    Uri.parse('tel:${interestedUser.mobile}'),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-                color: context.color.tertiaryColor,
-                icon: const Icon(Icons.call),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class GoogleMapScreen extends StatefulWidget {
-  final double latitude;
-  final double longitude;
-
-  const GoogleMapScreen({
-    required this.latitude,
-    required this.longitude,
-    required CameraPosition kInitialPlace,
-    required Completer<GoogleMapController> controller,
-    super.key,
-  })  : _kInitialPlace = kInitialPlace,
-        _controller = controller;
-
-  final CameraPosition _kInitialPlace;
-  final Completer<GoogleMapController> _controller;
-
-  @override
-  State<GoogleMapScreen> createState() => _GoogleMapScreenState();
-}
-
-class _GoogleMapScreenState extends State<GoogleMapScreen> {
-  bool isGoogleMapVisible = false;
-
-  @override
-  void initState() {
-    Future.delayed(const Duration(milliseconds: 500), () {
-      isGoogleMapVisible = true;
-      setState(() {});
-    });
-
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        isGoogleMapVisible = false;
-        setState(() {});
-        await Future<void>.delayed(const Duration(milliseconds: 500));
-        Future.delayed(
-          Duration.zero,
-          () {
-            Navigator.pop(context);
-          },
-        );
-        return Future.value(false);
-      },
-      child: Builder(
-        builder: (context) {
-          if (!isGoogleMapVisible) {
-            return Center(child: UiUtils.progress());
-          }
-          return GoogleMap(
-            myLocationButtonEnabled: false,
-            gestureRecognizers: const <f.Factory<OneSequenceGestureRecognizer>>{
-              f.Factory<OneSequenceGestureRecognizer>(
-                EagerGestureRecognizer.new,
-              ),
-            },
-            markers: {
-              Marker(
-                markerId: const MarkerId('1'),
-                position: LatLng(widget.latitude, widget.longitude),
-              ),
-            },
-            initialCameraPosition: widget._kInitialPlace,
-            onMapCreated: (GoogleMapController controller) {
-              if (!widget._controller.isCompleted) {
-                widget._controller.complete(controller);
-              }
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class AgentProfileWidget extends StatelessWidget {
-  const AgentProfileWidget({
-    required this.widget,
-    super.key,
-  });
-
-  final PropertyDetails widget;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        GuestChecker.check(
-          onNotGuest: () async {
-            await context.read<FetchAgentsPropertyCubit>().fetchAgentsProperty(
-                  agentId: widget.property!.addedBy!,
-                  forceRefresh: true,
-                  isAdmin: widget.property!.addedBy!.toString() == '0',
-                );
-            final state = context.read<FetchAgentsPropertyCubit>().state;
-
-            if (state is FetchAgentsPropertySuccess) {
-              await Navigator.pushNamed(
-                context,
-                Routes.agentDetailsScreen,
-                arguments: {
-                  'agent': state.agentsProperty.customerData,
-                  'isAdmin': widget.property!.addedBy.toString() == '0',
-                },
-              );
-            } else {
-              if ((widget.property!.addedBy.toString() ==
-                      HiveUtils.getUserId()) &&
-                  state is FetchAgentsPropertySuccess) {
-                await Navigator.pushNamed(
-                  context,
-                  Routes.agentDetailsScreen,
-                  arguments: {
-                    'agent': state.agentsProperty.customerData,
-                    'isAdmin': widget.property!.addedBy.toString() == '0',
-                  },
-                );
-              } else {
-                await UiUtils.showBlurredDialoge(
-                  context,
-                  dialoge: BlurredDialogBox(
-                    title: 'Subscription needed',
-                    isAcceptContainesPush: true,
-                    onAccept: () async {
-                      await Navigator.popAndPushNamed(
-                        context,
-                        Routes.subscriptionPackageListRoute,
-                        arguments: {'from': 'home'},
-                      );
-                    },
-                    content: CustomText(
-                      'subscribeToUseThisFeature'.translate(context),
-                    ),
-                  ),
-                );
-              }
-            }
-          },
-        );
-      },
-      child: Row(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: UiUtils.getImage(
-              widget.property?.customerProfile ?? '',
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(
-            width: 10,
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: CustomText(
-                        widget.property?.customerName ?? '',
-                        fontWeight: FontWeight.bold,
-                        fontSize: context.font.large,
-                      ),
-                    ),
-                    if (widget.property?.isVerified ?? false)
-                      FittedBox(
-                        fit: BoxFit.none,
-                        child: UiUtils.getSvg(
-                          AppIcons.agentBadge,
-                          height: 24,
-                          width: 24,
-                          color: context.color.tertiaryColor,
-                        ),
-                      ),
-                  ],
-                ),
-                CustomText(widget.property?.customerEmail ?? ''),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class OutdoorFacilityListWidget extends StatelessWidget {
-  final List<AssignedOutdoorFacility> outdoorFacilityList;
-
-  const OutdoorFacilityListWidget({
-    required this.outdoorFacilityList,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
-      itemCount: outdoorFacilityList.length,
-      itemBuilder: (context, index) {
-        final facility = outdoorFacilityList[index];
-        final distanceOption = context
-            .read<FetchSystemSettingsCubit>()
-            .getSetting(SystemSetting.distanceOption);
-        return Column(
-          //crossAxisAlignment: getCrossAxisAlignment(columnIndex),
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    color: context.color.tertiaryColor.withValues(alpha: 0.2),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: UiUtils.imageType(
-                        facility.image ?? '',
-                        color: Constant.adaptThemeColorSvg
-                            ? context.color.tertiaryColor
-                            : null,
-                        // fit: BoxFit.cover,
-                        width: 20,
-                        height: 20,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                CustomText(
-                  facility.name ?? '',
-                  textAlign: TextAlign.start,
-                  maxLines: 2,
-                  fontSize: context.font.small,
-                  color: context.color.textColorDark,
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: CustomText(
-                        '${facility.distance ?? ''}  ',
-                        fontSize: context.font.small,
-                        color: context.color.inverseSurface,
-                        maxLines: 1,
-                      ),
-                    ),
-                    Flexible(
-                      child: CustomText(
-                        '$distanceOption'.firstUpperCase(),
-                        fontSize: context.font.small,
-                        color: context.color.inverseSurface,
-                        maxLines: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class DownloadableDocuments extends StatefulWidget {
-  const DownloadableDocuments({required this.url, super.key});
-  final String url;
-
-  @override
-  State<DownloadableDocuments> createState() => _DownloadableDocumentsState();
-}
-
-class _DownloadableDocumentsState extends State<DownloadableDocuments> {
-  bool downloaded = false;
-  Dio dio = Dio();
-  ValueNotifier<double> percentage = ValueNotifier(0);
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  Future<String?>? path() async {
-    final downloadPath = await HelperUtils.getDownloadPath();
-    return downloadPath;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final name = widget.url.split('/').last;
-    return ListTile(
-      dense: true,
-      title: CustomText(
-        name,
-        fontSize: context.font.large,
-        color: context.color.textColorDark.withValues(alpha: 0.9),
-      ),
-      trailing: ValueListenableBuilder(
-        valueListenable: percentage,
-        builder: (context, value, child) {
-          if (value != 0.0 && value != 1.0) {
-            return SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(
-                value: value,
-                color: context.color.tertiaryColor,
-              ),
-            );
-          }
-          if (downloaded) {
-            return IconButton(
-              padding: EdgeInsets.zero,
-              alignment: Alignment.centerRight,
-              splashRadius: 1,
-              icon: const Icon(Icons.file_open),
-              onPressed: () async {
-                final downloadPath = await path();
-
-                await OpenFilex.open('$downloadPath/$name');
-              },
-            );
-          }
-          return IconButton(
-            padding: EdgeInsets.zero,
-            alignment: Alignment.centerRight,
-            splashRadius: 1,
-            icon: const Icon(Icons.download),
-            onPressed: () async {
-              final downloadPath = await path();
-              final storagePermission =
-                  await HelperUtils.hasStoragePermissionGiven();
-              if (storagePermission) {
-                await dio.download(
-                  widget.url,
-                  '$downloadPath/$name',
-                  onReceiveProgress: (count, total) async {
-                    percentage.value = count / total;
-                    if (percentage.value == 1.0) {
-                      downloaded = true;
-                      setState(() {});
-                      await OpenFilex.open('$downloadPath/$name');
-                    }
-                  },
-                );
-              } else {
-                await HelperUtils.showSnackBarMessage(
-                  context,
-                  'Storage Permission denied!',
-                );
-              }
-            },
-          );
-        },
-      ),
     );
   }
 }

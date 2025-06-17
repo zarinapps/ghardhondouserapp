@@ -8,9 +8,9 @@ class SelectPropertyType extends StatefulWidget {
   const SelectPropertyType({required this.type, super.key});
   final PropertyAddType type;
 
-  static Route route(RouteSettings settings) {
+  static Route<dynamic> route(RouteSettings settings) {
     final arguments = settings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return SelectPropertyType(
           type: arguments?['type'] as PropertyAddType? ??
@@ -30,17 +30,6 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Widgets.showLoader(context);
-    });
-    Future.delayed(
-      const Duration(seconds: 2),
-      () {
-        context.read<GetSubsctiptionPackageLimitsCubit>().getLimits(
-              packageType: 'property_list',
-            );
-      },
-    );
     context.read<FetchOutdoorFacilityListCubit>().fetch();
   }
 
@@ -49,13 +38,16 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
     Navigator.pushNamed(
       context,
       Routes.subscriptionPackageListRoute,
+      arguments: {
+        'isBankTransferEnabled':
+            (context.read<GetApiKeysCubit>().state as GetApiKeysSuccess)
+                    .bankTransferStatus ==
+                '1',
+      },
     ).then((value) {
-      // Navigator.pop(context);
       context.read<GetSubsctiptionPackageLimitsCubit>().getLimits(
             packageType: 'property_list',
           );
-
-      // Navigator.pop(context);
     });
   }
 
@@ -120,9 +112,7 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
           GetSubscriptionPackageLimitsState>(
         bloc: context.read<GetSubsctiptionPackageLimitsCubit>(),
         listener: (context, state) {
-          if (state is GetSubscriptionPackageLimitsInProgress) {
-            Widgets.showLoader(context);
-          }
+          if (state is GetSubscriptionPackageLimitsInProgress) {}
           if (state is GetSubsctiptionPackageLimitsFailure) {
             Widgets.hideLoder(context);
             HelperUtils.showSnackBarMessage(
@@ -140,7 +130,7 @@ class _SelectPropertyTypeState extends State<SelectPropertyType> {
                 context,
                 sigmaX: 3,
                 sigmaY: 3,
-                dialoge: BlurredDialogBox(
+                dialog: BlurredDialogBox(
                   isAcceptContainesPush: true,
                   acceptButtonName: UiUtils.translate(context, 'subscribe'),
                   backAllowedButton: false,

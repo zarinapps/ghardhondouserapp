@@ -22,7 +22,7 @@ class CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsetsDirectional.only(
-        start: frontSpacing == true ? 5.0 : 0,
+        start: frontSpacing ?? false ? 5.0 : 0,
       ),
       child: GestureDetector(
         onTap: () {

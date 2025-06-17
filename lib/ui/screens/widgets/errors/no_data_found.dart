@@ -1,6 +1,7 @@
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
+import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -21,10 +22,14 @@ class NoDataFound extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            child: SvgPicture.asset(AppIcons.no_data_found),
+            child: SvgPicture.asset(
+              AppIcons.no_data_found,
+              height: height ?? MediaQuery.of(context).size.height * 0.35,
+            ),
           ),
           const SizedBox(
             height: 20,
@@ -50,17 +55,17 @@ class NoDataFound extends StatelessWidget {
             GestureDetector(
               onTap: onTap,
               child: SizedBox(
-                height: height ?? 50,
+                height: 50.rh(context),
                 child: Center(
                   child: CustomText(
                     'retry'.translate(context),
                     fontWeight: FontWeight.bold,
                     fontSize: context.font.normal,
-                    color: context.color.buttonColor,
+                    color: context.color.tertiaryColor,
                   ),
                 ),
               ),
-            )
+            ),
         ],
       ),
     );

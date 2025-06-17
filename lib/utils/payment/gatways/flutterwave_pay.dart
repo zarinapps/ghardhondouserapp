@@ -5,7 +5,6 @@ import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/payment/gatways/flutterwave.dart';
 import 'package:ebroker/utils/payment/lib/payment.dart';
 import 'package:ebroker/utils/payment/lib/purchase_package.dart';
-import 'package:flutter/material.dart';
 
 class Flutterwave extends Payment {
   SubscriptionPackageModel? _modal;
@@ -17,7 +16,7 @@ class Flutterwave extends Payment {
     isPaymentGatewayOpen = true;
     Navigator.push<dynamic>(
       context,
-      BlurredRouter(
+      CupertinoPageRoute(
         builder: (context) {
           return FlutterwaveWidget(
             pacakge: _modal!,

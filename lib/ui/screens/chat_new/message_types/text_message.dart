@@ -1,8 +1,8 @@
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/chat_new/message_types/blueprint.dart';
+import 'package:ebroker/ui/screens/chat_new/model.dart';
 import 'package:flutter/material.dart';
 
-class TextMessage extends Message {
+class TextMessage extends ChatMessage {
   TextMessage() {
     id = DateTime.now().toString();
   }
@@ -12,18 +12,18 @@ class TextMessage extends Message {
     if (isSentNow && isSentByMe && isSent == false) {
       context?.read<SendMessageCubit>().send(
             senderId: HiveUtils.getUserId().toString(),
-            recieverId: message!.receiverId!,
-            attachment: message?.file,
-            message: message!.message!,
-            proeprtyId: message!.propertyId!,
-            audio: message?.audio,
+            recieverId: receiverId ?? '0',
+            attachment: file,
+            message: message!,
+            proeprtyId: propertyId!,
+            audio: audio,
           );
     }
 
     ///if this message is not sent now so it will set id from server
-    if (isSentNow == false) {
-      id = message!.id!;
-    }
+    // if (isSentNow == false) {
+    //   id = id;
+    // }
 
     super.init();
   }
@@ -32,7 +32,7 @@ class TextMessage extends Message {
   Future<void> onRemove() async {
     await context!.read<DeleteMessageCubit>().delete(
           messageId: id,
-          receiverId: message!.receiverId!,
+          receiverId: receiverId!,
           senderId: '',
           propertyId: '',
         );
@@ -77,7 +77,7 @@ class TextMessage extends Message {
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: CustomText(
-                            message?.message ?? '',
+                            message ?? '',
                             fontSize: context.font.normal,
                             color: messageColor,
                           ),
@@ -130,6 +130,5 @@ class TextMessage extends Message {
     );
   }
 
-  @override
   String type = 'text';
 }

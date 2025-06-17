@@ -64,7 +64,7 @@ class FetchOutdoorFacilityListCubit
     }
   }
 
-  fillData(List<AssignedOutdoorFacility> facilities) {
+  void fillData(List<AssignedOutdoorFacility> facilities) {
     if (state is FetchOutdoorFacilityListSucess) {
       final newFacility = <OutdoorFacility>[];
 

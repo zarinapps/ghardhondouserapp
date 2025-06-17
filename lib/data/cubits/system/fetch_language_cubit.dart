@@ -14,7 +14,7 @@ class FetchLanguageInProgress extends FetchLanguageState {}
 class FetchLanguageSuccess extends FetchLanguageState {
   final String code;
   final String name;
-  final Map data;
+  final Map<dynamic, dynamic> data;
   final bool isRTL;
   FetchLanguageSuccess({
     required this.code,
@@ -37,7 +37,7 @@ class FetchLanguageSuccess extends FetchLanguageState {
       code: map['code'] as String,
       isRTL: int.parse(map['rtl'].toString()) == 1,
       name: map['name'] as String,
-      data: map['file_name'] as Map,
+      data: map['file_name'] as Map<dynamic, dynamic>,
     );
   }
 }

@@ -1,5 +1,5 @@
 class GlobalFormat {
-  final List _list = [];
+  final List<dynamic> _list = [];
 
   GlobalFormat build(
     String locale, {

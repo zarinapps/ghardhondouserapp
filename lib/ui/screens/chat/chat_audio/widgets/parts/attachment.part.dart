@@ -47,7 +47,7 @@ class _AttachmentMessageState extends State<AttachmentMessage> {
             await HelperUtils.showSnackBarMessage(
               context,
               UiUtils.translate(context, 'fileSavedIn'),
-              type: MessageType.success,
+              // type: MessageType.success,
             );
 
             await OpenFilex.open('$downloadPath/${getFileName()}');
@@ -60,7 +60,7 @@ class _AttachmentMessageState extends State<AttachmentMessage> {
       await HelperUtils.showSnackBarMessage(
         context,
         UiUtils.translate(context, 'errorFileSave'),
-        type: MessageType.success,
+        // type: MessageType.success,
       );
     }
   }
@@ -83,7 +83,7 @@ class _AttachmentMessageState extends State<AttachmentMessage> {
         await HelperUtils.showSnackBarMessage(
           context,
           UiUtils.translate(context, 'fileNotSaved'),
-          type: MessageType.success,
+          // type: MessageType.success,
         );
       }
     }

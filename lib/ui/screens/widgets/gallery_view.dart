@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:ebroker/utils/AdMob/interstitialAdManager.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
+import 'package:ebroker/utils/admob/interstitial_ad_manager.dart';
 import 'package:flutter/material.dart';
 
 class GalleryViewWidget extends StatefulWidget {
@@ -9,7 +9,7 @@ class GalleryViewWidget extends StatefulWidget {
     required this.initalIndex,
     super.key,
   });
-  final List images;
+  final List<dynamic> images;
   final int initalIndex;
 
   @override
@@ -17,7 +17,7 @@ class GalleryViewWidget extends StatefulWidget {
 }
 
 class _GalleryViewWidgetState extends State<GalleryViewWidget> {
-  List images = [];
+  List<dynamic> images = [];
   late PageController controller =
       PageController(initialPage: widget.initalIndex);
   late int page = widget.initalIndex;
@@ -46,7 +46,7 @@ class _GalleryViewWidgetState extends State<GalleryViewWidget> {
           backgroundColor: Colors.transparent,
           iconTheme: IconThemeData(color: context.color.tertiaryColor),
         ),
-        backgroundColor: const Color.fromARGB(17, 0, 0, 0),
+        backgroundColor: context.color.backgroundColor,
         body: PageView.builder(
           controller: controller,
           onPageChanged: (value) async {

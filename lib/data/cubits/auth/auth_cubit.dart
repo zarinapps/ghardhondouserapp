@@ -20,7 +20,7 @@ class AuthProgress extends AuthState {}
 class Unauthenticated extends AuthState {}
 
 class Authenticated extends AuthState {
-  Authenticated(this.isAuthenticated);
+  Authenticated({required this.isAuthenticated});
   bool isAuthenticated = false;
 }
 
@@ -37,13 +37,13 @@ class AuthCubit extends Cubit<AuthState> {
   void checkIsAuthenticated() {
     if (HiveUtils.isUserAuthenticated()) {
       //setUserData();
-      emit(Authenticated(true));
+      emit(Authenticated(isAuthenticated: true));
     } else {
       emit(Unauthenticated());
     }
   }
 
-  Future updateFCM(BuildContext context) async {
+  Future<dynamic> updateFCM(BuildContext context) async {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       await Api.post(
@@ -66,8 +66,8 @@ class AuthCubit extends Cubit<AuthState> {
     File? fileUserimg,
     String? fcmToken,
     String? notification,
-    double? latitude,
-    double? longitude,
+    String? latitude,
+    String? longitude,
     String? city,
     String? state,
     String? phone,
@@ -97,8 +97,13 @@ class AuthCubit extends Cubit<AuthState> {
       parameters['profile'] = await MultipartFile.fromFile(fileUserimg.path);
     }
 
-    if (latitude != null && longitude != null) {
+    if (latitude != null && longitude != null && city != null && city != '') {
       parameters.addAll({'latitude': latitude, 'longitude': longitude});
+    } else {
+      parameters.addAll({
+        'latitude': '',
+        'longitude': '',
+      });
     }
 
     final response = await Api.post(

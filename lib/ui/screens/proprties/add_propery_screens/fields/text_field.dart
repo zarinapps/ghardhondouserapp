@@ -7,7 +7,7 @@ import 'package:ebroker/utils/responsiveSize.dart';
 import 'package:ebroker/utils/ui_utils.dart';
 import 'package:flutter/material.dart';
 
-class CustomTextField extends CustomField {
+class CustomTextField extends CustomField<dynamic> {
   TextEditingController? controller;
 
   @override

@@ -45,7 +45,7 @@ class HomeSlider {
       link: map['link'] != null ? map['link'] as String : null,
       property: map['property'] != null
           ? PropertyModel.fromMap(
-              map['property'] as Map<String, dynamic>? ?? {})
+              map['property'] as Map<String, dynamic>? ?? {},)
           : null,
       category: map['category'] != null
           ? Categorys.fromMap(map['category'] as Map<String, dynamic>? ?? {})

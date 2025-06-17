@@ -6,13 +6,14 @@ import 'package:dio/dio.dart';
 import 'package:ebroker/app/routes.dart';
 import 'package:ebroker/data/cubits/project/change_project_status_cubit.dart';
 import 'package:ebroker/data/cubits/project/delete_project_cubit.dart';
-import 'package:ebroker/data/cubits/project/fetchMyProjectsListCubit.dart';
+import 'package:ebroker/data/cubits/project/fetch_my_projects_list_cubit.dart';
 import 'package:ebroker/data/cubits/subscription/get_subsctiption_package_limits_cubit.dart';
+import 'package:ebroker/data/cubits/system/get_api_keys_cubit.dart';
 import 'package:ebroker/data/helper/widgets.dart';
 import 'package:ebroker/data/model/project_model.dart';
-import 'package:ebroker/data/repositories/check_package.dart';
-import 'package:ebroker/ui/screens/proprties/property_details.dart';
-import 'package:ebroker/ui/screens/widgets/animated_routes/blur_page_route.dart';
+import 'package:ebroker/data/model/property_model.dart';
+import 'package:ebroker/ui/screens/advertisement/create_advertisement_popup.dart';
+import 'package:ebroker/ui/screens/proprties/widgets/google_map_screen.dart';
 import 'package:ebroker/ui/screens/widgets/blurred_dialoge_box.dart';
 import 'package:ebroker/ui/screens/widgets/gallery_view.dart';
 import 'package:ebroker/utils/AppIcon.dart';
@@ -29,7 +30,6 @@ import 'package:ebroker/utils/ui_utils.dart';
 import 'package:ebroker/utils/video_player/video_player_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -42,9 +42,9 @@ class ProjectDetailsScreen extends StatefulWidget {
     super.key,
   });
   final ProjectModel project;
-  static BlurredRouter route(RouteSettings settings) {
+  static CupertinoPageRoute<dynamic> route(RouteSettings settings) {
     final arguement = settings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return BlocProvider(
           create: (context) => DeleteProjectCubit(),
@@ -97,405 +97,315 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
   }
 
   bool readMore = false;
+
+  Future<void> onBackPress() async {
+    if (project.addedBy.toString() == HiveUtils.getUserId()) {
+      await context.read<FetchMyProjectsListCubit>().fetchMyProjects();
+    }
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        if (project.addedBy.toString() == HiveUtils.getUserId()) {
-          await context.read<FetchMyProjectsListCubit>().fetchMyProjects();
-        }
-        Navigator.pop(context);
+        await onBackPress();
       },
       child: Scaffold(
-        backgroundColor: context.color.backgroundColor,
-        bottomNavigationBar: BottomAppBar(
-          color: Colors.transparent,
-          child: bottomNavigation(context),
-        ),
+        backgroundColor: context.color.primaryColor,
+        bottomNavigationBar: isMyProject
+            ? BottomAppBar(
+                color: Colors.transparent,
+                child: bottomNavigation(context),
+              )
+            : null,
         body: Builder(
           builder: (context) {
-            final state = context.read<ChangeProjectStatusCubit>().state;
-            final successState = context.read<ChangeProjectStatusCubit>().state
-                is ChangeProjectStatusSuccess;
-            final failureState = context.read<ChangeProjectStatusCubit>().state
-                is ChangeProjectStatusFailure;
-            final progressState = context.read<ChangeProjectStatusCubit>().state
-                is ChangeProjectStatusInProgress;
-            return Padding(
-              padding: EdgeInsets.zero,
-              child: BlocListener<DeleteProjectCubit, DeleteProjectState>(
-                listener: (context, state) {
-                  if (state is DeleteProjectInProgress) {
-                    Widgets.showLoader(context);
-                  }
-                  if (state is DeleteProjectSuccess) {
-                    Widgets.hideLoder(context);
-                    context.read<FetchMyProjectsListCubit>().delete(state.id);
+            return BlocListener<DeleteProjectCubit, DeleteProjectState>(
+              listener: (context, state) {
+                if (state is DeleteProjectInProgress) {
+                  Widgets.showLoader(context);
+                }
+                if (state is DeleteProjectSuccess) {
+                  Widgets.hideLoder(context);
+                  context.read<FetchMyProjectsListCubit>().delete(state.id);
 
-                    Navigator.pop(
-                      context,
-                    );
-                  }
-                },
-                child: CustomScrollView(
-                  physics: Constant.scrollPhysics,
-                  slivers: [
-                    SliverAppBar(
-                      systemOverlayStyle:
-                          UiUtils.getSystemUiOverlayStyle(context: context),
-                      shadowColor:
-                          context.color.inverseSurface.withValues(alpha: 0.3),
-                      leadingWidth: MediaQuery.of(context).size.width * 0.20,
-                      backgroundColor: context.color.secondaryColor,
-                      leading: Container(
-                        margin: const EdgeInsetsDirectional.only(
-                          start: 18,
-                          top: 4,
-                        ),
-                        padding: const EdgeInsets.all(2),
-                        child: Material(
-                          clipBehavior: Clip.antiAlias,
-                          color: context.color.secondaryColor,
-                          borderOnForeground: false,
-                          type: MaterialType.circle,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.pop(context);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(18),
-                              child: UiUtils.getSvg(
-                                AppIcons.arrowLeft,
-                                matchTextDirection: true,
-                                fit: BoxFit.none,
-                                color: context.color.tertiaryColor,
-                              ),
+                  Navigator.pop(
+                    context,
+                  );
+                }
+              },
+              child: CustomScrollView(
+                physics: Constant.scrollPhysics,
+                slivers: [
+                  SliverAppBar(
+                    systemOverlayStyle:
+                        UiUtils.getSystemUiOverlayStyle(context: context),
+                    shadowColor:
+                        context.color.inverseSurface.withValues(alpha: 0.3),
+                    leadingWidth: MediaQuery.of(context).size.width * 0.20,
+                    backgroundColor: context.color.secondaryColor,
+                    leading: Container(
+                      margin: const EdgeInsetsDirectional.only(
+                        start: 18,
+                        top: 4,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: Material(
+                        clipBehavior: Clip.antiAlias,
+                        color: context.color.secondaryColor,
+                        borderOnForeground: false,
+                        type: MaterialType.circle,
+                        child: InkWell(
+                          onTap: () async {
+                            await onBackPress();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: UiUtils.getSvg(
+                              AppIcons.arrowLeft,
+                              matchTextDirection: true,
+                              fit: BoxFit.none,
+                              color: context.color.tertiaryColor,
                             ),
                           ),
                         ),
                       ),
-                      pinned: true,
-                      expandedHeight: context.screenHeight * 0.35,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      centerTitle: true,
-                      snap: true,
-                      floating: true,
-                      flexibleSpace: FlexibleSpaceBar(
-                        collapseMode: CollapseMode.pin,
-                        background: ProjectImageCareusel(
-                          images: [
-                            ...{project.image!},
-                            ...project.gallaryImages!.map((e) => e.name!),
-                          ],
-                        ),
+                    ),
+                    pinned: true,
+                    scrolledUnderElevation: 0,
+                    expandedHeight: context.screenHeight * 0.35,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    centerTitle: true,
+                    flexibleSpace: FlexibleSpaceBar(
+                      collapseMode: CollapseMode.pin,
+                      background: ProjectImageCareusel(
+                        images: [
+                          ...{project.image!},
+                          ...project.gallaryImages!.map((e) => e.name!),
+                        ],
                       ),
                     ),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (project.addedBy.toString() ==
-                                HiveUtils.getUserId()) ...[
-                              Row(
-                                children: [
-                                  CustomText(
-                                    'updateProjectStatus'.translate(context),
-                                    fontSize: context.font.large,
-                                    color: context.color.tertiaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  const Spacer(),
-                                  ValueListenableBuilder(
-                                    valueListenable: isEnabled,
-                                    builder: (context, value, child) {
-                                      return child!;
-                                    },
-                                    child: IgnorePointer(
-                                      ignoring: progressState,
-                                      child: CupertinoSwitch(
-                                        activeTrackColor:
-                                            context.color.tertiaryColor,
-                                        value: isEnabled.value,
-                                        onChanged: (value) async {
-                                          if (progressState) return;
-                                          final status =
-                                              isEnabled.value == false ? 1 : 0;
-                                          await context
-                                              .read<ChangeProjectStatusCubit>()
-                                              .enableProject(
-                                                projectId: project.id!,
-                                                status: status,
-                                              );
-                                          if (successState) {
-                                            setState(() {
-                                              isEnabled.value = value;
-                                            });
-                                          } else if (failureState) {
-                                            final errorMessage =
-                                                (state as ChangeProjectStatusFailure)
-                                                        .error
-                                                        .contains('429')
-                                                    ? 'tooManyRequestsPleaseWait'
-                                                        .translate(context)
-                                                    : state.error;
-                                            await HelperUtils
-                                                .showSnackBarMessage(
-                                              context,
-                                              errorMessage,
-                                              type: MessageType.success,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: 7,
-                              ),
-                              const Divider(
-                                color: Colors.grey,
-                                height: 3,
-                              ),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                            ],
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (project.addedBy.toString() ==
+                              HiveUtils.getUserId()) ...[
                             Row(
                               children: [
-                                categoryCard(context, project),
+                                CustomText(
+                                  'updateProjectStatus'.translate(context),
+                                  fontSize: context.font.large,
+                                  color: context.color.tertiaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 const Spacer(),
-                                UiUtils.getSvg(
-                                  AppIcons.premium,
-                                  height: 20,
-                                  width: 20,
-                                ),
-                                const SizedBox(
-                                  width: 8,
-                                ),
-                                if (project.isPromoted ?? false) ...[
-                                  Container(
-                                    padding: const EdgeInsets.all(7.5),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: context.color.tertiaryColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: CustomText(
-                                      UiUtils.translate(context, 'featured'),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: context.font.small,
-                                      color: context.color.tertiaryColor,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    width: 8,
-                                  ),
-                                ],
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: context.color.tertiaryColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: CustomText(
-                                    project.type!.translate(context),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: context.font.small,
-                                    color: context.color.secondaryColor,
-                                  ),
+                                ValueListenableBuilder(
+                                  valueListenable: isEnabled,
+                                  builder: (context, value, child) {
+                                    return CupertinoSwitch(
+                                      activeTrackColor:
+                                          context.color.tertiaryColor,
+                                      value: value,
+                                      onChanged: project.requestStatus
+                                                  .toString() ==
+                                              'pending'
+                                          ? null
+                                          : (newValue) async {
+                                              // Get current state to check if we're already in progress
+                                              final cubit = context.read<
+                                                  ChangeProjectStatusCubit>();
+                                              final currentState = cubit.state;
+
+                                              if (currentState
+                                                  is ChangeProjectStatusInProgress) {
+                                                return;
+                                              }
+
+                                              final status =
+                                                  value == false ? 1 : 0;
+
+                                              // Update UI immediately for responsive feedback
+                                              setState(() {
+                                                isEnabled.value = newValue;
+                                              });
+
+                                              try {
+                                                // Make API call
+                                                await cubit.enableProject(
+                                                  projectId: project.id!,
+                                                  status: status,
+                                                );
+
+                                                // Listen for state changes after API call completes
+                                                final newState = cubit.state;
+
+                                                if (newState
+                                                    is ChangeProjectStatusFailure) {
+                                                  // If API failed, revert the UI change
+                                                  setState(() {
+                                                    isEnabled.value = !newValue;
+                                                  });
+
+                                                  final errorMessage = newState
+                                                          .error
+                                                          .contains('429')
+                                                      ? 'tooManyRequestsPleaseWait'
+                                                          .translate(context)
+                                                      : newState.error;
+
+                                                  await HelperUtils
+                                                      .showSnackBarMessage(
+                                                    context,
+                                                    errorMessage,
+                                                    type: MessageType.error,
+                                                  );
+                                                }
+                                                // Success state is already reflected in UI
+                                              } catch (e) {
+                                                // Handle unexpected errors
+                                                setState(() {
+                                                  isEnabled.value = !newValue;
+                                                });
+                                                await HelperUtils
+                                                    .showSnackBarMessage(
+                                                  context,
+                                                  'somethingWentWrng'
+                                                      .translate(context),
+                                                  type: MessageType.error,
+                                                );
+                                              }
+                                            },
+                                    );
+                                  },
                                 ),
                               ],
                             ),
                             const SizedBox(
-                              height: 15,
+                              height: 7,
                             ),
-                            CustomText(
-                              project.title!,
-                              fontWeight: FontWeight.w400,
-                              fontSize: context.font.larger,
-                            ),
-                            const SizedBox(
-                              height: 15,
-                            ),
-                            CustomText(
-                              project.description!.trim(),
-                              maxLines: readMore ? 999999 : 3,
-                              color: context.color.textColorDark
-                                  .withValues(alpha: 0.89),
-                            ),
-                            TextButton(
-                              style: ButtonStyle(
-                                padding: WidgetStateProperty.all(
-                                  EdgeInsets.zero,
-                                ),
-                                overlayColor: WidgetStateProperty.all(
-                                  context.color.tertiaryColor
-                                      .withValues(alpha: 0.1),
-                                ),
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  readMore = !readMore;
-                                });
-                              },
-                              child: CustomText(
-                                readMore
-                                    ? 'readLessLbl'.translate(context)
-                                    : 'readMoreLbl'.translate(context),
-                                color: context.color.tertiaryColor,
-                              ),
+                            const Divider(
+                              color: Colors.grey,
+                              height: 3,
                             ),
                             const SizedBox(
-                              height: 18,
+                              height: 10,
                             ),
-                            ContactDetailsWidget(
-                              url: project.customer?.profile ?? '',
-                              number: project.customer?.mobile ?? '',
-                              name: project.customer?.name ?? '',
-                              email: project.customer?.email ?? '',
-                            ),
-                            const SizedBox(
-                              height: 14,
-                            ),
-                            if (project.videoLink != null &&
-                                project.videoLink!.isNotEmpty)
-                              VideoPlayerWideget(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 18),
-                                url: project.videoLink!,
-                              ),
-                            if (hasDocuments()) ...[
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: context.color.secondaryColor,
-                                  border: Border.all(
-                                    color: context.color.borderColor,
-                                  ),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(10),
-                                    topRight: Radius.circular(10),
-                                  ),
-                                ),
-                                alignment: AlignmentDirectional.centerStart,
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: 10,
-                                ),
-                                height: 40,
-                                width: MediaQuery.of(context).size.width,
-                                child: CustomText(
-                                  'Documents'.translate(context),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: context.font.large,
-                                ),
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width,
-                                decoration: BoxDecoration(
-                                  color: context.color.secondaryColor,
-                                  border: Border.all(
-                                    color: context.color.borderColor,
-                                  ),
-                                  borderRadius: const BorderRadius.only(
-                                    bottomLeft: Radius.circular(10),
-                                    bottomRight: Radius.circular(10),
-                                  ),
-                                ),
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: 10,
-                                ),
-                                child: ListView.separated(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 18),
-                                  separatorBuilder: (context, index) => Divider(
-                                    color: context.color.borderColor,
-                                    height: 18,
-                                    thickness: 1,
-                                    endIndent: 10,
-                                    indent: 10,
-                                  ),
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemBuilder: (context, index) {
-                                    final document = project.documents?[index];
-                                    return DownloadableDocument(
-                                      url: document!.name!,
-                                    );
-                                  },
-                                  itemCount: project.documents?.length ?? 0,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(
-                              height: 15,
-                            ),
-                            if (hasFloors()) ...[
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: context.color.secondaryColor,
-                                  border: Border.all(
-                                    color: context.color.borderColor,
-                                  ),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(10),
-                                    topRight: Radius.circular(10),
-                                  ),
-                                ),
-                                alignment: AlignmentDirectional.centerStart,
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: 10,
-                                ),
-                                height: 40,
-                                width: MediaQuery.of(context).size.width,
-                                child: CustomText(
-                                  'floorPlans'.translate(context),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: context.font.large,
-                                ),
-                              ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: context.color.secondaryColor,
-                                  borderRadius: const BorderRadius.only(
-                                    bottomLeft: Radius.circular(10),
-                                    bottomRight: Radius.circular(10),
-                                  ),
-                                  border: Border.all(
-                                    color: context.color.borderColor,
-                                  ),
-                                ),
-                                child: ListView.builder(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: project.plans?.length ?? 0,
-                                  itemBuilder: (context, index) {
-                                    final floor = project.plans![index];
-                                    return CustomExpansionTile(
-                                      title: floor.title!,
-                                      children: [
-                                        Image.network(floor.document!),
-                                      ],
-                                    );
-                                  },
-                                ),
+                          ],
+                          Row(
+                            children: [
+                              categoryCard(context, project),
+                              UiUtils.getSvg(
+                                AppIcons.premium,
+                                height: 20,
+                                width: 20,
                               ),
                               const SizedBox(
-                                height: 18,
+                                width: 8,
+                              ),
+                              if (project.isPromoted ?? false) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(7.5),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: context.color.tertiaryColor,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: CustomText(
+                                    UiUtils.translate(context, 'featured'),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: context.font.small,
+                                    color: context.color.tertiaryColor,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 8,
+                                ),
+                              ],
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: context.color.tertiaryColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: CustomText(
+                                  project.type!.translate(context),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: context.font.small,
+                                  color: context.color.secondaryColor,
+                                ),
                               ),
                             ],
+                          ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          CustomText(
+                            project.title!,
+                            fontWeight: FontWeight.w400,
+                            fontSize: context.font.larger,
+                          ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          CustomText(
+                            project.description!.trim(),
+                            maxLines: readMore ? 999999 : 3,
+                            color: context.color.textColorDark
+                                .withValues(alpha: 0.89),
+                          ),
+                          TextButton(
+                            style: ButtonStyle(
+                              padding: WidgetStateProperty.all(
+                                EdgeInsets.zero,
+                              ),
+                              overlayColor: WidgetStateProperty.all(
+                                context.color.tertiaryColor
+                                    .withValues(alpha: 0.1),
+                              ),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                readMore = !readMore;
+                              });
+                            },
+                            child: CustomText(
+                              readMore
+                                  ? 'readLessLbl'.translate(context)
+                                  : 'readMoreLbl'.translate(context),
+                              color: context.color.tertiaryColor,
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 18,
+                          ),
+                          ContactDetailsWidget(
+                            url: project.customer?.profile ?? '',
+                            number: project.customer?.mobile ?? '',
+                            name: project.customer?.name ?? '',
+                            email: project.customer?.email ?? '',
+                          ),
+                          const SizedBox(
+                            height: 14,
+                          ),
+                          if (project.videoLink != null &&
+                              project.videoLink!.isNotEmpty)
+                            VideoPlayerWideget(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              url: project.videoLink!,
+                            ),
+                          if (hasDocuments()) ...[
                             Container(
-                              alignment: AlignmentDirectional.centerStart,
                               decoration: BoxDecoration(
                                 color: context.color.secondaryColor,
                                 border: Border.all(
@@ -506,13 +416,14 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
                                   topRight: Radius.circular(10),
                                 ),
                               ),
+                              alignment: AlignmentDirectional.centerStart,
                               padding: const EdgeInsetsDirectional.only(
                                 start: 10,
                               ),
                               height: 40,
                               width: MediaQuery.of(context).size.width,
                               child: CustomText(
-                                'projectLocation'.translate(context),
+                                'Documents'.translate(context),
                                 fontWeight: FontWeight.bold,
                                 fontSize: context.font.large,
                               ),
@@ -529,153 +440,268 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
                                   bottomRight: Radius.circular(10),
                                 ),
                               ),
-                              padding: const EdgeInsetsDirectional.all(18),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      CustomText(
-                                        'locationLblProj'.translate(context),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      Flexible(
-                                        child: CustomText(
-                                          project.location!,
-                                          maxLines: 2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 5,
-                                  ),
-                                  Row(
-                                    children: [
-                                      CustomText(
-                                        'cityProj'.translate(context),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      CustomText(project.city!),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 5,
-                                  ),
-                                  Row(
-                                    children: [
-                                      CustomText(
-                                        'stateProj'.translate(context),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      CustomText(project.state!),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 5,
-                                  ),
-                                  Row(
-                                    children: [
-                                      CustomText(
-                                        'countryProj'.translate(context),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      CustomText(project.country!),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Container(
-                                    alignment: Alignment.center,
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.8,
-                                    height: 175,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          Image.asset(
-                                            'assets/map.png',
-                                            fit: BoxFit.cover,
-                                          ),
-                                          BackdropFilter(
-                                            filter: ImageFilter.blur(
-                                              sigmaX: 4,
-                                              sigmaY: 4,
-                                            ),
-                                            child: Center(
-                                              child: MaterialButton(
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    BlurredRouter(
-                                                      builder: (context) {
-                                                        return Scaffold(
-                                                          extendBodyBehindAppBar:
-                                                              true,
-                                                          appBar: AppBar(
-                                                            elevation: 0,
-                                                            iconTheme:
-                                                                IconThemeData(
-                                                              color: context
-                                                                  .color
-                                                                  .tertiaryColor,
-                                                            ),
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .transparent,
-                                                          ),
-                                                          body: GoogleMapScreen(
-                                                            latitude:
-                                                                double.parse(
-                                                              project.latitude!,
-                                                            ),
-                                                            longitude:
-                                                                double.parse(
-                                                              project
-                                                                  .longitude!,
-                                                            ),
-                                                            kInitialPlace:
-                                                                _kInitialPlace,
-                                                            controller:
-                                                                _controller,
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  );
-                                                },
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(5),
-                                                ),
-                                                color:
-                                                    context.color.tertiaryColor,
-                                                elevation: 0,
-                                                child: CustomText(
-                                                  'viewMap'.translate(context),
-                                                  color:
-                                                      context.color.buttonColor,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              padding: const EdgeInsetsDirectional.only(
+                                start: 10,
+                              ),
+                              child: ListView.separated(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 18),
+                                separatorBuilder: (context, index) => Divider(
+                                  color: context.color.borderColor,
+                                  height: 18,
+                                  thickness: 1,
+                                  endIndent: 10,
+                                  indent: 10,
+                                ),
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemBuilder: (context, index) {
+                                  final document = project.documents?[index];
+                                  return DownloadableDocument(
+                                    url: document!.name!,
+                                  );
+                                },
+                                itemCount: project.documents?.length ?? 0,
                               ),
                             ),
                           ],
-                        ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          if (hasFloors()) ...[
+                            Container(
+                              decoration: BoxDecoration(
+                                color: context.color.secondaryColor,
+                                border: Border.all(
+                                  color: context.color.borderColor,
+                                ),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(10),
+                                  topRight: Radius.circular(10),
+                                ),
+                              ),
+                              alignment: AlignmentDirectional.centerStart,
+                              padding: const EdgeInsetsDirectional.only(
+                                start: 10,
+                              ),
+                              height: 40,
+                              width: MediaQuery.of(context).size.width,
+                              child: CustomText(
+                                'floorPlans'.translate(context),
+                                fontWeight: FontWeight.bold,
+                                fontSize: context.font.large,
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: context.color.secondaryColor,
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(10),
+                                  bottomRight: Radius.circular(10),
+                                ),
+                                border: Border.all(
+                                  color: context.color.borderColor,
+                                ),
+                              ),
+                              child: ListView.builder(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: project.plans?.length ?? 0,
+                                itemBuilder: (context, index) {
+                                  final floor = project.plans![index];
+                                  return CustomExpansionTile(
+                                    title: floor.title!,
+                                    children: [
+                                      Image.network(floor.document!),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 18,
+                            ),
+                          ],
+                          Container(
+                            alignment: AlignmentDirectional.centerStart,
+                            decoration: BoxDecoration(
+                              color: context.color.secondaryColor,
+                              border: Border.all(
+                                color: context.color.borderColor,
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(10),
+                                topRight: Radius.circular(10),
+                              ),
+                            ),
+                            padding: const EdgeInsetsDirectional.only(
+                              start: 10,
+                            ),
+                            height: 40,
+                            width: MediaQuery.of(context).size.width,
+                            child: CustomText(
+                              'projectLocation'.translate(context),
+                              fontWeight: FontWeight.bold,
+                              fontSize: context.font.large,
+                            ),
+                          ),
+                          Container(
+                            width: MediaQuery.of(context).size.width,
+                            decoration: BoxDecoration(
+                              color: context.color.secondaryColor,
+                              border: Border.all(
+                                color: context.color.borderColor,
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(10),
+                                bottomRight: Radius.circular(10),
+                              ),
+                            ),
+                            padding: const EdgeInsetsDirectional.all(18),
+                            child: Column(
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CustomText(
+                                      'locationLblProj'.translate(context),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    Flexible(
+                                      child: CustomText(
+                                        project.location!,
+                                        maxLines: 2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  children: [
+                                    CustomText(
+                                      'cityProj'.translate(context),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    CustomText(project.city!),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  children: [
+                                    CustomText(
+                                      'stateProj'.translate(context),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    CustomText(project.state!),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  children: [
+                                    CustomText(
+                                      'countryProj'.translate(context),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    CustomText(project.country!),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                                Container(
+                                  alignment: Alignment.center,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.8,
+                                  height: 175,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        Image.asset(
+                                          'assets/map.png',
+                                          fit: BoxFit.cover,
+                                        ),
+                                        BackdropFilter(
+                                          filter: ImageFilter.blur(
+                                            sigmaX: 4,
+                                            sigmaY: 4,
+                                          ),
+                                          child: Center(
+                                            child: MaterialButton(
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  CupertinoPageRoute<dynamic>(
+                                                    builder: (context) {
+                                                      return Scaffold(
+                                                        extendBodyBehindAppBar:
+                                                            true,
+                                                        appBar: AppBar(
+                                                          elevation: 0,
+                                                          iconTheme:
+                                                              IconThemeData(
+                                                            color: context.color
+                                                                .tertiaryColor,
+                                                          ),
+                                                          backgroundColor:
+                                                              Colors
+                                                                  .transparent,
+                                                        ),
+                                                        body: GoogleMapScreen(
+                                                          latitude:
+                                                              double.parse(
+                                                            project.latitude!,
+                                                          ),
+                                                          longitude:
+                                                              double.parse(
+                                                            project.longitude!,
+                                                          ),
+                                                          kInitialPlace:
+                                                              _kInitialPlace,
+                                                          controller:
+                                                              _controller,
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                );
+                                              },
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(5),
+                                              ),
+                                              color:
+                                                  context.color.tertiaryColor,
+                                              elevation: 0,
+                                              child: CustomText(
+                                                'viewMap'.translate(context),
+                                                color:
+                                                    context.color.buttonColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },
@@ -685,260 +711,233 @@ class _ProjectDetailsScreenState extends CloudState<ProjectDetailsScreen> {
   }
 
   Widget bottomNavigation(BuildContext context) {
-    if (isMyProject) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        color: Colors.transparent,
-        height: 65.rh(context),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!HiveUtils.isGuest() && Constant.isDemoModeOn != true) ...[
-                if (project.isFeatureAvailable ?? false) ...[
-                  BlocBuilder<GetSubsctiptionPackageLimitsCubit,
-                      GetSubscriptionPackageLimitsState>(
-                    builder: (context, state) {
-                      final isLoading = context
-                          .read<GetSubsctiptionPackageLimitsCubit>()
-                          .state is GetSubscriptionPackageLimitsInProgress;
-                      return Expanded(
-                        child: UiUtils.buildButton(
-                          context,
-                          disabled: project.status.toString() == '0',
-                          outerPadding: const EdgeInsets.all(
-                            1,
-                          ),
-                          onPressed: () async {
-                            await context
-                                .read<GetSubsctiptionPackageLimitsCubit>()
-                                .getLimits(
-                                  packageType: 'project_feature',
-                                );
-                            if (state is GetSubsctiptionPackageLimitsFailure) {
-                              await UiUtils.showBlurredDialoge(
-                                context,
-                                dialoge: const BlurredSubscriptionDialogBox(
-                                  packageType:
-                                      SubscriptionPackageType.projectFeature,
-                                  isAcceptContainesPush: true,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      color: context.color.primaryColor,
+      height: 55.rh(context),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!HiveUtils.isGuest() && Constant.isDemoModeOn != true) ...[
+            if (project.isFeatureAvailable ?? false) ...[
+              BlocBuilder<GetSubsctiptionPackageLimitsCubit,
+                  GetSubscriptionPackageLimitsState>(
+                builder: (context, state) {
+                  return Expanded(
+                    child: UiUtils.buildButton(
+                      context,
+                      height: 45.rh(context),
+                      disabled: project.status.toString() == '0',
+                      outerPadding: const EdgeInsets.all(
+                        1,
+                      ),
+                      onPressed: () async {
+                        await context
+                            .read<GetSubsctiptionPackageLimitsCubit>()
+                            .getLimits(
+                              packageType: 'project_feature',
+                            );
+                        if (state is GetSubsctiptionPackageLimitsFailure) {
+                          await UiUtils.showBlurredDialoge(
+                            context,
+                            dialog: const BlurredSubscriptionDialogBox(
+                              packageType:
+                                  SubscriptionPackageType.projectFeature,
+                              isAcceptContainesPush: true,
+                            ),
+                          );
+                        } else if (state
+                            is GetSubscriptionPackageLimitsSuccess) {
+                          if (state.error) {
+                            await UiUtils.showBlurredDialoge(
+                              context,
+                              dialog: BlurredDialogBox(
+                                title: state.message.firstUpperCase(),
+                                isAcceptContainesPush: true,
+                                onAccept: () async {
+                                  await Navigator.popAndPushNamed(
+                                    context,
+                                    Routes.subscriptionPackageListRoute,
+                                    arguments: {
+                                      'from': 'propertyDetails',
+                                      'isBankTransferEnabled': (context
+                                                  .read<GetApiKeysCubit>()
+                                                  .state as GetApiKeysSuccess)
+                                              .bankTransferStatus ==
+                                          '1',
+                                    },
+                                  );
+                                },
+                                content: CustomText(
+                                  'yourPackageLimitOver'.translate(context),
+                                ),
+                              ),
+                            );
+                          } else {
+                            try {
+                              await showDialog<dynamic>(
+                                context: context,
+                                builder: (context) => CreateAdvertisementPopup(
+                                  property: PropertyModel(),
+                                  isProject: true,
+                                  project: project,
                                 ),
                               );
-                            } else if (state
-                                is GetSubscriptionPackageLimitsSuccess) {
-                              if (state.error) {
-                                await UiUtils.showBlurredDialoge(
-                                  context,
-                                  dialoge: BlurredDialogBox(
-                                    title: state.message.firstUpperCase(),
-                                    isAcceptContainesPush: true,
-                                    onAccept: () async {
-                                      await Navigator.popAndPushNamed(
-                                        context,
-                                        Routes.subscriptionPackageListRoute,
-                                        arguments: {
-                                          'from': 'propertyDetails',
-                                        },
-                                      );
-                                    },
-                                    content: CustomText(
-                                      'yourPackageLimitOver'.translate(context),
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                try {
-                                  await Navigator.pushNamed(
-                                    context,
-                                    Routes.createAdvertismentPopupRoute,
-                                    arguments: {
-                                      'isProject': true,
-                                      'projectData': project,
-                                    },
-                                  ).then(
-                                    (value) {
-                                      setState(() {});
-                                    },
-                                  );
-                                } catch (e) {
-                                  await HelperUtils.showSnackBarMessage(
-                                    context,
-                                    e.toString(),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                          prefixWidget: Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: isLoading
-                                ? Center(
-                                    child: UiUtils.progress(
-                                      showWhite: true,
-                                      height: 14,
-                                    ),
-                                  )
-                                : SvgPicture.asset(
-                                    AppIcons.promoted,
-                                    width: 14,
-                                    height: 14,
-                                  ),
-                          ),
-                          fontSize: context.font.normal,
-                          width: context.screenWidth / 3,
-                          buttonTitle: isLoading
-                              ? ''
-                              : UiUtils.translate(context, 'feature'),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(
-                    width: 8,
-                  ),
-                ],
-              ],
-              const SizedBox(
-                width: 8,
-              ),
-              Expanded(
-                child: UiUtils.buildButton(
-                  context,
-                  // padding: const EdgeInsets.symmetric(horizontal: 1),
-                  outerPadding: const EdgeInsets.all(1),
-                  onPressed: () async {
-                    try {
-                      unawaited(Widgets.showLoader(context));
-                      final checkPackage = CheckPackage();
-
-                      final packageAvailable =
-                          await checkPackage.checkPackageAvailable(
-                        packageType: PackageType.projectList,
-                      );
-                      if (packageAvailable) {
-                        if (Constant.isDemoModeOn) {
-                          await HelperUtils.showSnackBarMessage(
-                            context,
-                            'Not valid in demo mode',
-                          );
-                          return;
-                        }
-                        await Navigator.pushNamed(
-                          context,
-                          Routes.addProjectDetails,
-                          arguments: {
-                            'id': project.id,
-                            'meta_title': project.metaTitle,
-                            'meta_description': project.metaDescription,
-                            'meta_image': project.metaImage,
-                            'slug_id': project.slugId,
-                            'category_id': project.category!.id,
-                            'project': project.toMap(),
-                          },
-                        );
-                        Widgets.hideLoder(context);
-                      } else {
-                        Widgets.hideLoder(context);
-                        await UiUtils.showBlurredDialoge(
-                          context,
-                          dialoge: BlurredDialogBox(
-                            title: 'Subscription needed',
-                            isAcceptContainesPush: true,
-                            onAccept: () async {
-                              await Navigator.popAndPushNamed(
+                            } catch (e) {
+                              await HelperUtils.showSnackBarMessage(
                                 context,
-                                Routes.subscriptionPackageListRoute,
-                                arguments: {'from': 'propertyDetails'},
+                                e.toString(),
                               );
-                            },
-                            content: CustomText(
-                              'subscribeToUseThisFeature'.translate(context),
-                            ),
-                          ),
-                        );
-                      }
-                      Widgets.hideLoder(context);
-                    } catch (e) {
-                      Widgets.hideLoder(context);
-                      await HelperUtils.showSnackBarMessage(
-                        context,
-                        'somethingWentWrng'.translate(context),
-                      );
-                    }
-                  },
-                  fontSize: context.font.normal,
-                  width: context.screenWidth / 3,
-                  prefixWidget: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: SvgPicture.asset(AppIcons.edit),
-                  ),
-                  buttonTitle: UiUtils.translate(context, 'edit'),
-                ),
+                            }
+                          }
+                        }
+                      },
+                      prefixWidget: Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: SvgPicture.asset(
+                          AppIcons.promoted,
+                          width: 14,
+                          height: 14,
+                        ),
+                      ),
+                      fontSize: context.font.normal,
+                      width: context.screenWidth / 3,
+                      buttonTitle: UiUtils.translate(context, 'feature'),
+                    ),
+                  );
+                },
               ),
               const SizedBox(
                 width: 8,
-              ),
-              Expanded(
-                child: UiUtils.buildButton(
-                  context,
-                  padding: const EdgeInsets.symmetric(horizontal: 1),
-                  outerPadding: const EdgeInsets.all(1),
-                  prefixWidget: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: SvgPicture.asset(
-                      AppIcons.delete,
-                      colorFilter: ColorFilter.mode(
-                        context.color.buttonColor,
-                        BlendMode.srcIn,
-                      ),
-                      width: 14,
-                      height: 14,
-                    ),
-                  ),
-                  onPressed: () async {
-                    log('is demo mode ${Constant.isDemoModeOn}');
-                    if (Constant.isDemoModeOn) {
-                      await HelperUtils.showSnackBarMessage(
-                        context,
-                        'Not valid in demo mode',
-                      );
-
-                      return;
-                    }
-
-                    await UiUtils.showBlurredDialoge(
-                      context,
-                      dialoge: BlurredDialogBox(
-                        title: 'areYouSure'.translate(context),
-                        onAccept: () async {
-                          context.read<DeleteProjectCubit>().delete(
-                                project.id!,
-                              );
-                        },
-                        content: CustomText(
-                          'projectWillNotRecover'.translate(context),
-                        ),
-                      ),
-                    );
-                  },
-                  fontSize: context.font.normal,
-                  width: context.screenWidth / 3.2,
-                  buttonTitle: UiUtils.translate(context, 'deleteBtnLbl'),
-                ),
               ),
             ],
+          ],
+          Expanded(
+            child: UiUtils.buildButton(
+              context,
+              height: 45.rh(context),
+              // padding: const EdgeInsets.symmetric(horizontal: 1),
+              outerPadding: const EdgeInsets.all(1),
+              onPressed: () async {
+                try {
+                  if (Constant.isDemoModeOn) {
+                    await HelperUtils.showSnackBarMessage(
+                      context,
+                      'Not valid in demo mode',
+                    );
+                    return;
+                  }
+                  unawaited(Widgets.showLoader(context));
+                  // final checkPackage = CheckPackage();
+
+                  // final packageAvailable =
+                  //     await checkPackage.checkPackageAvailable(
+                  //   packageType: PackageType.projectList,
+                  // );
+                  // if (packageAvailable) {
+
+                  await Navigator.pushNamed(
+                    context,
+                    Routes.addProjectDetails,
+                    arguments: {
+                      'id': project.id,
+                      'meta_title': project.metaTitle,
+                      'meta_description': project.metaDescription,
+                      'meta_image': project.metaImage,
+                      'slug_id': project.slugId,
+                      'category_id': project.category!.id,
+                      'project': project.toMap(),
+                    },
+                  );
+                  Widgets.hideLoder(context);
+                  // } else {
+                  //   Widgets.hideLoder(context);
+                  //   await UiUtils.showBlurredDialoge(
+                  //     context,
+                  //     dialog: const BlurredSubscriptionDialogBox(
+                  //       packageType: SubscriptionPackageType.projectList,
+                  //       isAcceptContainesPush: true,
+                  //     ),
+                  //   );
+                  // }
+                  Widgets.hideLoder(context);
+                } catch (e) {
+                  Widgets.hideLoder(context);
+                  await HelperUtils.showSnackBarMessage(
+                    context,
+                    'somethingWentWrng'.translate(context),
+                  );
+                }
+              },
+              fontSize: context.font.normal,
+              width: context.screenWidth / 3,
+              prefixWidget: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: SvgPicture.asset(AppIcons.edit),
+              ),
+              buttonTitle: UiUtils.translate(context, 'edit'),
+            ),
           ),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
+          const SizedBox(
+            width: 8,
+          ),
+          Expanded(
+            child: UiUtils.buildButton(
+              context,
+              height: 45.rh(context),
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              outerPadding: const EdgeInsets.all(1),
+              prefixWidget: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: SvgPicture.asset(
+                  AppIcons.delete,
+                  colorFilter: ColorFilter.mode(
+                    context.color.buttonColor,
+                    BlendMode.srcIn,
+                  ),
+                  width: 14,
+                  height: 14,
+                ),
+              ),
+              onPressed: () async {
+                log('is demo mode ${Constant.isDemoModeOn}');
+                if (Constant.isDemoModeOn) {
+                  await HelperUtils.showSnackBarMessage(
+                    context,
+                    'Not valid in demo mode',
+                  );
+
+                  return;
+                }
+
+                await UiUtils.showBlurredDialoge(
+                  context,
+                  dialog: BlurredDialogBox(
+                    title: 'areYouSure'.translate(context),
+                    onAccept: () async {
+                      await context.read<DeleteProjectCubit>().delete(
+                            project.id!,
+                          );
+                    },
+                    content: CustomText(
+                      'projectWillNotRecover'.translate(context),
+                    ),
+                  ),
+                );
+              },
+              fontSize: context.font.normal,
+              width: context.screenWidth / 3.2,
+              buttonTitle: UiUtils.translate(context, 'deleteBtnLbl'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
 Widget categoryCard(BuildContext context, ProjectModel project) {
-  return SizedBox(
-    width: MediaQuery.of(context).size.width * 0.4,
+  return Expanded(
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1018,12 +1017,12 @@ class _ProjectImageCareuselState extends State<ProjectImageCareusel>
             _sliderIndex.value = index;
           },
           itemBuilder: (context, index) {
-            final List images = widget.images;
+            final images = widget.images;
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
-                  BlurredRouter(
+                  CupertinoPageRoute<dynamic>(
                     builder: (context) => GalleryViewWidget(
                       images: images,
                       initalIndex: index,

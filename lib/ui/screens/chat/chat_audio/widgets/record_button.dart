@@ -56,9 +56,7 @@ class _RecordButtonState extends State<RecordButton> {
       ),
     );
     record = AudioRecorder();
-    widget.controller.addListener(() {
-      setState(() {});
-    });
+    widget.controller.addListener(() {});
   }
 
   @override
@@ -109,7 +107,7 @@ class _RecordButtonState extends State<RecordButton> {
   }
 
   Widget lockSlider() {
-    return Positioned(
+    return PositionedDirectional(
       bottom: -lockerAnimation.value,
       child: Container(
         height: lockerHeight,
@@ -142,8 +140,8 @@ class _RecordButtonState extends State<RecordButton> {
   }
 
   Widget cancelSlider() {
-    return Positioned(
-      right: -timerAnimation.value,
+    return PositionedDirectional(
+      end: -timerAnimation.value,
       child: Container(
         height: size,
         width: timerWidth,
@@ -188,66 +186,64 @@ class _RecordButtonState extends State<RecordButton> {
   }
 
   Widget timerLocked() {
-    return Positioned(
-      right: 0,
+    return PositionedDirectional(
+      end: 0,
+      bottom: -5,
       child: Container(
-        height: size,
-        width: timerWidth,
+        height: 60,
+        padding: const EdgeInsetsDirectional.only(start: 16, end: 16),
+        width: MediaQuery.of(context).size.width,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(ChatGlobals.borderRadius),
           color: context.color.secondaryColor,
           //color: Colors.black,
         ),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 15, right: 25),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () async {
-              /*Vibrate.feedback(FeedbackType.success);
-              timer?.cancel();
-              timer = null;
-              startTime = null;
-              recordDuration = "00:00";
-
-              var filePath = await Record().stop();
-              AudioState.files.add(filePath!);
-              Globals.audioListKey.currentState!
-                  .insertItem(AudioState.files.length - 1);
-              debugPrint(filePath);*/
-              await saveFile();
-              setState(() {
-                isLocked = false;
-              });
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                CustomText(recordDuration),
-                const SizedBox(
-                  width: 5,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
+            /*Vibrate.feedback(FeedbackType.success);
+            timer?.cancel();
+            timer = null;
+            startTime = null;
+            recordDuration = "00:00";
+        
+            var filePath = await Record().stop();
+            AudioState.files.add(filePath!);
+            Globals.audioListKey.currentState!
+                .insertItem(AudioState.files.length - 1);
+            debugPrint(filePath);*/
+            await saveFile();
+            setState(() {
+              isLocked = false;
+            });
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              CustomText(recordDuration),
+              const SizedBox(
+                width: 5,
+              ),
+              FlowShader(
+                duration: const Duration(seconds: 3),
+                flowColors: [context.color.tertiaryColor, Colors.grey],
+                child: CustomText(UiUtils.translate(context, 'taploacktostop')),
+                //flowColors: const [Colors.white, Colors.grey],
+              ),
+              const SizedBox(width: 10),
+              const Center(
+                child: Icon(
+                  Icons.lock,
+                  size: 24,
+                  color: Colors.green,
                 ),
-                FlowShader(
-                  duration: const Duration(seconds: 3),
-                  flowColors: [context.color.tertiaryColor, Colors.grey],
-                  child:
-                      CustomText(UiUtils.translate(context, 'taploacktostop')),
-                  //flowColors: const [Colors.white, Colors.grey],
-                ),
-                const Center(
-                  child: Icon(
-                    Icons.lock,
-                    size: 18,
-                    color: Colors.green,
-                  ),
-                  /*  child: FaIcon(
-                    FontAwesomeIcons.lock,
-                    size: 18,
-                    color: Colors.green,
-                  ), */
-                ),
-              ],
-            ),
+                /*  child: FaIcon(
+                  FontAwesomeIcons.lock,
+                  size: 18,
+                  color: Colors.green,
+                ), */
+              ),
+            ],
           ),
         ),
       ),
@@ -380,7 +376,7 @@ class _RecordButtonState extends State<RecordButton> {
   }
 
   bool checkIsLocked(Offset offset) {
-    return offset.dy < -35;
+    return offset.dy < -18;
   }
 
   bool isCancelled(Offset offset, BuildContext context) {

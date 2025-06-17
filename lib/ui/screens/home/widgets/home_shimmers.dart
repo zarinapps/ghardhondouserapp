@@ -1,7 +1,6 @@
-import 'package:ebroker/data/cubits/home_page_data_cubit.dart';
+import 'package:ebroker/data/cubits/fetch_home_page_data_cubit.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/home/home_screen.dart';
-import 'package:flutter/material.dart';
 
 class HomeShimmer extends StatefulWidget {
   const HomeShimmer({super.key});
@@ -40,22 +39,22 @@ class _HomeShimmerState extends State<HomeShimmer> {
               padding: const EdgeInsets.all(18),
               physics: Constant.scrollPhysics,
               children: [
-                Row(
-                  children: [
-                    CustomShimmer(
-                      height: 45.rh(context),
-                      width: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: CustomShimmer(
-                        height: 45.rh(context),
-                        width: MediaQuery.of(context).size.width * 0.15,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 36),
+                // Row(
+                //   children: [
+                //     CustomShimmer(
+                //       height: 45.rh(context),
+                //       width: MediaQuery.of(context).size.width * 0.75,
+                //     ),
+                //     const SizedBox(width: 10),
+                //     Expanded(
+                //       child: CustomShimmer(
+                //         height: 45.rh(context),
+                //         width: MediaQuery.of(context).size.width * 0.15,
+                //       ),
+                //     ),
+                //   ],
+                // ),
+                // const SizedBox(height: 36),
                 CustomShimmer(height: 170.rh(context), width: 200),
                 const SizedBox(height: 9),
                 SizedBox(

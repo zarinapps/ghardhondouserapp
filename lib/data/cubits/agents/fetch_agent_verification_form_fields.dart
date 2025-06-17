@@ -50,6 +50,10 @@ class FetchAgentVerificationFormFieldsCubit
       emit(FetchAgentVerificationFormFieldsLoading());
       final dataOutput =
           await _agentsRepository.getAgentVerificationFormFields();
+      if (dataOutput.isEmpty) {
+        emit(FetchAgentVerificationFormFieldsSuccess(fields: []));
+        return;
+      }
       final fields = List<AgentVerificationFormFieldsModel>.from(dataOutput);
       emit(
         FetchAgentVerificationFormFieldsSuccess(

@@ -1,7 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 
 import 'package:ebroker/data/repositories/chat_repository.dart';
-import 'package:ebroker/ui/screens/chat_new/message_types/blueprint.dart';
+import 'package:ebroker/ui/screens/chat_new/model.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LoadChatMessagesState {}
@@ -11,7 +11,7 @@ class LoadChatMessagesInitial extends LoadChatMessagesState {}
 class LoadChatMessagesInProgress extends LoadChatMessagesState {}
 
 class LoadChatMessagesSuccess extends LoadChatMessagesState {
-  List<Message> messages;
+  List<ChatMessage> messages;
   int currentPage;
   int userId;
   int propertyId;
@@ -27,7 +27,7 @@ class LoadChatMessagesSuccess extends LoadChatMessagesState {
   });
 
   LoadChatMessagesSuccess copyWith({
-    List<Message>? messages,
+    List<ChatMessage>? messages,
     int? currentPage,
     int? userId,
     int? propertyId,
@@ -66,12 +66,37 @@ class LoadChatMessagesCubit extends Cubit<LoadChatMessagesState> {
     required int propertyId,
   }) async {
     try {
-      emit(LoadChatMessagesInProgress());
+      // Only emit LoadChatMessagesInProgress if we're not already in a success state
+      if (state is! LoadChatMessagesSuccess) {
+        emit(LoadChatMessagesInProgress());
+      } else {
+        // Instead of full loading state, just update isLoadingMore in success state
+        final currentState = state as LoadChatMessagesSuccess;
+        emit(currentState.copyWith(isLoadingMore: true));
+      }
+
       final result = await _chatRepostiory.getMessages(
         page: 1,
         userId: userId,
         propertyId: propertyId,
       );
+
+      // Check if result has messages
+      if (result.modelList.isEmpty && result.total == 0) {
+        // This might be an error case or just no messages
+        emit(
+          LoadChatMessagesSuccess(
+            messages: [],
+            currentPage: 1,
+            propertyId: propertyId,
+            isLoadingMore: false,
+            totalPage: 0,
+            userId: userId,
+          ),
+        );
+        return;
+      }
+
       emit(
         LoadChatMessagesSuccess(
           messages: result.modelList,
@@ -83,7 +108,13 @@ class LoadChatMessagesCubit extends Cubit<LoadChatMessagesState> {
         ),
       );
     } catch (e) {
-      emit(LoadChatMessagesFailed(error: e.toString()));
+      // If we were previously in success state, keep the old data
+      if (state is LoadChatMessagesSuccess) {
+        final currentState = state as LoadChatMessagesSuccess;
+        emit(currentState.copyWith(isLoadingMore: false));
+      } else {
+        emit(LoadChatMessagesFailed(error: e.toString()));
+      }
     }
   }
 

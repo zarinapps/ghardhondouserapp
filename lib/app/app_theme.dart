@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 enum AppTheme { dark, light }
 
 final commonThemeData = ThemeData(
-  useMaterial3: false,
+  useMaterial3: true,
   fontFamily: 'Manrope',
   textSelectionTheme: TextSelectionThemeData(
     selectionColor: tertiaryColor_.withValues(alpha: 0.3),

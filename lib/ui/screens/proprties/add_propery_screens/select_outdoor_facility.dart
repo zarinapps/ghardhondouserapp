@@ -11,7 +11,7 @@ class SelectOutdoorFacility extends StatefulWidget {
 
   static Route<dynamic> route(RouteSettings settings) {
     final apiParameters = settings.arguments as Map<String, dynamic>? ?? {};
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (context) {
         return SelectOutdoorFacility(
           apiParameters: apiParameters,
@@ -64,7 +64,7 @@ class _SelectOutdoorFacilityState extends State<SelectOutdoorFacility>
 
     if (widget.apiParameters?['isUpdate'] as bool? ?? false) {
       for (final element in facilities) {
-        if (!_selectedIdsList.value.contains(element)) {
+        if (!_selectedIdsList.value.contains(element.facilityId)) {
           _selectedIdsList.value.add(element.facilityId!);
           _selectedIdsList.notifyListeners();
         }
@@ -115,174 +115,182 @@ class _SelectOutdoorFacilityState extends State<SelectOutdoorFacility>
           setState(() {});
         }
       },
-      child: Scaffold(
-        backgroundColor: context.color.backgroundColor,
-        appBar: UiUtils.buildAppBar(
-          context,
-          showBackButton: true,
-          actions: const [
-            Spacer(),
-            CustomText('4/4'),
-            SizedBox(
-              width: 14,
-            ),
-          ],
-          title: 'selectNearestPlaces'.translate(context),
-        ),
-        bottomNavigationBar: GestureDetector(
-          onTap: () {
-            distanceFieldList.forEach((element, v) {});
-          },
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: UiUtils.buildButton(
-              context,
-              onPressed: () {
-                final parameters = widget.apiParameters;
+      child: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Scaffold(
+          backgroundColor: context.color.backgroundColor,
+          appBar: UiUtils.buildAppBar(
+            context,
+            showBackButton: true,
+            actions: const [
+              Spacer(),
+              CustomText('4/4'),
+              SizedBox(
+                width: 14,
+              ),
+            ],
+            title: 'selectNearestPlaces'.translate(context),
+          ),
+          bottomNavigationBar: GestureDetector(
+            onTap: () {
+              distanceFieldList.forEach((element, v) {});
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: UiUtils.buildButton(
+                context,
+                onPressed: () {
+                  final parameters = widget.apiParameters;
 
-                ///adding facility data to api payload
-                parameters!.addAll(assembleOutdoorFacility());
-                parameters
-                  ..remove('assign_facilities')
-                  ..remove('isUpdate');
-                if (_formKey.currentState!.validate()) {
-                  context.read<CreatePropertyCubit>().create(
-                        parameters: parameters,
-                      );
-                }
-              },
-              buttonTitle: widget.apiParameters?['action_type'] == '0'
-                  ? UiUtils.translate(context, 'update')
-                  : UiUtils.translate(context, 'submitProperty'),
+                  ///adding facility data to api payload
+                  parameters!.addAll(assembleOutdoorFacility());
+                  parameters
+                    ..remove('assign_facilities')
+                    ..remove('isUpdate');
+                  if (_formKey.currentState!.validate()) {
+                    context.read<CreatePropertyCubit>().create(
+                          parameters: parameters,
+                        );
+                  }
+                },
+                buttonTitle: widget.apiParameters?['action_type'] == '0'
+                    ? UiUtils.translate(context, 'update')
+                    : UiUtils.translate(context, 'submitProperty'),
+              ),
             ),
           ),
-        ),
-        body: Builder(
-          builder: (context) {
-            if (fetchInProgress) {
-              return Center(
-                child: UiUtils.progress(),
-              );
-            }
-            if (fetchFails) {
-              return const Center(
-                child: CustomText('Something Went wrong'),
-              );
-            }
-            return SingleChildScrollView(
-              physics: Constant.scrollPhysics,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsetsDirectional.fromSTEB(15, 10, 15, 0),
-                    child: CustomText('selectPlaces'.translate(context)),
-                  ),
-                  const SizedBox(
-                    height: 12,
-                  ),
-                  BlocBuilder<FetchOutdoorFacilityListCubit,
-                      FetchOutdoorFacilityListState>(
-                    builder: (context, state) {
-                      if (state is FetchOutdoorFacilityListFailure) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 15),
-                          child: SomethingWentWrong(),
-                        );
-                      }
-                      if (state is FetchOutdoorFacilityListSucess &&
-                          state.outdoorFacilityList.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 15),
-                          child: NoDataFound(),
-                        );
-                      }
-                      if (state is FetchOutdoorFacilityListSucess &&
-                          state.outdoorFacilityList.isNotEmpty) {
-                        return ValueListenableBuilder<List<int>>(
-                          valueListenable: _selectedIdsList,
-                          builder: (context, List<int> value, child) {
-                            return OutdoorFacilityTable(
-                              length: state.outdoorFacilityList.length,
-                              child: (index) {
-                                final outdoorFacilityList =
-                                    state.outdoorFacilityList[index];
+          body: Builder(
+            builder: (context) {
+              if (fetchInProgress) {
+                return Center(
+                  child: UiUtils.progress(),
+                );
+              }
+              if (fetchFails) {
+                return const Center(
+                  child: CustomText('Something Went wrong'),
+                );
+              }
+              return SingleChildScrollView(
+                physics: Constant.scrollPhysics,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding:
+                          const EdgeInsetsDirectional.fromSTEB(15, 10, 15, 0),
+                      child: CustomText('selectPlaces'.translate(context)),
+                    ),
+                    const SizedBox(
+                      height: 12,
+                    ),
+                    BlocBuilder<FetchOutdoorFacilityListCubit,
+                        FetchOutdoorFacilityListState>(
+                      builder: (context, state) {
+                        if (state is FetchOutdoorFacilityListFailure) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 15),
+                            child: SomethingWentWrong(),
+                          );
+                        }
+                        if (state is FetchOutdoorFacilityListSucess &&
+                            state.outdoorFacilityList.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 15),
+                            child: NoDataFound(),
+                          );
+                        }
+                        if (state is FetchOutdoorFacilityListSucess &&
+                            state.outdoorFacilityList.isNotEmpty) {
+                          return ValueListenableBuilder<List<int>>(
+                            valueListenable: _selectedIdsList,
+                            builder: (context, List<int> value, child) {
+                              return OutdoorFacilityTable(
+                                length: state.outdoorFacilityList.length,
+                                child: (index) {
+                                  final outdoorFacilityList =
+                                      state.outdoorFacilityList[index];
 
-                                return buildTypeCard(
-                                  index,
-                                  context,
-                                  outdoorFacilityList,
-                                  onSelect: (id) {
-                                    if (_selectedIdsList.value.contains(id)) {
-                                      _selectedIdsList.value.remove(id);
+                                  return buildTypeCard(
+                                    index,
+                                    context,
+                                    outdoorFacilityList,
+                                    onSelect: (id) {
+                                      if (_selectedIdsList.value.contains(id)) {
+                                        _selectedIdsList.value.remove(id);
 
-                                      ///Dispose and remove from object
-                                      distanceFieldList[id]?.dispose();
-                                      distanceFieldList.remove(id);
-                                      _selectedIdsList.notifyListeners();
-                                    } else {
-                                      _selectedIdsList.value.add(id);
-                                      _selectedIdsList.notifyListeners();
-                                    }
-                                  },
-                                  isSelected:
-                                      value.contains(outdoorFacilityList.id),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      }
+                                        ///Dispose and remove from object
+                                        distanceFieldList[id]?.dispose();
+                                        distanceFieldList.remove(id);
+                                        _selectedIdsList.notifyListeners();
+                                      } else {
+                                        _selectedIdsList.value.add(id);
+                                        _selectedIdsList.notifyListeners();
+                                      }
+                                    },
+                                    isSelected:
+                                        value.contains(outdoorFacilityList.id),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        }
 
-                      return Container();
-                    },
-                  ),
-                  ValueListenableBuilder(
-                    valueListenable: _selectedIdsList,
-                    builder: (context, value, child) {
-                      return Padding(
-                        padding: const EdgeInsets.all(15),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (_selectedIdsList.value.isEmpty)
-                                const SizedBox.shrink()
-                              else
-                                CustomText('selectedItems'.translate(context)),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              ...List.generate(_selectedIdsList.value.length,
-                                  (index) {
-                                if (fetchInProgress) {
-                                  return const SizedBox.shrink();
-                                }
-
-                                final facility = getSelectedFacility(
-                                  _selectedIdsList.value[index],
-                                );
-                                return Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 3),
-                                  child: OutdoorFacilityDistanceField(
-                                    facility: facility,
-                                    controller: distanceFieldList[facility.id]!,
+                        return Container();
+                      },
+                    ),
+                    ValueListenableBuilder(
+                      valueListenable: _selectedIdsList,
+                      builder: (context, value, child) {
+                        return Padding(
+                          padding: const EdgeInsets.all(15),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (_selectedIdsList.value.isEmpty)
+                                  const SizedBox.shrink()
+                                else
+                                  CustomText(
+                                    'selectedItems'.translate(context),
                                   ),
-                                );
-                              }),
-                            ],
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                                ...List.generate(_selectedIdsList.value.length,
+                                    (index) {
+                                  if (fetchInProgress) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  final facility = getSelectedFacility(
+                                    _selectedIdsList.value[index],
+                                  );
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 3),
+                                    child: OutdoorFacilityDistanceField(
+                                      facility: facility,
+                                      controller:
+                                          distanceFieldList[facility.id]!,
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

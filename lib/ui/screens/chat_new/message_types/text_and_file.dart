@@ -3,29 +3,34 @@ import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/chat_new/message_types/blueprint.dart';
 import 'package:ebroker/ui/screens/chat_new/model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:timeago/timeago.dart';
 
-class FileAndText extends Message {
+class FileAndText extends ChatMessage {
   @override
-  String type = 'file_and_text';
+  String get chatMessageType => 'file_and_text';
 
-  List<String> imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp'];
+  List<String> imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'];
+
+  bool get _isImageFile {
+    if (file == null) return false;
+    final fileExt = file!.split('.').last.toLowerCase();
+    return imageExtensions.contains(fileExt);
+  }
 
   @override
   void init() {
     if (isSentNow && isSentByMe && isSent == false) {
       context!.read<SendMessageCubit>().send(
             senderId: HiveUtils.getUserId().toString(),
-            recieverId: message!.receiverId!,
-            attachment: message?.file,
-            message: message!.message!,
-            proeprtyId: message!.propertyId!,
-            audio: message?.audio,
+            recieverId: receiverId!,
+            attachment: file,
+            message: message!,
+            proeprtyId: propertyId!,
+            audio: audio,
           );
     }
     super.init();
@@ -35,7 +40,7 @@ class FileAndText extends Message {
   void onRemove() {
     context!.read<DeleteMessageCubit>().delete(
           messageId: id,
-          receiverId: message!.receiverId!,
+          receiverId: receiverId!,
           senderId: '',
           propertyId: '',
         );
@@ -44,12 +49,18 @@ class FileAndText extends Message {
 
   @override
   Widget render(context) {
-    final extension = message!.file!.split('.').last;
+    // Check if this is an image file
+    if (file != null && _isImageFile) {
+      final msg = ChatMessage()
+        ..file = file
+        ..message = message
+        ..timeAgo = timeAgo
+        ..isSentByMe = isSentByMe
+        ..id = id;
 
-    if (imageExtensions.contains(extension)) {
       return ImageAttachmentWidget(
         isSentByMe: isSentByMe,
-        message: message,
+        message: msg,
         onFileSent: () {
           isSent = true;
         },
@@ -58,6 +69,9 @@ class FileAndText extends Message {
         },
       );
     }
+
+    // For non-image files
+    final extension = file != null ? file!.split('.').last : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -108,30 +122,32 @@ class FileAndText extends Message {
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 7),
-                            child: CustomText(message!.file!.split('/').last),
+                            child: CustomText(
+                              file != null ? file!.split('/').last : '',
+                            ),
                           ),
                         ),
-                        FileDownloadButton(
-                          url: message!.file!,
-                        ),
+                        if (file != null)
+                          FileDownloadButton(
+                            url: file!,
+                          ),
                       ],
                     ),
                   ),
-                  if (message?.message != null &&
-                      message!.message!.isNotEmpty) ...[
+                  if (message != null &&
+                      message!.isNotEmpty &&
+                      message != '[File]') ...[
                     const Divider(),
                     Padding(
                       padding:
                           const EdgeInsets.only(bottom: 8, right: 8, left: 8),
-                      child: CustomText(message!.message!),
+                      child: CustomText(message!),
                     ),
                   ],
                   BlocConsumer<SendMessageCubit, SendMessageState>(
                     listener: (context, state) {
                       if (state is SendMessageSuccess) {
                         id = state.messageId.toString();
-                        // widget.onId.call(state.messageId.toString());
-                        // widget.onFileSent.call();
                         isSent = true;
                       }
                     },
@@ -157,7 +173,7 @@ class FileAndText extends Message {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: CustomText(
-                message!.timeAgo!,
+                timeAgo ?? '',
                 fontSize: context.font.smaller,
                 color: context.color.textLightColor,
               ),
@@ -282,7 +298,7 @@ class ImageAttachmentWidget extends StatefulWidget {
   final Function() onFileSent;
 
   final bool isSentByMe;
-  final ChatMessageModel? message;
+  final ChatMessage? message;
 
   @override
   State<ImageAttachmentWidget> createState() => _ImageAttachmentWidgetState();

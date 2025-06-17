@@ -4,7 +4,9 @@ import 'package:ebroker/data/model/project_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 
 class ProjectRepository {
-  Future<Map<String, dynamic>?> createProject(Map projectPayload) async {
+  Future<Map<String, dynamic>?> createProject(
+    Map<dynamic, dynamic> projectPayload,
+  ) async {
     try {
       final multipartData = _multipartImages(projectPayload);
       final images = projectPayload['gallery_images'];
@@ -44,6 +46,28 @@ class ProjectRepository {
       queryParameters: {
         Api.limit: Constant.loadLimit,
         Api.offset: offset,
+      },
+    );
+
+    final modelList = (response['data'] as List)
+        .cast<Map<String, dynamic>>()
+        .map<ProjectModel>(ProjectModel.fromMap)
+        .toList();
+    return DataOutput(
+      total: int.parse(response['total']?.toString() ?? '0'),
+      modelList: modelList,
+    );
+  }
+
+  Future<DataOutput<ProjectModel>> fetchPromotedProjects({
+    required int offset,
+  }) async {
+    final response = await Api.get(
+      url: Api.getProjects,
+      queryParameters: {
+        Api.limit: Constant.loadLimit,
+        Api.offset: offset,
+        'get_featured': 1,
       },
     );
 
@@ -109,7 +133,7 @@ class ProjectRepository {
     return ProjectModel.fromMap(result['data'] as Map<String, dynamic>? ?? {});
   }
 
-  Map<String, dynamic> _multipartImages(Map data) {
+  Map<String, dynamic> _multipartImages(Map<dynamic, dynamic> data) {
     return data.map((key, value) {
       if (value is FileValue) {
         return MapEntry(
@@ -139,7 +163,7 @@ class ProjectRepository {
           if (e is Map) {
             return _multipartImages(e);
           }
-          return {};
+          return <String, dynamic>{};
         }).toList();
         return MapEntry(key?.toString() ?? '', list);
       }
@@ -148,7 +172,7 @@ class ProjectRepository {
     });
   }
 
-  Future<DataOutput<ProjectModel>> fetchProjectFromProjectId(dynamic id) async {
+  Future<DataOutput<ProjectModel>> fetchProjectFromProjectId(id) async {
     final parameters = <String, dynamic>{
       Api.id: id,
     };

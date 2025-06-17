@@ -1,15 +1,13 @@
+import 'dart:developer';
+
 import 'package:country_picker/country_picker.dart';
 import 'package:ebroker/data/helper/custom_exception.dart';
 import 'package:ebroker/data/model/user_model.dart';
 import 'package:ebroker/data/repositories/auth_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/widgets/bottom_sheets/choose_location_bottomsheet.dart';
 import 'package:ebroker/ui/screens/widgets/image_cropper.dart';
-import 'package:ebroker/utils/hive_keys.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -30,7 +28,7 @@ class UserProfileScreen extends StatefulWidget {
 
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments! as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => UserProfileScreen(
         from: arguments?['from'] as String,
         popToCurrent: arguments?['popToCurrent'] as bool?,
@@ -52,17 +50,19 @@ class UserProfileScreenState extends State<UserProfileScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   dynamic size;
-  dynamic city;
-  dynamic _state;
-  dynamic country;
+  dynamic cityEdit;
+  dynamic stateEdit;
+  dynamic countryEdit;
   dynamic placeid;
+  String? radius;
   String? name;
   String? email;
+  Placemark? place;
   String? address;
   File? fileUserimg;
   bool isNotificationsEnabled = true;
-  double? latitude;
-  double? longitude;
+  String? latitude;
+  String? longitude;
   late LoginType loginType;
   String? selectedCountryCode = HiveUtils.getCountryCode()?.toString() ?? '';
   List<Country> countryList = CountryService().getAll();
@@ -74,9 +74,14 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     if (widget.from == 'login') {
       GuestChecker.set('profile_screen', isGuest: false);
     }
-    city = HiveUtils.getCityName();
-    _state = HiveUtils.getStateName();
-    country = HiveUtils.getCountryName();
+    cityEdit = HiveUtils.getCityName();
+    stateEdit = HiveUtils.getStateName();
+    countryEdit = HiveUtils.getCountryName();
+    placeid = HiveUtils.getCityPlaceId() ?? '';
+    radius = HiveUtils.getRadius()?.toString() ?? AppSettings.minRadius;
+    latitude = HiveUtils.getLatitude()?.toString();
+    longitude = HiveUtils.getLongitude()?.toString();
+
     placeid = HiveUtils.getCityPlaceId() ?? '';
     phoneController.text = widget.phoneNumber ?? _saperateNumber() ?? '';
     final firebaseDisplayName = FirebaseAuth.instance.currentUser?.displayName;
@@ -100,9 +105,9 @@ class UserProfileScreenState extends State<UserProfileScreen> {
       return null;
     }
 
-    final String? countryCode = HiveUtils.getCountryCode()?.toString() ?? '';
+    final countryCode = HiveUtils.getCountryCode()?.toString() ?? '';
 
-    final countryCodeLength = countryCode?.length ?? 0;
+    final countryCodeLength = countryCode.length;
 
     final mobileNumber = mobile.substring(countryCodeLength, mobile.length);
 
@@ -122,45 +127,47 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _onTapChooseLocation() async {
+  Future<void> _onTapChangeLocation() async {
+    if (Constant.isDemoModeOn) {
+      await HelperUtils.showSnackBarMessage(
+        context,
+        UiUtils.translate(context, 'thisActionNotValidDemo'),
+      );
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
 
-    if (!const bool.fromEnvironment(
-      'force-disable-demo-mode',
-    )) {
-      if (Constant.isDemoModeOn) {
-        await HelperUtils.showSnackBarMessage(
-          context,
-          'Not valid in demo mode',
-        );
-
-        return;
-      }
-    }
-
-    final result = await showModalBottomSheet<dynamic>(
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      context: context,
-      builder: (context) {
-        return const ChooseLocatonBottomSheet();
+    final placeMark = await Navigator.pushNamed(
+      context,
+      Routes.chooseLocaitonMap,
+      arguments: {
+        'from': 'home_location',
       },
-    );
+    ) as Map?;
+    try {
+      setState(() {
+        final latlng = placeMark?['latlng'] as LatLng;
+        place = placeMark?['place'] as Placemark;
+        latitude = latlng.latitude.toString();
+        longitude = latlng.longitude.toString();
+        radius = placeMark?['radius'] as String? ?? '';
+        cityEdit = place?.locality;
+        stateEdit = place?.administrativeArea;
+        countryEdit = place?.country;
+        placeid = place?.postalCode;
 
-    if (result != null) {
-      final place = result as GooglePlaceModel;
-
-      latitude = double.parse(place.latitude);
-      longitude = double.parse(place.longitude);
-      city = place.city;
-      country = place.country;
-      _state = place.state;
-      placeid = place.placeId;
+        HiveUtils.setLocation(
+          city: place?.locality ?? '',
+          state: place?.administrativeArea ?? '',
+          latitude: latlng.latitude.toString(),
+          longitude: latlng.longitude.toString(),
+          country: place?.country ?? '',
+          placeId: place?.postalCode ?? '',
+          radius: radius,
+        );
+      });
+    } catch (e, st) {
+      log(e.toString() + st.toString());
     }
   }
 
@@ -168,33 +175,47 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     showCountryPicker(
       context: context,
       showPhoneCode: true,
+      useRootNavigator: true,
       countryListTheme: CountryListThemeData(
-        borderRadius: BorderRadius.circular(11),
+        bottomSheetHeight: context.screenHeight * 0.8,
+        searchTextStyle: TextStyle(color: context.color.textColorDark),
+        textStyle: TextStyle(
+          color: context.color.textColorDark,
+          fontWeight: FontWeight.w600,
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
         backgroundColor: context.color.backgroundColor,
         inputDecoration: InputDecoration(
+          labelStyle: TextStyle(color: context.color.textColorDark),
           prefixIcon: const Icon(Icons.search),
           iconColor: context.color.tertiaryColor,
           prefixIconColor: context.color.tertiaryColor,
           focusedBorder: OutlineInputBorder(
             borderSide: BorderSide(color: context.color.tertiaryColor),
           ),
+          border: OutlineInputBorder(
+            borderSide: BorderSide(color: context.color.tertiaryColor),
+          ),
           floatingLabelStyle: TextStyle(color: context.color.tertiaryColor),
           labelText: 'Search',
-          border: const OutlineInputBorder(),
         ),
       ),
       onSelect: (Country value) {
         // flagEmoji = value.flagEmoji;
-        // countryCode = value.phoneCode;
         selectedCountryCode = value.phoneCode;
         setState(() {});
       },
+      onClosed: () => FocusScope.of(context).unfocus(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     size = MediaQuery.of(context).size;
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: safeAreaCondition(
@@ -226,45 +247,28 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                       title: 'email',
                       controller: emailController,
                       validator: CustomTextFieldValidator.email,
-                      readOnly: loginType != LoginType.phone ? true : false,
+                      readOnly: loginType != LoginType.phone,
                     ),
                     buildTextField(
                       context,
-                      textDirection: TextDirection.ltr,
+                      textDirection: Directionality.of(context),
                       title: 'phoneNumber',
                       keyboard: TextInputType.phone,
                       prefix: GestureDetector(
                         onTap: loginType == LoginType.phone
                             ? null
                             : _onTapCountryCode,
-                        child: Directionality.of(context) == TextDirection.ltr
-                            ? FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  ' + $selectedCountryCode ',
-                                  textDirection: TextDirection.ltr,
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                      suffix: GestureDetector(
-                        onTap: loginType == LoginType.phone
-                            ? null
-                            : _onTapCountryCode,
-                        child: Directionality.of(context) == TextDirection.rtl
-                            ? FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  ' + $selectedCountryCode ',
-                                  textDirection: TextDirection.ltr,
-                                ),
-                              )
-                            : const SizedBox.shrink(),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: CustomText(
+                            ' + $selectedCountryCode ',
+                          ),
+                        ),
                       ),
                       controller: phoneController,
                       formaters: [FilteringTextInputFormatter.digitsOnly],
                       validator: CustomTextFieldValidator.phoneNumber,
-                      readOnly: loginType == LoginType.phone ? true : false,
+                      readOnly: loginType == LoginType.phone,
                     ),
                     buildAddressTextField(
                       context,
@@ -310,9 +314,9 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     UiUtils.buildButton(
                       context,
-                      onPressed: () {
+                      onPressed: () async {
                         if (Constant.isDemoModeOn) {
-                          HelperUtils.showSnackBarMessage(
+                          await HelperUtils.showSnackBarMessage(
                             context,
                             UiUtils.translate(
                               context,
@@ -321,31 +325,11 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                           );
                           return;
                         }
-                        if (city != null && city != '') {
-                          HiveUtils.setLocation(
-                            city: city?.toString() ?? '',
-                            state: _state?.toString() ?? '',
-                            latitude: latitude,
-                            longitude: longitude,
-                            country: country?.toString() ?? '',
-                            placeId: placeid?.toString() ?? '',
-                          );
-                          Hive.box(HiveKeys.userDetailsBox)
-                              .put(HiveKeys.cityTeemp, city);
-                          context.read<FetchNearbyPropertiesCubit>().fetch(
-                                forceRefresh: true,
-                              );
-
-                          context
-                              .read<FetchMostViewedPropertiesCubit>()
-                              .fetch();
+                        if (cityEdit != null && cityEdit != '') {
                         } else {
-                          HiveUtils.clearLocation();
-                          context.read<FetchNearbyPropertiesCubit>().fetch(
-                                forceRefresh: true,
-                              );
+                          await HiveUtils.clearLocation();
                         }
-                        validateData();
+                        await validateData();
                       },
                       height: 48.rh(context),
                       buttonTitle: UiUtils.translate(context, 'updateProfile'),
@@ -371,7 +355,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
             child: Container(
               height: 55,
               decoration: BoxDecoration(
-                color: context.color.textLightColor.withValues(alpha: 00.01),
+                color: context.color.secondaryColor,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: context.color.borderColor,
@@ -384,8 +368,8 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                     padding: const EdgeInsetsDirectional.only(start: 10),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: (city != '' && city != null)
-                          ? CustomText('$city,$_state,$country')
+                      child: (cityEdit != '' && cityEdit != null)
+                          ? CustomText('$cityEdit,$stateEdit,$countryEdit')
                           : CustomText(
                               UiUtils.translate(
                                 context,
@@ -395,15 +379,15 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
                   const Spacer(),
-                  if (city != '' && city != null)
+                  if (cityEdit != '' && cityEdit != null)
                     Padding(
                       padding: const EdgeInsetsDirectional.only(end: 10),
                       child: GestureDetector(
-                        onTap: () {
-                          city = '';
-                          _state = '';
-                          country = '';
-                          HiveUtils.clearLocation();
+                        onTap: () async {
+                          cityEdit = '';
+                          stateEdit = '';
+                          countryEdit = '';
+                          await HiveUtils.clearLocation();
                           setState(() {});
                         },
                         child: Icon(
@@ -420,22 +404,22 @@ class UserProfileScreenState extends State<UserProfileScreen> {
             width: 10,
           ),
           GestureDetector(
-            onTap: _onTapChooseLocation,
+            onTap: () async {
+              await _onTapChangeLocation();
+            },
             child: Container(
               height: 55,
               width: 55,
+              padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
-                color: context.color.textLightColor.withValues(alpha: 00.01),
+                color: context.color.secondaryColor,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: context.color.borderColor,
                   width: 1.5,
                 ),
               ),
-              child: Icon(
-                Icons.location_searching_sharp,
-                color: context.color.tertiaryColor,
-              ),
+              child: UiUtils.getSvg(AppIcons.locationRound),
             ),
           ),
         ],
@@ -520,7 +504,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
           suffix: suffix,
           formaters: formaters, //
           // formaters: [FilteringTextInputFormatter.deny(RegExp(","))],
-          fillColor: context.color.textLightColor.withValues(alpha: .01),
+          fillColor: context.color.secondaryColor,
         ),
       ],
     );
@@ -549,7 +533,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
           action: TextInputAction.newline,
           isReadOnly: readOnly,
           validator: validator,
-          fillColor: context.color.textLightColor.withValues(alpha: 00.01),
+          fillColor: context.color.secondaryColor,
         ),
         const SizedBox(
           width: 10,
@@ -631,14 +615,14 @@ class UserProfileScreenState extends State<UserProfileScreen> {
               decoration: BoxDecoration(
                 border: Border.all(
                   color: context.color.buttonColor,
-                  width: 1.5,
+                  width: 2,
                 ),
                 shape: BoxShape.circle,
                 color: context.color.tertiaryColor,
               ),
               child: SizedBox(
-                width: 15.rw(context),
-                height: 15.rh(context),
+                width: 22.rw(context),
+                height: 22.rh(context),
                 child: UiUtils.getSvg(AppIcons.edit),
               ),
             ),
@@ -688,9 +672,9 @@ class UserProfileScreenState extends State<UserProfileScreen> {
             phone: '$selectedCountryCode${phoneController.text}',
             latitude: latitude,
             longitude: longitude,
-            city: city?.toString() ?? '',
-            state: _state?.toString() ?? '',
-            country: country?.toString() ?? '',
+            city: cityEdit?.toString() ?? '',
+            state: stateEdit?.toString() ?? '',
+            country: countryEdit?.toString() ?? '',
             address: addressController.text,
             notification: isNotificationsEnabled == true ? '1' : '0',
             instagram: instagramController.text,
@@ -699,14 +683,27 @@ class UserProfileScreenState extends State<UserProfileScreen> {
             twitter: twitterController.text,
           );
       Future.delayed(Duration.zero, () {
-        final result = response;
-        final data = result['data'];
+        final data = response['data'];
         data['countryCode'] = selectedCountryCode;
 
         HiveUtils.setUserData(data as Map<dynamic, dynamic>? ?? {});
+        if (cityEdit != null && cityEdit != '') {
+          HiveUtils.setLocation(
+            city: cityEdit?.toString() ?? '',
+            state: stateEdit?.toString() ?? '',
+            latitude: latitude,
+            longitude: longitude,
+            country: countryEdit?.toString() ?? '',
+            placeId: placeid?.toString() ?? '',
+            radius: radius,
+          );
+        }
 
-        context.read<UserDetailsCubit>().copy(UserModel.fromJson(
-            response['data'] as Map<String, dynamic>? ?? {}));
+        context.read<UserDetailsCubit>().copy(
+              UserModel.fromJson(
+                response['data'] as Map<String, dynamic>? ?? {},
+              ),
+            );
       });
 
       Future.delayed(
@@ -739,11 +736,11 @@ class UserProfileScreenState extends State<UserProfileScreen> {
           () {
             HelperUtils.killPreviousPages(
                 context, Routes.personalizedPropertyScreen, {
-              'type': PersonalizedVisitType.FirstTime,
+              'type': PersonalizedVisitType.firstTime,
             });
           },
         );
-      } else if (widget.from == 'login' && widget.popToCurrent == true) {
+      } else if (widget.from == 'login' && (widget.popToCurrent ?? false)) {
         Future.delayed(Duration.zero, () {
           HelperUtils.killPreviousPages(
             context,
@@ -767,9 +764,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
   void showPicker() {
     showModalBottomSheet<void>(
       context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
+      backgroundColor: context.color.secondaryColor,
       builder: (BuildContext bc) {
         return SafeArea(
           child: Wrap(

@@ -14,10 +14,10 @@ class Wave extends StatefulWidget {
   final Axis direction;
 
   @override
-  _WaveState createState() => _WaveState();
+  WaveState createState() => WaveState();
 }
 
-class _WaveState extends State<Wave> with SingleTickerProviderStateMixin {
+class WaveState extends State<Wave> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
 
   @override

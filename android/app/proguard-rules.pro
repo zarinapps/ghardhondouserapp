@@ -7,3 +7,4 @@
 -dontwarn proguard.annotation.KeepClassMembers
 -keep class com.google.common.reflect.TypeToken
 -keep class * extends com.google.common.reflect.TypeToken
+-keep class com.google.android.gms.internal.ads.** { *; }

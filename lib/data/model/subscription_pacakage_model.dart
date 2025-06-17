@@ -36,6 +36,8 @@ class SubscriptionPackageModel {
     required this.duration,
     required this.createdAt,
     required this.features,
+    required this.packageStatus,
+    this.paymentTransactionId,
   });
 
   factory SubscriptionPackageModel.fromJson(Map<String, dynamic> json) =>
@@ -52,6 +54,8 @@ class SubscriptionPackageModel {
             (x) => PackageFeatures.fromJson(x as Map<String, dynamic>? ?? {}),
           ),
         ),
+        packageStatus: json['package_status']?.toString() ?? '',
+        paymentTransactionId: json['payment_transaction_id']?.toString() ?? '',
       );
 
   int id;
@@ -62,7 +66,8 @@ class SubscriptionPackageModel {
   int duration;
   DateTime createdAt;
   List<PackageFeatures> features;
-
+  String packageStatus;
+  String? paymentTransactionId;
   SubscriptionPackageModel copyWith({
     int? id,
     String? iosProductId,
@@ -72,6 +77,8 @@ class SubscriptionPackageModel {
     int? duration,
     DateTime? createdAt,
     List<PackageFeatures>? features,
+    String? packageStatus,
+    String? paymentTransactionId,
   }) =>
       SubscriptionPackageModel(
         id: id ?? this.id,
@@ -82,6 +89,8 @@ class SubscriptionPackageModel {
         duration: duration ?? this.duration,
         createdAt: createdAt ?? this.createdAt,
         features: features ?? this.features,
+        packageStatus: packageStatus ?? this.packageStatus,
+        paymentTransactionId: paymentTransactionId ?? this.paymentTransactionId,
       );
 
   Map<String, dynamic> toJson() => {
@@ -93,6 +102,8 @@ class SubscriptionPackageModel {
         'duration': duration,
         'created_at': createdAt.toIso8601String(),
         'features': List<dynamic>.from(features.map((x) => x.toJson())),
+        'package_status': packageStatus,
+        'payment_transaction_id': paymentTransactionId,
       };
 }
 
@@ -319,4 +330,44 @@ class PackageFeatures {
         'limit_type': limitType.toString().split('.').last,
         'limit': limit,
       };
+}
+
+class BankTransferResponseModel {
+  BankTransferResponseModel({
+    required this.userId,
+    required this.packageId,
+    required this.amount,
+    required this.paymentGateway,
+    required this.paymentStatus,
+    required this.orderId,
+    required this.paymentType,
+    required this.updatedAt,
+    required this.createdAt,
+    required this.id,
+  });
+
+  factory BankTransferResponseModel.fromJson(Map<String, dynamic> json) =>
+      BankTransferResponseModel(
+        userId: json['user_id'] as int? ?? 0,
+        packageId: json['package_id'] as int? ?? 0,
+        amount: json['amount'] as num? ?? 0,
+        paymentGateway: json['payment_gateway']?.toString() ?? '',
+        paymentStatus: json['payment_status']?.toString() ?? '',
+        orderId: json['order_id']?.toString() ?? '',
+        paymentType: json['payment_type']?.toString() ?? '',
+        updatedAt: DateTime.parse(json['updated_at']?.toString() ?? ''),
+        createdAt: DateTime.parse(json['created_at']?.toString() ?? ''),
+        id: json['id'] as int? ?? 0,
+      );
+
+  int userId;
+  int packageId;
+  num amount;
+  String paymentGateway;
+  String paymentStatus;
+  String orderId;
+  String paymentType;
+  DateTime updatedAt;
+  DateTime createdAt;
+  int id;
 }

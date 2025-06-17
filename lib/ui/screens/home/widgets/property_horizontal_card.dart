@@ -1,5 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 
+import 'dart:ui';
+
 import 'package:ebroker/data/model/advertisement_model.dart';
 import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/exports/main_export.dart';
@@ -14,14 +16,13 @@ class PropertyHorizontalCard extends StatelessWidget {
   final List<PropertyModel>? properties;
   final double? additionalHeight;
   final StatusButton? statusButton;
-  final dynamic Function(FavoriteType type)? onLikeChange;
   final bool? showDeleteButton;
-  final VoidCallback? onDeleteTap;
   final double? additionalImageWidth;
   final bool? showLikeButton;
   final bool? isFromSearch;
   final bool? isFromMyProperty;
   final bool? disableTap;
+  final bool? showFeatured;
 
   const PropertyHorizontalCard({
     required this.property,
@@ -29,15 +30,14 @@ class PropertyHorizontalCard extends StatelessWidget {
     this.properties,
     super.key,
     this.additionalHeight,
-    this.onLikeChange,
     this.statusButton,
     this.showDeleteButton,
-    this.onDeleteTap,
     this.showLikeButton,
     this.additionalImageWidth,
     this.isFromSearch,
     this.isFromMyProperty,
     this.disableTap,
+    this.showFeatured,
   });
 
   @override
@@ -49,7 +49,7 @@ class PropertyHorizontalCard extends StatelessWidget {
 
     if (property.rentduration != '' && property.rentduration != null) {
       rentPrice =
-          ('$rentPrice / ') + (property.rentduration ?? '').translate(context);
+          '$rentPrice / ${(property.rentduration ?? '').translate(context)}';
     }
 
     final isPremium = property.allPropData['is_premium'] as bool? ?? false;
@@ -66,31 +66,16 @@ class PropertyHorizontalCard extends StatelessWidget {
           onTap: () async {
             if (disableTap ?? false) return;
             try {
-              unawaited(Widgets.showLoader(context));
               if (isPremium) {
-                GuestChecker.check(
+                await GuestChecker.check(
                   onNotGuest: () async {
+                    unawaited(Widgets.showLoader(context));
+
                     if (isAddedByMe) {
-                      final fetch = PropertyRepository();
-                      final dataOutput =
-                          await fetch.fetchPropertyFromPropertyId(
-                        id: property.id!,
-                        isMyProperty: isAddedByMe,
-                      );
-                      Future.delayed(
-                        Duration.zero,
-                        () {
-                          Widgets.hideLoder(context);
-                          HelperUtils.goToNextPage(
-                            Routes.propertyDetails,
-                            context,
-                            false,
-                            args: {
-                              'propertyData': dataOutput,
-                              'fromMyProperty': isFromMyProperty ?? false,
-                            },
-                          );
-                        },
+                      await _navigateToPropertyDetails(
+                        context,
+                        property.id!,
+                        isAddedByMe,
                       );
                     } else {
                       final checkPackage = CheckPackage();
@@ -99,32 +84,17 @@ class PropertyHorizontalCard extends StatelessWidget {
                         packageType: PackageType.premiumProperties,
                       );
                       if (packageAvailable) {
-                        final fetch = PropertyRepository();
-                        final dataOutput =
-                            await fetch.fetchPropertyFromPropertyId(
-                          id: property.id!,
-                          isMyProperty: isAddedByMe,
-                        );
-                        Future.delayed(
-                          Duration.zero,
-                          () {
-                            Widgets.hideLoder(context);
-                            HelperUtils.goToNextPage(
-                              Routes.propertyDetails,
-                              context,
-                              false,
-                              args: {
-                                'propertyData': dataOutput,
-                                'fromMyProperty': isFromMyProperty ?? false,
-                              },
-                            );
-                          },
+                        await _navigateToPropertyDetails(
+                          context,
+                          property.id!,
+                          isAddedByMe,
                         );
                       } else {
                         Widgets.hideLoder(context);
+
                         await UiUtils.showBlurredDialoge(
                           context,
-                          dialoge: const BlurredSubscriptionDialogBox(
+                          dialog: const BlurredSubscriptionDialogBox(
                             packageType:
                                 SubscriptionPackageType.premiumProperties,
                             isAcceptContainesPush: true,
@@ -135,28 +105,17 @@ class PropertyHorizontalCard extends StatelessWidget {
                   },
                 );
               } else {
-                final fetch = PropertyRepository();
-                final dataOutput = await fetch.fetchPropertyFromPropertyId(
-                  id: property.id!,
-                  isMyProperty: isAddedByMe,
-                );
-                Future.delayed(
-                  Duration.zero,
-                  () {
-                    Widgets.hideLoder(context);
-                    HelperUtils.goToNextPage(
-                      Routes.propertyDetails,
-                      context,
-                      false,
-                      args: {
-                        'propertyData': dataOutput,
-                        'fromMyProperty': isFromMyProperty ?? false,
-                      },
-                    );
-                  },
+                unawaited(Widgets.showLoader(context));
+
+                await _navigateToPropertyDetails(
+                  context,
+                  property.id!,
+                  isAddedByMe,
                 );
               }
             } catch (e) {
+              // Error handled in the finally block
+            } finally {
               Widgets.hideLoder(context);
             }
           },
@@ -199,10 +158,45 @@ class PropertyHorizontalCard extends StatelessWidget {
                                   width: 24,
                                 ),
                               ),
+                            PositionedDirectional(
+                              start: 6,
+                              bottom: 6,
+                              child: Container(
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  color:
+                                      context.color.secondaryColor.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    4,
+                                  ),
+                                ),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    child: Center(
+                                      child: CustomText(
+                                        property.properyType!
+                                            .toLowerCase()
+                                            .translate(context),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: context.font.smaller,
+                                        color: context.color.textColorDark,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      if (isPromoted) ...[
+                      if (isPromoted || (showFeatured ?? false)) ...[
                         const SizedBox(height: 4),
                         const PromotedCard(
                           type: PromoteCardType.icon,
@@ -259,7 +253,17 @@ class PropertyHorizontalCard extends StatelessWidget {
                               child: LikeButtonWidget(
                                 propertyId: property.id!,
                                 isFavourite: property.isFavourite!,
-                                onLikeChanged: onLikeChange,
+                                onLikeChanged: (type) async {
+                                  if (type == FavoriteType.add) {
+                                    context
+                                        .read<FetchFavoritesCubit>()
+                                        .add(property);
+                                  } else {
+                                    context
+                                        .read<FetchFavoritesCubit>()
+                                        .remove(property.id);
+                                  }
+                                },
                               ),
                             ),
                           if (showLikeButton == false && statusButton == null)
@@ -307,13 +311,15 @@ class PropertyHorizontalCard extends StatelessWidget {
                                         onTap: () {
                                           UiUtils.showBlurredDialoge(
                                             context,
-                                            dialoge: BlurredDialogBox(
+                                            dialog: BlurredDialogBox(
                                               acceptTextColor:
                                                   context.color.buttonColor,
                                               showCancleButton: false,
                                               title: statusButton!.lable,
                                               content: CustomText(
-                                                statusButton!.lable,
+                                                property.rejectReason?.reason
+                                                        .toString() ??
+                                                    '',
                                               ),
                                             ),
                                           );
@@ -384,6 +390,34 @@ class PropertyHorizontalCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _navigateToPropertyDetails(
+    BuildContext context,
+    int propertyId,
+    bool isMyProperty,
+  ) async {
+    final fetch = PropertyRepository();
+    final dataOutput = await fetch.fetchPropertyFromPropertyId(
+      id: propertyId,
+      isMyProperty: isMyProperty,
+    );
+
+    Widgets.hideLoder(context);
+
+    Future.delayed(
+      Duration.zero,
+      () {
+        HelperUtils.goToNextPage(
+          Routes.propertyDetails,
+          context,
+          false,
+          args: {
+            'propertyData': dataOutput,
+          },
+        );
+      },
     );
   }
 }

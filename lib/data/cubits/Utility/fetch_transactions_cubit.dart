@@ -53,7 +53,9 @@ class FetchTransactionsCubit extends Cubit<FetchTransactionsState> {
     try {
       emit(FetchTransactionsInProgress());
 
-      final result = await _transactionRepository.fetchTransactions();
+      final result = await _transactionRepository.fetchTransactions(
+        offset: 0,
+      );
 
       emit(
         FetchTransactionsSuccess(
@@ -79,9 +81,8 @@ class FetchTransactionsCubit extends Cubit<FetchTransactionsState> {
         }
         emit((state as FetchTransactionsSuccess).copyWith(isLoadingMore: true));
         final result = await _transactionRepository.fetchTransactions(
-
-            // offset: (state as FetchTransactionsSuccess).offset.LIST.length,
-            );
+          offset: (state as FetchTransactionsSuccess).transactionmodel.length,
+        );
 
         final transactionmodelState = state as FetchTransactionsSuccess;
         transactionmodelState.transactionmodel.addAll(result.modelList);
@@ -90,7 +91,7 @@ class FetchTransactionsCubit extends Cubit<FetchTransactionsState> {
             isLoadingMore: false,
             loadingMoreError: false,
             transactionmodel: transactionmodelState.transactionmodel,
-            offset: 0, //(state as FetchTransactionsSuccess).offset.LIST.length,
+            offset: (state as FetchTransactionsSuccess).transactionmodel.length,
             total: result.total,
           ),
         );
@@ -103,10 +104,17 @@ class FetchTransactionsCubit extends Cubit<FetchTransactionsState> {
     }
   }
 
+  bool isLoadingMore() {
+    if (state is FetchTransactionsSuccess) {
+      return (state as FetchTransactionsSuccess).isLoadingMore;
+    }
+    return false;
+  }
+
   bool hasMoreData() {
     if (state is FetchTransactionsSuccess) {
-      // return (state as FetchTransactionsSuccess).offset.LIST.length <
-      //     (state as FetchTransactionsSuccess).total;
+      return (state as FetchTransactionsSuccess).transactionmodel.length <
+          (state as FetchTransactionsSuccess).total;
     }
     return false;
   }

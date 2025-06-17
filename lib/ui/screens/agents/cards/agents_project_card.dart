@@ -12,7 +12,7 @@ class AgentProjects extends StatefulWidget {
     super.key,
   });
   final bool isAdmin;
-  final int agentId;
+  final String agentId;
 
   @override
   State<AgentProjects> createState() => _AgentProjectsState();
@@ -101,6 +101,7 @@ class _AgentProjectsState extends State<AgentProjects> {
                       top: 15,
                       left: 18,
                       right: 18,
+                      bottom: 8,
                     ),
                     padding: const EdgeInsets.only(
                       top: 15,
@@ -160,17 +161,25 @@ class _AgentProjectsState extends State<AgentProjects> {
                             },
                           ),
                         ),
+                        if (context
+                            .watch<FetchAgentsProjectCubit>()
+                            .isLoadingMore()) ...[
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          Center(
+                            child: UiUtils.progress(
+                              height: 24.rh(context),
+                              width: 24.rw(context),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(
+                          height: 10,
+                        ),
                       ],
                     ),
                   ),
-                ),
-                if (context
-                    .watch<FetchAgentsProjectCubit>()
-                    .isLoadingMore()) ...[
-                  Center(child: UiUtils.progress()),
-                ],
-                const SizedBox(
-                  height: 30,
                 ),
               ],
             );
@@ -196,7 +205,7 @@ class AgentProjectCardBig extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         try {
-          GuestChecker.check(
+          await GuestChecker.check(
             onNotGuest: () async {
               unawaited(Widgets.showLoader(context));
 
@@ -256,7 +265,7 @@ class AgentProjectCardBig extends StatelessWidget {
                 } else {
                   await UiUtils.showBlurredDialoge(
                     context,
-                    dialoge: const BlurredSubscriptionDialogBox(
+                    dialog: const BlurredSubscriptionDialogBox(
                       packageType: SubscriptionPackageType.projectAccess,
                       isAcceptContainesPush: true,
                     ),
@@ -276,6 +285,7 @@ class AgentProjectCardBig extends StatelessWidget {
       },
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
+        height: 250,
         width: MediaQuery.of(context).size.width * 0.7,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),

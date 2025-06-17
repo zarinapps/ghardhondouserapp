@@ -1,10 +1,9 @@
 import 'dart:developer';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:ebroker/utils/constant.dart';
 import 'package:ebroker/utils/errorFilter.dart';
-import 'package:ebroker/utils/guestChecker.dart';
+import 'package:ebroker/utils/guest_checker.dart';
 import 'package:ebroker/utils/hive_keys.dart';
 import 'package:ebroker/utils/network/interseptors/network_request_interseptor.dart';
 import 'package:flutter/foundation.dart';
@@ -16,7 +15,7 @@ enum StatusCode {
   forbidden, // 403
   notFound, // 404
   conflict, // 409
-  internalServerError; // 500
+  internalServerError, // 500
 }
 
 extension StatusCodeExtension on StatusCode {
@@ -60,21 +59,15 @@ class Api {
     if (GuestChecker.value == true) {
       return {};
     } else {
-      final jwtToken = Hive.box(HiveKeys.userDetailsBox)
-              .get(
-                HiveKeys.jwtToken,
-              )
-              ?.toString() ??
+      final jwtToken = Hive.box<dynamic>(
+            HiveKeys.userDetailsBox,
+          ).get(HiveKeys.jwtToken)?.toString() ??
           '';
       log('JWT : $jwtToken');
       if (kDebugMode) {
-        return {
-          'Authorization': 'Bearer $jwtToken',
-        };
+        return {'Authorization': 'Bearer $jwtToken'};
       }
-      return {
-        'Authorization': 'Bearer $jwtToken',
-      };
+      return {'Authorization': 'Bearer $jwtToken'};
     }
   }
 
@@ -89,11 +82,16 @@ class Api {
   static String placeAPI = '${_placeApiBaseUrl}autocomplete/json';
   static String placeApiDetails = '${_placeApiBaseUrl}details/json';
 
-//
+  //
 
   static String stripeIntentAPI = 'https://api.stripe.com/v1/payment_intents';
 
   //api fun
+  static String uploadBankReceiptFile = 'upload-bank-receipt-file';
+  static String initiateBankTransfer = 'initiate-bank-transfer';
+  static String getPaymentReceipt = 'get-payment-receipt';
+  static String getAllSimilarProperties = 'get-all-similar-properties';
+  static String compareProperties = 'compare-properties';
   static String apiLogin = 'user_signup';
   static String apiBeforeLogout = 'before-logout';
   static String apiUpdateProfile = 'update_profile';
@@ -116,7 +114,6 @@ class Api {
   static String apiDeleteProperty = 'delete_property';
   static String apiGetHouseType = 'get_house_type';
   static String apiGetNotificationList = 'get_notification_list';
-  static String setPropertyView = 'set_property_total_click';
   static String apiDeleteUser = 'delete_user';
   static String apiGetFaqs = 'faqs';
   static String paypal = 'paypal';
@@ -242,7 +239,7 @@ class Api {
   static String postedSince = 'posted_since';
   static String property = 'property';
   static String offset = 'offset';
-  static String topRated = 'most_viewed';
+  static String mostViewed = 'most_viewed';
   static String promoted = 'promoted';
   static String limit = 'limit';
   static String isProjects = 'is_projects';
@@ -250,6 +247,9 @@ class Api {
   static String notification = 'notification';
   static String v360degImage = 'three_d_image';
   static String videoLink = 'video_link';
+  static String latitude = 'latitude';
+  static String longitude = 'longitude';
+  static String radius = 'radius';
 
   //not in use yet
   // static String offset = "offset";
@@ -287,16 +287,14 @@ class Api {
     bool? useBaseUrl,
   }) async {
     try {
-      final response = await dio.delete(
+      final response = await dio.delete<dynamic>(
         ((useBaseUrl ?? true) ? Constant.baseUrl : '') + url,
         options: (useAuthToken ?? true)
             ? Options(
                 contentType: 'multipart/form-data',
                 headers: headers(),
               )
-            : Options(
-                contentType: 'multipart/form-data',
-              ),
+            : Options(contentType: 'multipart/form-data'),
       );
 
       final resp = response.data;
@@ -319,13 +317,9 @@ class Api {
     bool? useBaseUrl,
   }) async {
     try {
-      final formData = FormData.fromMap(
-        parameter,
-        ListFormat.multiCompatible,
-      );
+      final formData = FormData.fromMap(parameter, ListFormat.multiCompatible);
 
-      log('Request-API:$url  and $parameter ');
-      final response = await dio.post(
+      final response = await dio.post<dynamic>(
         ((useBaseUrl ?? true) ? Constant.baseUrl : '') + url,
         data: formData,
         options: (useAuthToken ?? true)
@@ -333,17 +327,20 @@ class Api {
                 contentType: 'multipart/form-data',
                 headers: headers(),
               )
-            : Options(
-                contentType: 'multipart/form-data',
-              ),
+            : Options(contentType: 'multipart/form-data'),
       );
       final resp = response.data;
 
       return Map.from(resp as Map<dynamic, dynamic>? ?? {});
     } on DioException catch (e) {
-      // Handle DioException specifically
       if (e.response != null) {
-        // Extract the error message from the response
+        // Check if status code is 400 or 500
+        if (e.response?.statusCode == 400 || e.response?.statusCode == 500) {
+          // Return the response data instead of throwing an error
+          return Map.from(e.response?.data as Map<dynamic, dynamic>? ?? {});
+        }
+
+        // For other status codes, extract the error message from the response
         final errorMessage = e.response?.data['message'] ?? e.message;
         throw ApiException(errorMessage);
       } else {
@@ -364,16 +361,23 @@ class Api {
     bool? useBaseUrl,
   }) async {
     try {
-      final response = await dio.get(
+      final response = await dio.get<dynamic>(
         ((useBaseUrl ?? true) ? Constant.baseUrl : '') + url,
         queryParameters: queryParameters,
         options: (useAuthToken ?? true) ? Options(headers: headers()) : null,
       );
+
       return Map.from(response.data as Map<dynamic, dynamic>? ?? {});
     } on DioException catch (e) {
       // Handle DioException specifically
       if (e.response != null) {
-        // Extract the error message from the response
+        // Check if status code is 400 or 500
+        if (e.response?.statusCode == 400 || e.response?.statusCode == 500) {
+          // Return the response data instead of throwing an error
+          return Map.from(e.response?.data as Map<dynamic, dynamic>? ?? {});
+        }
+
+        // For other status codes, extract the error message from the response
         final errorMessage = e.response?.data['message'] ?? e.message;
         throw ApiException(errorMessage);
       } else {
@@ -391,46 +395,6 @@ class Api {
 abstract class Error {
   StackTrace? stackTrace;
   DioException? error;
-}
-
-Error _handleDioError(DioException error) {
-  if (error.error is SocketException) {
-    return NoInternetConnectionError(error, stackTrace: error.stackTrace);
-  }
-
-  switch (error.type) {
-    case DioExceptionType.connectionTimeout:
-    case DioExceptionType.sendTimeout:
-    case DioExceptionType.receiveTimeout:
-      return TimeoutError(error, stackTrace: error.stackTrace);
-    case DioExceptionType.badResponse:
-      final statusCode = error.response?.statusCode;
-      if (statusCode != null) {
-        if (statusCode == StatusCode.badRequest.code) {
-          return BadRequestError(error, stackTrace: error.stackTrace);
-        } else if (statusCode == StatusCode.unauthorized.code ||
-            statusCode == StatusCode.forbidden.code) {
-          return UnauthorizedError(error, stackTrace: error.stackTrace);
-        } else if (statusCode == StatusCode.notFound.code) {
-          return NotFoundError(error, stackTrace: error.stackTrace);
-        } else if (statusCode == StatusCode.conflict.code) {
-          return ConflictError(error, stackTrace: error.stackTrace);
-        } else if (statusCode == StatusCode.internalServerError.code) {
-          return InternalServerError(error, stackTrace: error.stackTrace);
-        } else {
-          return UnknownError(error, stackTrace: error.stackTrace);
-        }
-      }
-    case DioExceptionType.cancel:
-      break;
-    case DioExceptionType.unknown:
-      return NoInternetConnectionError(error, stackTrace: error.stackTrace);
-    case DioExceptionType.badCertificate:
-      return BadCertificateError(error, stackTrace: error.stackTrace);
-    case DioExceptionType.connectionError:
-      return ConnectionError(error);
-  }
-  return UnknownError(error, stackTrace: error.stackTrace);
 }
 
 class TimeoutError extends Error {

@@ -2,7 +2,9 @@ import 'dart:developer';
 
 import 'package:ebroker/data/helper/filter.dart';
 import 'package:ebroker/data/model/advertisement_model.dart';
+import 'package:ebroker/data/model/compare_property_model.dart';
 import 'package:ebroker/exports/main_export.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class PropertyRepository {
   ///This method will add property
@@ -51,6 +53,10 @@ class PropertyRepository {
         queryParameters: parameters,
         useAuthToken: true,
       );
+      if (response['error'] == true) {
+        await Fluttertoast.showToast(msg: response['message'].toString());
+        throw Exception(response['message'].toString());
+      }
 
       final data = response['data'];
 
@@ -66,6 +72,7 @@ class PropertyRepository {
       throw Exception('Invalid data format received from API');
     } catch (e) {
       log('Error is $e');
+      await Fluttertoast.showToast(msg: e.toString());
     }
     return PropertyModel.fromMap({});
   }
@@ -79,37 +86,22 @@ class PropertyRepository {
     );
   }
 
-  Future<DataOutput<PropertyModel>> fetchTopRatedProperty() async {
-    final parameters = <String, dynamic>{
-      Api.topRated: '1',
-    };
-
-    final response = await Api.get(
-      url: Api.apiGetPropertyList,
-      queryParameters: parameters,
-    );
-
-    final modelList = (response['data'] as List)
-        .cast<Map<String, dynamic>>()
-        .map<PropertyModel>(PropertyModel.fromMap)
-        .toList();
-
-    return DataOutput(
-      total: int.parse(response['total']?.toString() ?? '0'),
-      modelList: modelList,
-    );
-  }
-
   ///fetch most viewed properties
   Future<DataOutput<PropertyModel>> fetchMostViewedProperty({
     required int offset,
-    required bool sendCityName,
+    required String latitude,
+    required String longitude,
+    required String radius,
   }) async {
     final parameters = <String, dynamic>{
-      Api.topRated: '1',
+      Api.mostViewed: '1',
       Api.offset: offset,
       Api.limit: Constant.loadLimit,
-    };
+      Api.latitude: latitude,
+      Api.longitude: longitude,
+      Api.radius: radius,
+    }..removeWhere((key, value) => value == null);
+
     try {
       final response = await Api.get(
         url: Api.apiGetPropertyList,
@@ -132,15 +124,21 @@ class PropertyRepository {
   ///fetch advertised properties
   Future<DataOutput<PropertyModel>> fetchPromotedProperty({
     required int offset,
+    required String latitude,
+    required String longitude,
+    required String radius,
     required bool sendCityName,
   }) async {
     ///
     final parameters = <String, dynamic>{
-      Api.promoted: true,
+      Api.promoted: 1,
       Api.offset: offset,
       Api.limit: Constant.loadLimit,
       'current_user': HiveUtils.getUserId(),
-    };
+      Api.latitude: latitude,
+      Api.longitude: longitude,
+      Api.radius: radius,
+    }..removeWhere((key, value) => value == null);
 
     final response = await Api.get(
       url: Api.apiGetPropertyList,
@@ -160,6 +158,9 @@ class PropertyRepository {
 
   Future<DataOutput<PropertyModel>> fetchNearByProperty({
     required int offset,
+    required String latitude,
+    required String longitude,
+    required String radius,
   }) async {
     try {
       if (HiveUtils.getCityName() == null ||
@@ -179,7 +180,10 @@ class PropertyRepository {
           Api.offset: offset,
           'limit': Constant.loadLimit,
           'current_user': HiveUtils.getUserId(),
-        },
+          Api.latitude: latitude,
+          Api.longitude: longitude,
+          Api.radius: radius,
+        }..removeWhere((key, value) => value == null),
       );
 
       final dataList = (result['data'] as List).map((e) {
@@ -199,6 +203,9 @@ class PropertyRepository {
 
   Future<DataOutput<PropertyModel>> fetchMostLikeProperty({
     required int offset,
+    required String latitude,
+    required String longitude,
+    required String radius,
     required bool sendCityName,
   }) async {
     final parameters = <String, dynamic>{
@@ -206,7 +213,10 @@ class PropertyRepository {
       'limit': Constant.loadLimit,
       'offset': offset,
       'current_user': HiveUtils.getUserId(),
-    };
+      Api.latitude: latitude,
+      Api.longitude: longitude,
+      Api.radius: radius,
+    }..removeWhere((key, value) => value == null);
     if (sendCityName) {}
     final response = await Api.get(
       url: Api.apiGetPropertyList,
@@ -264,7 +274,7 @@ class PropertyRepository {
       Api.limit: Constant.loadLimit,
       'current_user': HiveUtils.getUserId(),
       ...filter?.getFilter().cast<String, dynamic>() ?? <String, dynamic>{},
-    };
+    }..removeWhere((key, value) => value == null);
 
     final response = await Api.get(
       url: Api.apiGetPropertyList,
@@ -349,7 +359,7 @@ class PropertyRepository {
       Api.limit: Constant.loadLimit,
       'current_user': HiveUtils.getUserId(),
       ...filter?.getFilter().cast<String, dynamic>() ?? <String, dynamic>{},
-    };
+    }..removeWhere((key, value) => value == null);
 
     final response = await Api.get(
       url: Api.apiGetPropertyList,
@@ -366,16 +376,9 @@ class PropertyRepository {
     );
   }
 
-  Future<void> setProeprtyView(String propertyId) async {
-    await Api.post(
-      url: Api.setPropertyView,
-      parameter: {Api.propertyId: propertyId},
-    );
-  }
-
   Future<dynamic> updatePropertyStatus({
-    required dynamic propertyId,
-    required dynamic status,
+    required propertyId,
+    required status,
   }) async {
     await Api.post(
       url: Api.updatePropertyStatus,
@@ -394,7 +397,7 @@ class PropertyRepository {
         Api.limit: Constant.loadLimit,
         Api.offset: offset,
         'current_user': HiveUtils.getUserId(),
-      },
+      }..removeWhere((key, value) => value == null),
     );
 
     final modelList = (response['data'] as List)
@@ -409,14 +412,21 @@ class PropertyRepository {
 
   Future<DataOutput<PropertyModel>> fetchAllProperties({
     required int offset,
+    required String latitude,
+    required String longitude,
+    required String radius,
   }) async {
+    final parameters = <String, dynamic>{
+      Api.limit: Constant.loadLimit,
+      Api.offset: offset,
+      Api.latitude: latitude,
+      Api.longitude: longitude,
+      Api.radius: radius,
+    }..removeWhere((key, value) => value == null);
     try {
       final response = await Api.get(
         url: Api.apiGetPropertyList,
-        queryParameters: {
-          Api.limit: Constant.loadLimit,
-          Api.offset: offset,
-        },
+        queryParameters: parameters,
       );
 
       final modelList = (response['data'] as List)
@@ -465,6 +475,81 @@ class PropertyRepository {
     }
 
     // Handle cases where data is null or in an unexpected format
-    throw Exception("Invalid data format received");
+    throw Exception('Invalid data format received');
+  }
+
+  Future<DataOutput<PropertyModel>> fetchSimilarProperty({
+    required int propertyId,
+  }) async {
+    final parameters = <String, dynamic>{
+      Api.propertyId: propertyId,
+    };
+    final response = await Api.get(
+      url: Api.getAllSimilarProperties,
+      queryParameters: parameters,
+    );
+    final modelList = (response['data'] as List)
+        .cast<Map<String, dynamic>>()
+        .map<PropertyModel>(PropertyModel.fromMap)
+        .toList();
+    return DataOutput(
+      total: int.parse(response['total']?.toString() ?? '0'),
+      modelList: modelList,
+    );
+  }
+
+  Future<ComparePropertyModel> compareProperties({
+    required int sourcePropertyId,
+    required int targetPropertyId,
+  }) async {
+    try {
+      final parameters = <String, dynamic>{
+        'source_property_id': sourcePropertyId,
+        'target_property_id': targetPropertyId,
+      };
+      final response = await Api.get(
+        url: Api.compareProperties,
+        queryParameters: parameters,
+      );
+      final result = ComparePropertyModel.fromJson(
+        response['data'] as Map<String, dynamic>? ?? {},
+      );
+      return result;
+    } catch (e, st) {
+      log('Error is $e $st');
+      return ComparePropertyModel();
+    }
+  }
+
+  Future<DataOutput<PropertyModel>> fetchPremiumProperty({
+    required int offset,
+    required String latitude,
+    required String longitude,
+    required String radius,
+  }) async {
+    final parameters = <String, dynamic>{
+      'get_all_premium_properties': 1,
+      Api.offset: offset,
+      Api.limit: Constant.loadLimit,
+      'current_user': HiveUtils.getUserId(),
+      Api.latitude: latitude,
+      Api.longitude: longitude,
+      Api.radius: radius,
+    }..removeWhere((key, value) => value == null);
+
+    final response = await Api.get(
+      url: Api.apiGetPropertyList,
+      queryParameters: parameters,
+    );
+
+    final modelList = (response['data'] as List)
+        .cast<Map<String, dynamic>>()
+        .map<PropertyModel>(PropertyModel.fromMap)
+        .toList();
+
+    return DataOutput(
+      total: int.parse(response['total']?.toString() ?? '0'),
+      modelList: modelList,
+    );
   }
 }

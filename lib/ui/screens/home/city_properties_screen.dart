@@ -1,6 +1,7 @@
 import 'package:ebroker/data/cubits/property/fetch_city_property_list.dart';
 import 'package:ebroker/data/helper/filter.dart';
 import 'package:ebroker/exports/main_export.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 
 class CityPropertiesScreen extends StatefulWidget {
@@ -59,8 +60,7 @@ class _CityPropertiesScreenState extends State<CityPropertiesScreen> {
       ),
       body: BlocBuilder<FetchCityPropertyList, FetchCityPropertyListState>(
         builder: (context, state) {
-          return RefreshIndicator(
-            color: context.color.tertiaryColor,
+          return CustomRefreshIndicator(
             onRefresh: () async {
               await context.read<FetchCityPropertyList>().fetch(
                     cityName: widget.cityName,
@@ -74,19 +74,7 @@ class _CityPropertiesScreenState extends State<CityPropertiesScreen> {
                   padding: const EdgeInsets.all(16),
                   sliver: state is FetchCityPropertyInProgress
                       ? SliverToBoxAdapter(
-                          child: Column(
-                            children: List.generate(
-                              15,
-                              (index) => CustomShimmer(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.15,
-                                width: MediaQuery.of(context).size.width,
-                                borderRadius: 15,
-                                margin: const EdgeInsetsDirectional.only(
-                                    bottom: 10),
-                              ),
-                            ),
-                          ),
+                          child: UiUtils.buildHorizontalShimmer(),
                         )
                       : state is FetchCityPropertyFail
                           ? const SliverToBoxAdapter(

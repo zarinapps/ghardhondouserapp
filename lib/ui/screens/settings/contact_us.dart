@@ -11,8 +11,8 @@ class ContactUs extends StatefulWidget {
   @override
   ContactUsState createState() => ContactUsState();
 
-  static Route route(RouteSettings routeSettings) {
-    return BlurredRouter(builder: (_) => const ContactUs());
+  static Route<dynamic> route(RouteSettings routeSettings) {
+    return CupertinoPageRoute(builder: (_) => const ContactUs());
   }
 }
 
@@ -47,8 +47,8 @@ class ContactUsState extends State<ContactUs> {
       body: BlocBuilder<CompanyCubit, CompanyState>(
         builder: (context, state) {
           if (state is CompanyFetchProgress) {
-            return const Center(
-              child: CircularProgressIndicator(),
+            return Center(
+              child: UiUtils.progress(),
             );
           } else if (state is CompanyFetchSuccess) {
             return Padding(
@@ -82,7 +82,7 @@ class ContactUsState extends State<ContactUs> {
 
                       await UiUtils.showBlurredDialoge(
                         context,
-                        dialoge: BlurredDialogBox(
+                        dialog: BlurredDialogBox(
                           title: 'chooseNumber'.translate(context),
                           showCancleButton: false,
                           barrierDismissable: true,
@@ -120,7 +120,7 @@ class ContactUsState extends State<ContactUs> {
                   ),
                   customTile(
                     context,
-                    title: UiUtils.translate(context, 'companyEmailLbl'),
+                    title: UiUtils.translate(context, 'email'),
                     onTap: () {
                       final email = state.companyData.companyEmail;
                       showEmailDialoge(email);
@@ -143,12 +143,10 @@ class ContactUsState extends State<ContactUs> {
     );
   }
 
-  showEmailDialoge(email) {
-    Navigator.push(
-      context,
-      BlurredRouter(
-        builder: (context) => EmailSendWidget(email: email?.toString() ?? ''),
-      ),
+  void showEmailDialoge(dynamic email) {
+    showDialog<dynamic>(
+      context: context,
+      builder: (context) => EmailSendWidget(email: email?.toString() ?? ''),
     );
   }
 
@@ -158,7 +156,7 @@ class ContactUsState extends State<ContactUs> {
     required String svgImagePath,
     required VoidCallback onTap,
     bool? isSwitchBox,
-    Function(dynamic value)? onTapSwitch,
+    dynamic Function(dynamic value)? onTapSwitch,
     dynamic switchValue,
   }) {
     return GestureDetector(
@@ -209,6 +207,7 @@ class ContactUsState extends State<ContactUs> {
                   height: 15,
                   child: UiUtils.getSvg(
                     AppIcons.arrowRight,
+                    matchTextDirection: true,
                     color: context.color.textColorDark,
                   ),
                 ),

@@ -113,7 +113,7 @@ class NativeAdInjector {
   int _totalInjected = 0;
   int total = 0;
   AdConditions? _adConditions;
-  call(Function(AdConditions conditions) builder) {
+  void call(Function(AdConditions conditions) builder) {
     final adConditions = AdConditions();
     builder.call(adConditions);
     _adConditions = adConditions;

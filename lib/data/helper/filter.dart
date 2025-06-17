@@ -1,6 +1,6 @@
 import 'package:ebroker/utils/Extensions/lib/map.dart';
 
-abstract class Filter {
+sealed class Filter {
   Map<String, dynamic> filter();
 }
 
@@ -31,8 +31,8 @@ class MinMaxBudget extends Filter {
   }
 }
 
-class facilitiesFilter extends Filter {
-  facilitiesFilter(this.facilities);
+class FacilitiesFilter extends Filter {
+  FacilitiesFilter(this.facilities);
   final List<int>? facilities;
 
   @override
@@ -113,8 +113,26 @@ class FilterApply {
   }
 
   ///This will be used to compare filters
-  T check<T>() {
-    return _filters.whereType<T>().first;
+  T check<T extends Filter>() {
+    final filteredList = _filters.whereType<T>();
+    if (filteredList.isEmpty) {
+      if (T == PropertyTypeFilter) {
+        return PropertyTypeFilter('') as T;
+      } else if (T == PostedSince) {
+        return PostedSince(PostedSinceDuration.anytime) as T;
+      } else if (T == MinMaxBudget) {
+        return MinMaxBudget(min: '', max: '') as T;
+      } else if (T == CategoryFilter) {
+        return CategoryFilter(null) as T;
+      } else if (T == LocationFilter) {
+        return LocationFilter() as T;
+      } else if (T == FacilitiesFilter) {
+        return FacilitiesFilter([]) as T;
+      }
+      // Add other filter types as needed
+      throw StateError('No filter of type $T found');
+    }
+    return filteredList.first;
   }
 
   ////It will return data in Map format of combined filters so we can send it in API

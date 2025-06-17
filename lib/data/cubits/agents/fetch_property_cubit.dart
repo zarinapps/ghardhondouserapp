@@ -52,7 +52,7 @@ class FetchAgentsPropertyCubit extends Cubit<FetchAgentsPropertyState> {
   final AgentsRepository customerRepository = AgentsRepository();
 
   Future<void> fetchAgentsProperty({
-    required int agentId,
+    required String agentId,
     required bool forceRefresh,
     required bool isAdmin,
   }) async {
@@ -99,7 +99,8 @@ class FetchAgentsPropertyCubit extends Cubit<FetchAgentsPropertyState> {
           agentId: (state as FetchAgentsPropertySuccess)
               .agentsProperty
               .customerData
-              .id,
+              .id
+              .toString(),
           offset: (state as FetchAgentsPropertySuccess)
               .agentsProperty
               .propertiesData

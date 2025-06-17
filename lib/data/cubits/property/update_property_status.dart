@@ -24,8 +24,8 @@ class UpdatePropertyStatusCubit extends Cubit<UpdatePropertyStatusState> {
   final PropertyRepository _propertyRepository = PropertyRepository();
 
   Future<void> update({
-    required dynamic propertyId,
-    required dynamic status,
+    required propertyId,
+    required status,
   }) async {
     try {
       emit(UpdatePropertyStatusInProgress());

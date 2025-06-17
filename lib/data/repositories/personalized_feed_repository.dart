@@ -40,7 +40,7 @@ class PersonalizedFeedRepository {
 
     try {
       personalizedInterestSettings = PersonalizedInterestSettings.fromMap(
-          result['data'] as Map<String, dynamic>? ?? {});
+          result['data'] as Map<String, dynamic>? ?? {},);
     } catch (e) {
       // TODO(R): handle error
     }
@@ -92,6 +92,7 @@ class PersonalizedFeedRepository {
   }) async {
     final response = await Api.get(
       url: Api.getUserRecommendation,
+      useAuthToken: true,
       queryParameters: {
         Api.offset: offset,
         Api.limit: Constant.loadLimit,
@@ -103,6 +104,6 @@ class PersonalizedFeedRepository {
         .map<PropertyModel>(PropertyModel.fromMap)
         .toList();
     return DataOutput(
-        total: response['total'] as int? ?? 0, modelList: modelList);
+        total: response['total'] as int? ?? 0, modelList: modelList,);
   }
 }

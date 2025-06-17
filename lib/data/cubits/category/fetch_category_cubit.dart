@@ -2,7 +2,7 @@
 
 import 'package:ebroker/data/model/category.dart';
 import 'package:ebroker/data/repositories/category_repository.dart';
-import 'package:ebroker/utils/Network/cacheManger.dart';
+import 'package:ebroker/utils/Network/cache_manger.dart';
 import 'package:ebroker/utils/helper_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -76,8 +76,8 @@ class FetchCategoryCubit extends Cubit<FetchCategoryState> {
   }) async {
     try {
       await CacheData().getData<FetchCategorySuccess>(
-        forceRefresh: forceRefresh == true,
-        delay: loadWithoutDelay == true ? 0 : null,
+        forceRefresh: forceRefresh ?? false,
+        delay: loadWithoutDelay ?? false ? 0 : null,
         onProgress: () {
           emit(FetchCategoryInProgress());
         },
@@ -113,6 +113,12 @@ class FetchCategoryCubit extends Cubit<FetchCategoryState> {
 
   Future<Category> get(int id) async {
     try {
+      if (state is FetchCategorySuccess) {
+        final category = (state as FetchCategorySuccess).categories.firstWhere(
+          (element) => element.id == id,
+        );
+        return category;
+      }
       final dataOutput = await _categoryRepository.fetchCategories(
         offset: 0,
         id: id,
@@ -160,8 +166,10 @@ class FetchCategoryCubit extends Cubit<FetchCategoryState> {
       }
     } catch (e) {
       emit(
-        (state as FetchCategorySuccess)
-            .copyWith(isLoadingMore: false, hasError: true),
+        (state as FetchCategorySuccess).copyWith(
+          isLoadingMore: false,
+          hasError: true,
+        ),
       );
     }
   }

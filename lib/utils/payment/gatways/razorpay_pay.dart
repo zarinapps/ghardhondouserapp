@@ -4,7 +4,6 @@ import 'package:ebroker/data/model/subscription_pacakage_model.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/utils/payment/lib/payment.dart';
 import 'package:ebroker/utils/payment/lib/purchase_package.dart';
-import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class RazorpayPay extends Payment {
@@ -32,8 +31,6 @@ class RazorpayPay extends Payment {
         },
       );
 
-      print('Response for create payment intent is $response');
-
       if (response['error'] == false) {
         // Extract the required data from the API response
         orderId = response['data']['payment_intent']['id']?.toString();
@@ -60,14 +57,13 @@ class RazorpayPay extends Payment {
 
   Future<void> paymentTransactionFail() async {
     try {
-      final response = await Api.post(
+      await Api.post(
         url: Api.paymentTransactionFail,
         useAuthToken: true,
         parameter: {
           'payment_transaction_id': paymentTransactionID,
         },
       );
-      print('paymentTransactionFail $response');
     } catch (e) {
       log('Failed to cancel payment transaction: $e');
     }

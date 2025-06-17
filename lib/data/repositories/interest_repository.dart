@@ -24,6 +24,7 @@ class InterestRepository {
   }) async {
     try {
       final response = await Api.get(
+        useAuthToken: true,
         url: Api.getInterestedUsers,
         queryParameters: {
           'property_id': propertyId,
@@ -41,8 +42,8 @@ class InterestRepository {
         total: response['total'] as int? ?? 0,
         modelList: interestedUserList,
       );
-    } catch (e) {
-      rethrow;
+    } catch (_) {
+      return DataOutput(total: 0, modelList: []);
     }
   }
 }

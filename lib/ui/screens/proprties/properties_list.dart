@@ -2,8 +2,8 @@ import 'dart:developer';
 
 import 'package:ebroker/data/helper/filter.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/utils/AdMob/bannerAdLoadWidget.dart';
-import 'package:ebroker/utils/AdMob/interstitialAdManager.dart';
+import 'package:ebroker/utils/admob/banner_ad_load_widget.dart';
+import 'package:ebroker/utils/admob/interstitial_ad_manager.dart';
 import 'package:flutter/material.dart';
 
 class PropertiesList extends StatefulWidget {
@@ -15,7 +15,7 @@ class PropertiesList extends StatefulWidget {
   PropertiesListState createState() => PropertiesListState();
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map?;
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => PropertiesList(
         categoryId: arguments?['catID'].toString(),
         categoryName: arguments?['catName'].toString() ?? '',
@@ -131,14 +131,7 @@ class PropertiesListState extends State<PropertiesList> {
             FetchPropertyFromCategoryState>(
           builder: (context, state) {
             if (state is FetchPropertyFromCategoryInProgress) {
-              return ListView.builder(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                itemCount: 10,
-                itemBuilder: (context, index) {
-                  return buildPropertiesShimmer(context);
-                },
-              );
+              return UiUtils.buildHorizontalShimmer();
             }
 
             if (state is FetchPropertyFromCategoryFailure) {
@@ -197,57 +190,6 @@ class PropertiesListState extends State<PropertiesList> {
             }
             return Container();
           },
-        ),
-      ),
-    );
-  }
-
-  Widget buildPropertiesShimmer(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Container(
-        height: 120.rh(context),
-        decoration: BoxDecoration(
-          border: Border.all(width: 1.5, color: context.color.borderColor),
-          color: context.color.secondaryColor,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            CustomShimmer(
-              height: 120.rh(context),
-              width: 100.rw(context),
-            ),
-            SizedBox(
-              width: 10.rw(context),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                CustomShimmer(
-                  width: 100.rw(context),
-                  height: 10,
-                  borderRadius: 7,
-                ),
-                CustomShimmer(
-                  width: 150.rw(context),
-                  height: 10,
-                  borderRadius: 7,
-                ),
-                CustomShimmer(
-                  width: 120.rw(context),
-                  height: 10,
-                  borderRadius: 7,
-                ),
-                CustomShimmer(
-                  width: 80.rw(context),
-                  height: 10,
-                  borderRadius: 7,
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

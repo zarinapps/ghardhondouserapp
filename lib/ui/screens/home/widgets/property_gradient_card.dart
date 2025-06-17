@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:ebroker/app/routes.dart';
 import 'package:ebroker/data/helper/widgets.dart';
 import 'package:ebroker/data/model/property_model.dart';
+import 'package:ebroker/data/repositories/check_package.dart';
 import 'package:ebroker/data/repositories/property_repository.dart';
+import 'package:ebroker/ui/screens/widgets/blurred_dialoge_box.dart';
 import 'package:ebroker/ui/screens/widgets/promoted_widget.dart';
 import 'package:ebroker/utils/AppIcon.dart';
 import 'package:ebroker/utils/Extensions/extensions.dart';
 import 'package:ebroker/utils/constant.dart';
 import 'package:ebroker/utils/extensions/lib/custom_text.dart';
+import 'package:ebroker/utils/guest_checker.dart';
 import 'package:ebroker/utils/helper_utils.dart';
 import 'package:ebroker/utils/hive_utils.dart';
 import 'package:ebroker/utils/string_extenstion.dart';
@@ -59,32 +62,61 @@ class _PropertyGradiendCardState extends State<PropertyGradiendCard> {
 
   @override
   Widget build(BuildContext context) {
+    final property = widget.model;
+    final isPremium = property.allPropData['is_premium'] as bool? ?? false;
+    final isAddedByMe = property.addedBy.toString() == HiveUtils.getUserId();
     return GestureDetector(
       onTap: () async {
         try {
-          unawaited(Widgets.showLoader(context));
-          final fetch = PropertyRepository();
-          final dataOutput = await fetch.fetchPropertyFromPropertyId(
-            id: widget.model.id!,
-            isMyProperty:
-                widget.model.addedBy.toString() == HiveUtils.getUserId(),
-          );
-          Future.delayed(
-            Duration.zero,
-            () {
-              Widgets.hideLoder(context);
-              HelperUtils.goToNextPage(
-                Routes.propertyDetails,
-                context,
-                false,
-                args: {
-                  'propertyData': dataOutput,
-                  'fromMyProperty': false,
-                },
-              );
-            },
-          );
+          if (isPremium) {
+            await GuestChecker.check(
+              onNotGuest: () async {
+                unawaited(Widgets.showLoader(context));
+
+                if (isAddedByMe) {
+                  await _navigateToPropertyDetails(
+                    context,
+                    property.id!,
+                    isAddedByMe,
+                  );
+                } else {
+                  final checkPackage = CheckPackage();
+                  final packageAvailable =
+                      await checkPackage.checkPackageAvailable(
+                    packageType: PackageType.premiumProperties,
+                  );
+                  if (packageAvailable) {
+                    await _navigateToPropertyDetails(
+                      context,
+                      property.id!,
+                      isAddedByMe,
+                    );
+                  } else {
+                    Widgets.hideLoder(context);
+
+                    await UiUtils.showBlurredDialoge(
+                      context,
+                      dialog: const BlurredSubscriptionDialogBox(
+                        packageType: SubscriptionPackageType.premiumProperties,
+                        isAcceptContainesPush: true,
+                      ),
+                    );
+                  }
+                }
+              },
+            );
+          } else {
+            unawaited(Widgets.showLoader(context));
+
+            await _navigateToPropertyDetails(
+              context,
+              property.id!,
+              isAddedByMe,
+            );
+          }
         } catch (e) {
+          // Error handled in the finally block
+        } finally {
           Widgets.hideLoder(context);
         }
       },
@@ -144,7 +176,7 @@ class _PropertyGradiendCardState extends State<PropertyGradiendCard> {
                             child: Row(
                               children: [
                                 Container(
-                                  height: 19,
+                                  height: 24,
                                   decoration: BoxDecoration(
                                     color: secondaryColorDark.withValues(
                                       alpha: 0.9,
@@ -171,7 +203,6 @@ class _PropertyGradiendCardState extends State<PropertyGradiendCard> {
                                 ),
                                 if (propertie.promoted ?? false)
                                   Container(
-                                    height: 19,
                                     decoration: BoxDecoration(
                                       color: context.color.tertiaryColor,
                                       borderRadius: BorderRadius.circular(4),
@@ -315,6 +346,34 @@ class _PropertyGradiendCardState extends State<PropertyGradiendCard> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _navigateToPropertyDetails(
+    BuildContext context,
+    int propertyId,
+    bool isMyProperty,
+  ) async {
+    final fetch = PropertyRepository();
+    final dataOutput = await fetch.fetchPropertyFromPropertyId(
+      id: propertyId,
+      isMyProperty: isMyProperty,
+    );
+
+    Widgets.hideLoder(context);
+
+    Future.delayed(
+      Duration.zero,
+      () {
+        HelperUtils.goToNextPage(
+          Routes.propertyDetails,
+          context,
+          false,
+          args: {
+            'propertyData': dataOutput,
+          },
+        );
+      },
     );
   }
 }

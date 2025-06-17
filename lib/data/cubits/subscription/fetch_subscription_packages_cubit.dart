@@ -68,9 +68,8 @@ class FetchSubscriptionPackagesCubit
           hasError: false,
         ),
       );
-    } catch (e, st) {
+    } catch (e) {
       emit(FetchSubscriptionPackagesFailure(e));
-      print(st);
     }
   }
 

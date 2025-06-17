@@ -2,9 +2,9 @@
 
 import 'package:ebroker/data/model/property_model.dart';
 import 'package:ebroker/data/repositories/property_repository.dart';
-import 'package:ebroker/settings.dart';
-import 'package:ebroker/ui/screens/proprties/viewAll.dart';
-import 'package:ebroker/utils/Network/networkAvailability.dart';
+import 'package:ebroker/ui/screens/proprties/view_all.dart';
+import 'package:ebroker/utils/hive_utils.dart';
+import 'package:ebroker/utils/network/network_availability.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class FetchNearbyPropertiesState {}
@@ -80,26 +80,13 @@ class FetchNearbyPropertiesCubit extends Cubit<FetchNearbyPropertiesState>
     bool? forceRefresh,
     bool? loadWithoutDelay,
   }) async {
-    if (forceRefresh != true) {
-      if (state is FetchNearbyPropertiesSuccess) {
-        await Future.delayed(
-          Duration(
-            seconds: loadWithoutDelay == true
-                ? 0
-                : AppSettings.hiddenAPIProcessDelay,
-          ),
-        );
-      } else {
-        emit(FetchNearbyPropertiesInProgress());
-      }
-    } else {
-      emit(FetchNearbyPropertiesInProgress());
-    }
-
     try {
-      if (forceRefresh == true) {
+      if (forceRefresh ?? false) {
         final result = await _propertyRepository.fetchNearByProperty(
           offset: 0,
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
         );
         emit(
           FetchNearbyPropertiesSuccess(
@@ -114,6 +101,9 @@ class FetchNearbyPropertiesCubit extends Cubit<FetchNearbyPropertiesState>
         if (state is! FetchNearbyPropertiesSuccess) {
           final result = await _propertyRepository.fetchNearByProperty(
             offset: 0,
+            latitude: HiveUtils.getLatitude().toString(),
+            longitude: HiveUtils.getLongitude().toString(),
+            radius: HiveUtils.getRadius().toString(),
           );
           emit(
             FetchNearbyPropertiesSuccess(
@@ -129,6 +119,9 @@ class FetchNearbyPropertiesCubit extends Cubit<FetchNearbyPropertiesState>
             onInternet: () async {
               final result = await _propertyRepository.fetchNearByProperty(
                 offset: 0,
+                latitude: HiveUtils.getLatitude().toString(),
+                longitude: HiveUtils.getLongitude().toString(),
+                radius: HiveUtils.getRadius().toString(),
               );
               emit(
                 FetchNearbyPropertiesSuccess(
@@ -191,6 +184,10 @@ class FetchNearbyPropertiesCubit extends Cubit<FetchNearbyPropertiesState>
         );
         final result = await _propertyRepository.fetchNearByProperty(
           offset: (state as FetchNearbyPropertiesSuccess).properties.length,
+
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
 
           // sendCityName: true
         );

@@ -8,7 +8,7 @@ import 'package:ebroker/data/helper/custom_exception.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_native_image/flutter_native_image.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_sim_country_code/flutter_sim_country_code.dart';
 import 'package:http/http.dart';
 import 'package:open_filex/open_filex.dart';
@@ -72,7 +72,7 @@ class HelperUtils {
     }
   }
 
-  static Map<dynamic, Type> runtimeValueLog(Map map) {
+  static Map<dynamic, Type> runtimeValueLog(Map<dynamic, dynamic> map) {
     return map.map((key, value) => MapEntry(key, value.runtimeType));
   }
 
@@ -152,7 +152,7 @@ class HelperUtils {
   }
 
   static String nativeDeepLinkUrlOfProperty(String slug) {
-    return 'https://${AppSettings.shareNavigationWebUrl}/properties-details/$slug/';
+    return 'https://${AppSettings.shareNavigationWebUrl}/properties-details/$slug?share=true';
   }
 
   static Future<void> share(
@@ -173,18 +173,16 @@ class HelperUtils {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(
-                Icons.copy,
-                color: context.color.inverseSurface,
-              ),
+              leading: Icon(Icons.copy, color: context.color.inverseSurface),
               title: CustomText('copylink'.translate(context)),
               onTap: () async {
                 var deepLink = '';
                 if (AppSettings.deepLinkingType == DeepLinkType.native) {
                   deepLink = nativeDeepLinkUrlOfProperty(slugId);
-                } else {
-                  deepLink = DeepLinkManager.buildAppLink(propertyId);
                 }
+                // else {
+                //   deepLink = DeepLinkManager.buildAppLink(propertyId);
+                // }
 
                 await Clipboard.setData(ClipboardData(text: deepLink));
 
@@ -198,19 +196,17 @@ class HelperUtils {
               },
             ),
             ListTile(
-              leading: Icon(
-                Icons.share,
-                color: context.color.inverseSurface,
-              ),
+              leading: Icon(Icons.share, color: context.color.inverseSurface),
               title: CustomText('share'.translate(context)),
               onTap: () async {
                 var deepLink = '';
 
                 if (AppSettings.deepLinkingType == DeepLinkType.native) {
                   deepLink = nativeDeepLinkUrlOfProperty(slugId);
-                } else {
-                  deepLink = DeepLinkManager.buildAppLink(propertyId);
                 }
+                // else {
+                //   deepLink = DeepLinkManager.buildAppLink(propertyId);
+                // }
 
                 final text =
                     '${'sharePropertyDescription'.translate(context)}\n$deepLink';
@@ -258,16 +254,21 @@ class HelperUtils {
     MessageType? type,
     bool? isFloating,
     VoidCallback? onClose,
+    EdgeInsets? margin,
+    TextAlign? textAlign,
   }) async {
     final snackBar = ScaffoldMessenger.of(context!).showSnackBar(
       SnackBar(
         content: CustomText(
           message,
+          maxLines: 3,
+          textAlign: textAlign,
           color: context.color.buttonColor,
         ),
         behavior: (isFloating ?? false) ? SnackBarBehavior.floating : null,
         backgroundColor: type?.value ?? successMessageColor,
         duration: Duration(seconds: messageDuration),
+        margin: isFloating ?? false ? margin ?? EdgeInsets.zero : null,
       ),
     );
     final snackBarClosedReason = await snackBar.closed;
@@ -283,9 +284,7 @@ class HelperUtils {
     BuildContext context, {
     bool passUserid = true,
   }) async {
-    final headersData = <String, String>{
-      'accept': 'application/json',
-    };
+    final headersData = <String, String>{'accept': 'application/json'};
 
     final token = HiveUtils.getJWT().toString();
     if (token.trim().isNotEmpty) {
@@ -308,15 +307,9 @@ class HelperUtils {
           headers: headersData,
         );
       }
-      await Future.delayed(
-        Duration.zero,
-        () {
-          return getJsonResponse(
-            context,
-            response: response,
-          );
-        },
-      );
+      await Future.delayed(Duration.zero, () {
+        return getJsonResponse(context, response: response);
+      });
     } on SocketException {
       throw FetchDataException('noInternetErrorMsg'.translate(context));
     } on TimeoutException {
@@ -363,13 +356,9 @@ class HelperUtils {
           getdata = json.decode(response!.body) as Map;
         }
 
-        Future.delayed(
-          Duration.zero,
-          () {
-            showSnackBarMessage(
-                context, getdata[Api.message]?.toString() ?? '');
-          },
-        );
+        Future.delayed(Duration.zero, () {
+          showSnackBarMessage(context, getdata[Api.message]?.toString() ?? '');
+        });
         throw UnauthorisedException(getdata[Api.message]);
       case 403:
         throw UnauthorisedException(response!.body);
@@ -389,9 +378,13 @@ class HelperUtils {
   }
 
   static void killPreviousPages(
-      BuildContext context, String nextPage, Object args) {
-    Navigator.of(context)
-        .pushNamedAndRemoveUntil(nextPage, (route) => false, arguments: args);
+    BuildContext context,
+    String nextPage,
+    Object args,
+  ) {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(nextPage, (route) => false, arguments: args);
   }
 
   static void goToNextPage(
@@ -479,11 +472,12 @@ class HelperUtils {
 
   static Future<File?> compressImageFile(File file) async {
     try {
-      final compressedFile = await FlutterNativeImage.compressImage(
+      final compressedFile = await FlutterImageCompress.compressAndGetFile(
         file.path,
+        "${file.path}_compressed.${file.path.split('.').last}",
         quality: Constant.uploadImageQuality,
       );
-      return File(compressedFile.path);
+      return File(compressedFile?.path ?? '');
     } catch (e) {
       return null; //If any error occurs during compression, the process is stopped.
     }
@@ -501,10 +495,10 @@ extension StringCasingExtension on String {
   String toCapitalized() =>
       length > 0 ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
 
-  String toTitleCase() => replaceAll(RegExp(' +'), ' ')
-      .split(' ')
-      .map((str) => str.toCapitalized())
-      .join(' ');
+  String toTitleCase() => replaceAll(
+        RegExp(' +'),
+        ' ',
+      ).split(' ').map((str) => str.toCapitalized()).join(' ');
 }
 
 extension ListExtensions<T> on List<T> {

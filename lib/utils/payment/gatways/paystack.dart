@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'dart:developer';
 
 import 'package:ebroker/data/model/subscription_pacakage_model.dart';
@@ -25,7 +27,6 @@ class PaystackWidget extends StatefulWidget {
 class _PaystackWidgetState extends State<PaystackWidget> {
   WebViewController? controllerGlobal;
   bool _isLoading = true;
-  bool _canGoBack = false;
   String paymentTransactionID = '';
 
   @override
@@ -115,7 +116,6 @@ class _PaystackWidgetState extends State<PaystackWidget> {
         onUrlChange: (change) {
           final uri = Uri.parse(change.url ?? '');
 
-          print(uri);
           if (uri.host == Uri.parse(AppSettings.baseUrl).host) {
             try {
               if (uri.pathSegments.contains('success')) {
@@ -156,10 +156,8 @@ class _PaystackWidgetState extends State<PaystackWidget> {
 
   // New method to update back button status
   Future<void> _updateBackButtonStatus(WebViewController controller) async {
-    final canGoBack = await controller.canGoBack();
-    setState(() {
-      _canGoBack = canGoBack;
-    });
+    await controller.canGoBack();
+    setState(() {});
   }
 
   Future<String> createPaymentIntent(BuildContext context) async {
@@ -170,8 +168,6 @@ class _PaystackWidgetState extends State<PaystackWidget> {
         'package_id': widget.pacakge.id,
       },
     );
-
-    print('Response for create payment intent is $response');
 
     if (response['error'] == false) {
       final paymentIntent = response['data']['payment_intent'];
@@ -202,14 +198,13 @@ class _PaystackWidgetState extends State<PaystackWidget> {
 
   Future<void> paymentTransactionFail() async {
     try {
-      final response = await Api.post(
+      await Api.post(
         url: Api.paymentTransactionFail,
         useAuthToken: true,
         parameter: {
           'payment_transaction_id': paymentTransactionID,
         },
       );
-      print('paymentTransactionFail $response');
     } catch (e) {
       log('Failed to cancel payment transaction: $e');
     }

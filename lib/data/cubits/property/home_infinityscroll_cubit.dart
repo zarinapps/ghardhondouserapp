@@ -65,6 +65,9 @@ class HomePageInfinityScrollCubit extends Cubit<HomePageInfinityScrollState> {
       emit(HomePageInfinityScrollInProgress());
       final dataOutput = await propertyRepository.fetchAllProperties(
         offset: 0,
+        latitude: HiveUtils.getLatitude().toString(),
+        longitude: HiveUtils.getLongitude().toString(),
+        radius: HiveUtils.getRadius().toString(),
       );
       // injector.wrapper(injectableList: properties);
       emit(
@@ -114,6 +117,9 @@ class HomePageInfinityScrollCubit extends Cubit<HomePageInfinityScrollState> {
               .properties
               .whereType<PropertyModel>()
               .length,
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
         );
 
         final currentState = state as HomePageInfinityScrollSuccess;

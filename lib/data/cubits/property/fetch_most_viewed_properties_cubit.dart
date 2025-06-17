@@ -3,8 +3,9 @@
 import 'package:ebroker/data/model/property_model.dart';
 import 'package:ebroker/data/repositories/property_repository.dart';
 import 'package:ebroker/settings.dart';
-import 'package:ebroker/ui/screens/proprties/viewAll.dart';
-import 'package:ebroker/utils/Network/networkAvailability.dart';
+import 'package:ebroker/ui/screens/proprties/view_all.dart';
+import 'package:ebroker/utils/hive_utils.dart';
+import 'package:ebroker/utils/network/network_availability.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 abstract class FetchMostViewedPropertiesState {}
@@ -78,7 +79,7 @@ class FetchMostViewedPropertiesCubit
   final PropertyRepository _propertyRepository = PropertyRepository();
 
   @override
-  fetch({
+  Future<void> fetch({
     bool? forceRefresh,
     bool? loadWithoutDelay,
   }) async {
@@ -88,9 +89,9 @@ class FetchMostViewedPropertiesCubit
     if (forceRefresh != true) {
       if (state is FetchMostViewedPropertiesSuccess) {
         // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        await Future.delayed(
+        await Future<dynamic>.delayed(
           Duration(
-            seconds: loadWithoutDelay == true
+            seconds: loadWithoutDelay ?? false
                 ? 0
                 : AppSettings.hiddenAPIProcessDelay,
           ),
@@ -103,10 +104,12 @@ class FetchMostViewedPropertiesCubit
       emit(FetchMostViewedPropertiesInProgress());
     }
     try {
-      if (forceRefresh == true) {
+      if (forceRefresh ?? false) {
         final result = await _propertyRepository.fetchMostViewedProperty(
           offset: 0,
-          sendCityName: true,
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
         );
 
         emit(
@@ -121,8 +124,10 @@ class FetchMostViewedPropertiesCubit
       } else {
         if (state is! FetchMostViewedPropertiesSuccess) {
           final result = await _propertyRepository.fetchMostViewedProperty(
+            latitude: HiveUtils.getLatitude().toString(),
+            longitude: HiveUtils.getLongitude().toString(),
+            radius: HiveUtils.getRadius().toString(),
             offset: 0,
-            sendCityName: true,
           );
 
           emit(
@@ -139,7 +144,9 @@ class FetchMostViewedPropertiesCubit
             onInternet: () async {
               final result = await _propertyRepository.fetchMostViewedProperty(
                 offset: 0,
-                sendCityName: true,
+                latitude: HiveUtils.getLatitude().toString(),
+                longitude: HiveUtils.getLongitude().toString(),
+                radius: HiveUtils.getRadius().toString(),
               );
 
               emit(
@@ -204,7 +211,9 @@ class FetchMostViewedPropertiesCubit
         );
         final result = await _propertyRepository.fetchMostViewedProperty(
           offset: (state as FetchMostViewedPropertiesSuccess).properties.length,
-          sendCityName: true,
+          latitude: HiveUtils.getLatitude().toString(),
+          longitude: HiveUtils.getLongitude().toString(),
+          radius: HiveUtils.getRadius().toString(),
         );
 
         final propertiesState = state as FetchMostViewedPropertiesSuccess;

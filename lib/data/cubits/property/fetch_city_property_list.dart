@@ -1,5 +1,5 @@
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/ui/screens/proprties/viewAll.dart';
+import 'package:ebroker/ui/screens/proprties/view_all.dart';
 
 abstract class FetchCityPropertyListState {}
 
@@ -80,7 +80,7 @@ class FetchCityPropertyList extends Cubit<FetchCityPropertyListState>
     if (forceRefresh != true) {
       if (state is FetchCityPropertySuccess) {
         // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        await Future.delayed(
+        await Future<dynamic>.delayed(
           const Duration(seconds: AppSettings.hiddenAPIProcessDelay),
         );
         // });

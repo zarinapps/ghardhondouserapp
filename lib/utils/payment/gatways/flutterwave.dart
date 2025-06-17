@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages, unawaited_futures
+
 import 'package:ebroker/data/cubits/subscription/flutterwave_cubit.dart';
 import 'package:ebroker/data/model/subscription_pacakage_model.dart';
 import 'package:ebroker/exports/main_export.dart';
@@ -41,12 +43,6 @@ class _FlutterwaveWidgetState extends State<FlutterwaveWidget> {
     try {
       // Safely read the cubit
       final flutterwaveCubit = context.read<FlutterwaveCubit>();
-
-      // Ensure package ID is not null
-      if (widget.pacakge.id == null) {
-        _handleInitializationError('Invalid package');
-        return;
-      }
 
       // Assign the package
       await flutterwaveCubit.assign(widget.pacakge.id);
@@ -96,9 +92,7 @@ class _FlutterwaveWidgetState extends State<FlutterwaveWidget> {
       params = const PlatformWebViewControllerCreationParams();
     }
 
-    final controller = WebViewController.fromPlatformCreationParams(params);
-
-    controller
+    final controller = WebViewController.fromPlatformCreationParams(params)
       ..enableZoom(false)
       ..loadRequest(
         Uri.parse(link),
@@ -137,8 +131,7 @@ class _FlutterwaveWidgetState extends State<FlutterwaveWidget> {
 
     if (uri.host == Uri.parse(AppSettings.baseUrl).host &&
         uri.pathSegments.contains('flutterwave-payment-status')) {
-      final success =
-          uri.toString().contains('status=successful') ? true : false;
+      final success = uri.toString().contains('status=successful');
       if (success) {
         widget.onSuccess?.call('Payment Successful');
         isPaymentGatewayOpen = false;

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 class LanguagesListScreen extends StatelessWidget {
   const LanguagesListScreen({super.key});
-  static Route route(RouteSettings settings) {
-    return BlurredRouter(
+  static Route<dynamic> route(RouteSettings settings) {
+    return CupertinoPageRoute(
       builder: (context) => const LanguagesListScreen(),
     );
   }

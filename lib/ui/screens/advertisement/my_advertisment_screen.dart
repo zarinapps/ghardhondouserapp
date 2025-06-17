@@ -5,12 +5,13 @@ import 'package:ebroker/data/model/advertisement_model.dart';
 import 'package:ebroker/data/repositories/advertisement_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
 import 'package:ebroker/ui/screens/home/widgets/advertisement_horizontal_card.dart';
+import 'package:ebroker/ui/screens/home/widgets/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 
 class MyAdvertisementScreen extends StatefulWidget {
   const MyAdvertisementScreen({super.key});
   static Route<dynamic> route(RouteSettings routeSettings) {
-    return BlurredRouter(
+    return CupertinoPageRoute(
       builder: (_) => const MyAdvertisementScreen(),
     );
   }
@@ -96,6 +97,7 @@ class _MyAdvertisementScreenState extends State<MyAdvertisementScreen>
         bottom: [
           TabBar(
             controller: _tabController,
+            dividerColor: Colors.transparent,
             padding: const EdgeInsets.symmetric(horizontal: 18),
             indicatorColor: context.color.tertiaryColor,
             labelColor: context.color.tertiaryColor,
@@ -118,8 +120,7 @@ class _MyAdvertisementScreenState extends State<MyAdvertisementScreen>
   }
 
   Widget _buildPropertiesTab() {
-    return RefreshIndicator(
-      color: context.color.tertiaryColor,
+    return CustomRefreshIndicator(
       onRefresh: () async {
         await context
             .read<FetchMyPromotedPropertysCubit>()
@@ -129,7 +130,7 @@ class _MyAdvertisementScreenState extends State<MyAdvertisementScreen>
           FetchMyPromotedPropertysState>(
         builder: (context, state) {
           if (state is FetchMyPromotedPropertysInProgress) {
-            return Center(child: UiUtils.progress());
+            return UiUtils.buildHorizontalShimmer();
           }
           if (state is FetchMyPromotedPropertysFailure) {
             return SingleChildScrollView(
@@ -150,7 +151,7 @@ class _MyAdvertisementScreenState extends State<MyAdvertisementScreen>
           if (state is FetchMyPromotedPropertysSuccess) {
             if (state.advertisement.isEmpty) {
               return NoDataFound(
-                title: 'noFeaturedAdsYes'.translate(context),
+                title: 'noFeaturedAdsYet'.translate(context),
                 description: 'noFeaturedDescription'.translate(context),
                 onTap: () {
                   context
@@ -189,8 +190,7 @@ class _MyAdvertisementScreenState extends State<MyAdvertisementScreen>
   }
 
   Widget _buildProjectsTab() {
-    return RefreshIndicator(
-      color: context.color.tertiaryColor,
+    return CustomRefreshIndicator(
       onRefresh: () async {
         await context
             .read<FetchMyPromotedProjectsCubit>()
@@ -200,7 +200,7 @@ class _MyAdvertisementScreenState extends State<MyAdvertisementScreen>
           FetchMyPromotedProjectsState>(
         builder: (context, state) {
           if (state is FetchMyPromotedProjectsInProgress) {
-            return Center(child: UiUtils.progress());
+            return UiUtils.buildHorizontalShimmer();
           }
           if (state is FetchMyPromotedProjectsFailure) {
             return SingleChildScrollView(
@@ -221,7 +221,7 @@ class _MyAdvertisementScreenState extends State<MyAdvertisementScreen>
           if (state is FetchMyPromotedProjectsSuccess) {
             if (state.advertisement.isEmpty) {
               return NoDataFound(
-                title: 'noFeaturedProjectsYet'.translate(context),
+                title: 'noFeaturedAdsYet'.translate(context),
                 description: 'noFeaturedProjectsDescription'.translate(context),
                 onTap: () {
                   context

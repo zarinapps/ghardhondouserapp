@@ -1,8 +1,8 @@
 import 'package:ebroker/data/model/system_settings_model.dart';
 import 'package:ebroker/data/repositories/system_repository.dart';
 import 'package:ebroker/exports/main_export.dart';
-import 'package:ebroker/utils/Network/cacheManger.dart';
 import 'package:ebroker/utils/encryption/rsa.dart';
+import 'package:ebroker/utils/network/cache_manger.dart';
 
 abstract class FetchSystemSettingsState {}
 
@@ -14,7 +14,7 @@ class FetchSystemSettingsSuccess extends FetchSystemSettingsState {
   FetchSystemSettingsSuccess({
     required this.settings,
   });
-  final Map settings;
+  final Map<dynamic, dynamic> settings;
 }
 
 class FetchSystemSettingsFailure extends FetchSystemSettingsState {
@@ -31,7 +31,7 @@ class FetchSystemSettingsCubit extends Cubit<FetchSystemSettingsState> {
   }) async {
     try {
       await CacheData().getData(
-        forceRefresh: forceRefresh == true,
+        forceRefresh: forceRefresh ?? false,
         delay: 0,
         onProgress: () {
           emit(FetchSystemSettingsInProgress());
@@ -89,9 +89,22 @@ class FetchSystemSettingsCubit extends Cubit<FetchSystemSettingsState> {
           if (selectedCurrencyData.isNotEmpty as bool? ?? false) {
             // AppSettings.currencyName = response['selected_currency_data']['name'];
             AppSettings.currencyCode =
-                response['selected_currency_data']['code'] as String? ?? '';
+                response['selected_currency_data']['code']?.toString() ?? '';
             AppSettings.currencySymbol =
-                response['selected_currency_data']['symbol'] as String? ?? '';
+                response['selected_currency_data']['symbol']?.toString() ?? '';
+            AppSettings.bankTransferDetails =
+                (response['bank_details'] as List?)
+                        ?.map((e) => e as Map<String, dynamic>)
+                        .toList() ??
+                    [];
+            AppSettings.minRadius =
+                response['min_radius_range']?.toString() ?? '';
+            AppSettings.maxRadius =
+                response['max_radius_range']?.toString() ?? '';
+            AppSettings.latitude =
+                response['latitude']?.toString() ?? '20.5937';
+            AppSettings.longitude =
+                response['longitude']?.toString() ?? '78.9629';
           }
           emit(FetchSystemSettingsSuccess(settings: data));
         },
